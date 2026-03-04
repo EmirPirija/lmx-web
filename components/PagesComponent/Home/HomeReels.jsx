@@ -516,6 +516,7 @@ const HomeReels = () => {
                         <UserAvatarMedia
                           sources={[sImg]}
                           verificationSource={s}
+                          showVerifiedBadge
                           alt={sName}
                           className="w-full h-full rounded-full"
                           roundedClassName="rounded-full"
@@ -1137,6 +1138,7 @@ const ReelCard = memo(
               <UserAvatarMedia
                 sources={[sellerImage]}
                 verificationSource={seller}
+                showVerifiedBadge
                 alt={sellerName}
                 className="w-full h-full rounded-full ring-1 ring-white/60"
                 roundedClassName="rounded-full"

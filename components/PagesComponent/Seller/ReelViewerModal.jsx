@@ -1129,6 +1129,7 @@ const ReelViewerModal = ({
                   <UserAvatarMedia
                     sources={[sImg]}
                     verificationSource={seller}
+                    showVerifiedBadge
                     alt={sName}
                     className="w-full h-full rounded-full bg-white"
                     roundedClassName="rounded-full"

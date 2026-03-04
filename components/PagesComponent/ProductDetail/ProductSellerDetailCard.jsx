@@ -509,6 +509,7 @@ const SendMessageModal = ({ open, onOpenChange, seller, settings, itemId }) => {
               <UserAvatarMedia
                 src={resolveSellerAvatar(seller)}
                 verificationSource={seller}
+                showVerifiedBadge
                 alt={sellerDisplayName || "Prodavač"}
                 className="w-8 h-8 rounded-lg"
                 roundedClassName="rounded-lg"
@@ -753,6 +754,8 @@ const ProductSellerDetailCard = ({
   itemPrice: itemPriceProp,
   acceptsOffers: acceptsOffersProp = false,
   enableOwnerReelControls = true,
+  showVerifiedAvatarBadge = false,
+  avatarVerified = null,
   disableContactActions = false,
   contactBlockedMessage = "",
   onOverlayStateChange = () => {},
@@ -1188,6 +1191,8 @@ const ProductSellerDetailCard = ({
                       <UserAvatarMedia
                         src={sellerAvatar}
                         verificationSource={seller}
+                        showVerifiedBadge={showVerifiedAvatarBadge}
+                        verified={avatarVerified}
                         alt={sellerDisplayName || "Prodavač"}
                         className="w-full h-full rounded-xl"
                         roundedClassName="rounded-xl"
@@ -1235,6 +1240,8 @@ const ProductSellerDetailCard = ({
                     <UserAvatarMedia
                       src={sellerAvatar}
                       verificationSource={seller}
+                      showVerifiedBadge={showVerifiedAvatarBadge}
+                      verified={avatarVerified}
                       alt={sellerDisplayName || "Prodavač"}
                       className="w-full h-full rounded-xl"
                       roundedClassName="rounded-xl"

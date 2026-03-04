@@ -1107,6 +1107,7 @@ const Search = ({
                                           seller?.avatar,
                                         ]}
               verificationSource={seller}
+                                        showVerifiedBadge
                                         alt={sellerName}
                                         className="h-full w-full"
                                         imageClassName="h-full w-full object-cover"
@@ -1308,6 +1309,7 @@ const Search = ({
                           <UserAvatarMedia
                             sources={[user.profile, user.profile_image, user.avatar]}
                             verificationSource={user}
+                            showVerifiedBadge
                             alt={user.name || "Korisnik"}
                             className="h-full w-full"
                             imageClassName="h-full w-full object-cover"

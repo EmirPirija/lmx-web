@@ -4,7 +4,6 @@ import { useMemo, useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { toast } from "@/utils/toastBs";
 import { motion, AnimatePresence } from "framer-motion";
-import { createPortal } from "react-dom";
 import { useSelector } from "react-redux";
 
 import { useNavigate } from "@/components/Common/useNavigate";
@@ -15,6 +14,8 @@ import { setIsLoginOpen } from "@/redux/reducer/globalStateSlice";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import StateSurface from "@/components/Common/StateSurface";
 
 import {
   Dialog,
@@ -250,92 +251,39 @@ const DesktopDropdown = ({
 // ═══════════════════════════════════════════════════════════════════
 
 const BottomSheet = ({ isOpen, onClose, title, children }) => {
-  const [isClient, setIsClient] = useState(false);
-  const openedAtRef = useRef(0);
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    openedAtRef.current =
-      typeof performance !== "undefined" ? performance.now() : Date.now();
-  }, [isOpen]);
-
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [isOpen]);
-
-  if (!isClient) return null;
-
-  const handleBackdropClick = () => {
-    const now = typeof performance !== "undefined" ? performance.now() : Date.now();
-    if (now - openedAtRef.current < 220) return;
-    onClose();
-  };
-
-  return createPortal(
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          {/* Backdrop */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.22 }}
-            className="fixed inset-0 z-[107] bg-slate-950/45 backdrop-blur-[3px] md:hidden"
-            onClick={handleBackdropClick}
-          />
-
-          {/* Sheet */}
-          <motion.div
-            initial={{ y: "100%" }}
-            animate={{ y: 0 }}
-            exit={{ y: "100%" }}
-            transition={{ type: "spring", damping: 31, stiffness: 320, mass: 0.92 }}
-            className="fixed bottom-0 left-0 right-0 z-[108] md:hidden"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="flex max-h-[88vh] flex-col rounded-t-[1.75rem] border border-slate-200 bg-white/95 shadow-2xl shadow-slate-900/20 backdrop-blur-xl dark:border-slate-700 dark:bg-slate-900/95 dark:shadow-black/45">
-              {/* Handle */}
-              <div className="flex justify-center pt-3 pb-2">
-                <div className="h-1 w-10 rounded-full bg-slate-300 dark:bg-slate-600" />
-              </div>
-
-              {/* Header */}
-              <div className="flex items-center justify-between border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-5 pb-3 dark:border-slate-800 dark:from-slate-900 dark:to-slate-900/90">
-                <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">{title}</h2>
-                <button
-                  onClick={onClose}
-                  className="-mr-2 rounded-full p-2 text-slate-500 transition-colors hover:bg-slate-100 active:bg-slate-200 dark:text-slate-300 dark:hover:bg-slate-800"
-                  aria-label="Zatvori modal"
-                >
-                  <IconX size={20} />
-                </button>
-              </div>
-
-              {/* Content */}
-              <div
-                className="flex-1 overflow-y-auto overscroll-contain px-5 py-4"
-                style={{ paddingBottom: "max(env(safe-area-inset-bottom), 1rem)" }}
-              >
-                {children}
-              </div>
+  return (
+    <div className="md:hidden">
+      <Sheet
+        open={isOpen}
+        onOpenChange={(open) => {
+          if (!open) onClose?.();
+        }}
+      >
+        <SheetContent
+          side="bottom"
+          className="h-[88dvh] w-full max-w-none rounded-t-[1.75rem] border-x-0 border-b-0 p-0 sm:max-w-none"
+        >
+          <div className="flex h-full flex-col bg-white/95 backdrop-blur-xl dark:bg-slate-900/95">
+            <div className="flex justify-center pt-3 pb-2">
+              <div className="h-1 w-10 rounded-full bg-slate-300 dark:bg-slate-600" />
             </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>,
-    document.body
+
+            <SheetHeader className="border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-5 pb-3 text-left dark:border-slate-800 dark:from-slate-900 dark:to-slate-900/90">
+              <SheetTitle className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                {title}
+              </SheetTitle>
+            </SheetHeader>
+
+            <div
+              className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4"
+              style={{ paddingBottom: "max(env(safe-area-inset-bottom), 1rem)" }}
+            >
+              {children}
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
+    </div>
   );
 };
 
@@ -529,26 +477,15 @@ const SkeletonCard = () => (
 // ═══════════════════════════════════════════════════════════════════
 
 const EmptyState = ({ onSave, canSave }) => (
-  <div className="text-center py-8">
-    <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-slate-100 to-slate-50 dark:from-slate-800 dark:to-slate-900">
-      <IconSparkles size={28} className="text-primary" />
-    </div>
-    <h3 className="mb-1 text-base font-semibold text-slate-900 dark:text-slate-100">
-      Nemaš sačuvanih pretraga
-    </h3>
-    <p className="mx-auto mb-4 max-w-[250px] text-sm text-slate-500 dark:text-slate-400">
-      Sačuvaj filtere koje koristiš često da brže pronađeš oglase
-    </p>
-    {canSave && (
-      <button
-        onClick={onSave}
-        className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-medium text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 hover:shadow-xl"
-      >
-        <IconStarFilled size={16} />
-        Sačuvaj trenutnu
-      </button>
-    )}
-  </div>
+  <StateSurface
+    variant="empty"
+    compact
+    className="min-h-[unset] border-slate-200/90 bg-white/90 py-6 dark:border-slate-700 dark:bg-slate-900/75"
+    title="Nemaš sačuvanih pretraga"
+    description="Sačuvaj filtere koje koristiš često da brže pronađeš oglase."
+    actionLabel={canSave ? "Sačuvaj trenutnu" : undefined}
+    onAction={canSave ? onSave : undefined}
+  />
 );
 
 // ═══════════════════════════════════════════════════════════════════

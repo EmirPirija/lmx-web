@@ -9,6 +9,11 @@ import {
   useControllableLayerState,
   useGlobalModalLayerLock,
 } from "@/components/ui/modal-layer-manager";
+import {
+  LMX_LAYER_CLOSE_CLASS,
+  LMX_LAYER_OVERLAY_CLASS,
+  LMX_LAYER_SURFACE_CLASS,
+} from "@/components/ui/layer-styles";
 
 const focusFirstInteractiveElement = (container) => {
   if (!(container instanceof HTMLElement)) return false;
@@ -96,10 +101,7 @@ const DialogOverlay = React.forwardRef(({ className, ...props }, ref) => (
   <DialogPrimitive.Overlay
     ref={ref}
     className={cn(
-      "fixed inset-0 !z-[40000] bg-slate-950/80 backdrop-blur-[4px]",
-      "data-[state=open]:animate-in data-[state=open]:fade-in-0",
-      "data-[state=closed]:animate-out data-[state=closed]:fade-out-0",
-      "duration-300 ease-out",
+      LMX_LAYER_OVERLAY_CLASS,
       className,
     )}
     {...props}
@@ -125,6 +127,7 @@ const DialogContent = React.forwardRef(
       "aria-describedby": ariaDescribedBy,
       "aria-labelledby": ariaLabelledBy,
       onOpenAutoFocus,
+      onCloseAutoFocus,
       ...props
     },
     ref,
@@ -158,6 +161,16 @@ const DialogContent = React.forwardRef(
       [onOpenAutoFocus],
     );
 
+    const handleCloseAutoFocus = React.useCallback(
+      (event) => {
+        onCloseAutoFocus?.(event);
+        if (!event.defaultPrevented) {
+          event.preventDefault();
+        }
+      },
+      [onCloseAutoFocus],
+    );
+
     return (
       <DialogPortal>
         <DialogOverlay />
@@ -165,11 +178,13 @@ const DialogContent = React.forwardRef(
           ref={ref}
           data-lmx-modal-content="dialog"
           onOpenAutoFocus={handleOpenAutoFocus}
+          onCloseAutoFocus={handleCloseAutoFocus}
           aria-describedby={ariaDescribedBy ?? undefined}
           aria-labelledby={ariaLabelledBy ?? undefined}
           className={cn(
             /* ── Base ── */
-            "fixed !z-[40010] grid w-full bg-white outline-none",
+            "fixed !z-[40010] grid w-full outline-none lmx-layer-surface-dialog",
+            LMX_LAYER_SURFACE_CLASS,
 
             /* ── Mobile: bottom-sheet ── */
             "inset-x-0 bottom-0 top-auto",
@@ -182,10 +197,6 @@ const DialogContent = React.forwardRef(
             "sm:max-h-[min(90dvh,800px)]",
             "sm:rounded-2xl",
             sizeClasses[size] || sizeClasses.default,
-
-            /* ── Sjenke & border ── */
-            "shadow-[0_-4px_40px_rgba(0,0,0,0.08),0_0_0_1px_rgba(0,0,0,0.04)]",
-            "sm:shadow-[0_20px_60px_rgba(0,0,0,0.12),0_0_0_1px_rgba(0,0,0,0.04)]",
 
             /* ── Scrolling ── */
             "overflow-y-auto overscroll-contain",
@@ -229,17 +240,11 @@ const DialogContent = React.forwardRef(
           {showCloseButton && (
             <DialogPrimitive.Close
               className={cn(
-                "absolute right-3 top-3 sm:right-4 sm:top-4",
-                "flex h-9 w-9 items-center justify-center rounded-full",
-                "bg-gray-100/80 text-gray-500",
-                "transition-all duration-200 ease-out",
-                "hover:bg-gray-200/90 hover:text-gray-700",
-                "active:scale-95",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00A19B]/40 focus-visible:ring-offset-2",
-                "rtl:right-auto rtl:left-3 sm:rtl:left-4",
+                LMX_LAYER_CLOSE_CLASS,
+                "bg-slate-100/85 dark:bg-slate-800/80",
               )}
             >
-              <X className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
+              <X className="h-5 w-5" />
               <span className="sr-only">Zatvori</span>
             </DialogPrimitive.Close>
           )}

@@ -189,6 +189,7 @@ function UserAvatar({
       <UserAvatarMedia
         sources={[customAvatarUrl]}
         verificationSource={verificationSource}
+        showVerifiedBadge
         verificationSources={verificationSources}
         alt="Avatar"
         size={size}
@@ -460,6 +461,7 @@ const ProfileSidebar = ({
               size={48}
               ringClassName="border-2 border-white shadow-sm dark:border-slate-700"
               verificationSource={userData}
+              showVerifiedBadge
               verificationSources={
                 sellerSettingsData ? [sellerSettingsData] : []
               }

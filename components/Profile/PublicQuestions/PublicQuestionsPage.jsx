@@ -11,6 +11,7 @@ import { userSignUpData } from "@/redux/reducer/authSlice";
 import { itemQuestionsApi, itemStatisticsApi } from "@/utils/api";
 import { cn } from "@/lib/utils";
 import UserAvatarMedia from "@/components/Common/UserAvatar";
+import StateSurface from "@/components/Common/StateSurface";
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -92,6 +93,7 @@ const UserAvatar = ({
       <UserAvatarMedia
         sources={[customAvatarUrl, ...(Array.isArray(sources) ? sources : [])]}
         verificationSource={verificationSource}
+        showVerifiedBadge
         verificationSources={verificationSources}
         alt="Avatar"
         size={size}
@@ -253,6 +255,7 @@ const QuestionCard = ({
             ]}
             size={40}
             verificationSource={question.user}
+          showVerifiedBadge
           />
 
           <div className="flex-1 min-w-0">
@@ -352,7 +355,7 @@ const QuestionCard = ({
 // ============================================
 // EMPTY STATE
 // ============================================
-const EmptyState = ({ filter }) => {
+const EmptyState = ({ filter, onResetFilter }) => {
   const messages = {
     all: {
       title: "Nemate pitanja",
@@ -376,13 +379,16 @@ const EmptyState = ({ filter }) => {
   const Icon = msg.icon;
 
   return (
-    <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
-      <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mb-4">
-        <Icon className="text-slate-400" size={32} />
-      </div>
-      <h3 className="text-lg font-semibold text-slate-900 mb-2">{msg.title}</h3>
-      <p className="text-sm text-slate-500 max-w-sm">{msg.description}</p>
-    </div>
+    <StateSurface
+      variant="empty"
+      compact
+      icon={Icon}
+      title={msg.title}
+      description={msg.description}
+      className="min-h-[unset] border-slate-200/90 bg-white/90 dark:border-slate-700 dark:bg-slate-900/75"
+      actionLabel={filter !== "all" ? "Prikaži sva pitanja" : undefined}
+      onAction={filter !== "all" ? onResetFilter : undefined}
+    />
   );
 };
 
@@ -423,6 +429,7 @@ const PublicQuestionsPage = () => {
   const [questions, setQuestions] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [fetchError, setFetchError] = useState("");
   const [filter, setFilter] = useState("all");
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
@@ -441,6 +448,9 @@ const PublicQuestionsPage = () => {
       try {
         if (refresh) setIsRefreshing(true);
         else if (pageNum === 1) setIsLoading(true);
+        if (pageNum === 1 || refresh) {
+          setFetchError("");
+        }
 
         const response = await itemQuestionsApi.getSellerQuestions({
           page: pageNum,
@@ -470,7 +480,13 @@ const PublicQuestionsPage = () => {
         }
       } catch (error) {
         console.error("Error fetching questions:", error);
-        toast.error("Greška pri učitavanju pitanja");
+        const errorMessage =
+          error?.response?.data?.message || "Greška pri učitavanju pitanja";
+        if (pageNum === 1 || refresh) {
+          setQuestions([]);
+          setFetchError(errorMessage);
+        }
+        toast.error(errorMessage);
       } finally {
         setIsLoading(false);
         setIsRefreshing(false);
@@ -691,8 +707,18 @@ const PublicQuestionsPage = () => {
             <QuestionSkeleton />
             <QuestionSkeleton />
           </>
+        ) : fetchError && questions.length === 0 ? (
+          <StateSurface
+            variant="error"
+            compact
+            title="Pitanja nisu dostupna"
+            description={fetchError}
+            actionLabel="Pokušaj ponovo"
+            onAction={handleRefresh}
+            className="border-slate-200/90 bg-white/90 dark:border-slate-700 dark:bg-slate-900/75"
+          />
         ) : questions.length === 0 ? (
-          <EmptyState filter={filter} />
+          <EmptyState filter={filter} onResetFilter={() => setFilter("all")} />
         ) : (
           <AnimatePresence mode="popLayout">
             {questions.map((question) => (

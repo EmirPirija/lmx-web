@@ -230,6 +230,7 @@ const SelectedChatHeader = ({
                   userData?.avatar,
                 ]}
                 verificationSource={userData}
+                showVerifiedBadge
                 phoneVerifiedBadgeClassName={
                   isOnline ? "-left-0.5 !right-auto" : ""
                 }

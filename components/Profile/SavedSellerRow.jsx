@@ -101,6 +101,7 @@ export default function SavedSellerRow({ item, listId, onRemoved, onUpdated }) {
             <UserAvatarMedia
               sources={[seller?.profile, seller?.profile_image, seller?.avatar]}
               verificationSource={seller}
+              showVerifiedBadge
               alt={seller?.name || "Korisnik"}
               className="w-full h-full rounded-2xl"
               roundedClassName="rounded-2xl"

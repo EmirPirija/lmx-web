@@ -10,6 +10,7 @@ import {
   useControllableLayerState,
   useGlobalModalLayerLock,
 } from "@/components/ui/modal-layer-manager";
+import { LMX_LAYER_SURFACE_CLASS } from "@/components/ui/layer-styles";
 
 const Drawer = ({
   shouldScaleBackground = true,
@@ -48,7 +49,7 @@ const DrawerOverlay = React.forwardRef(({ className, ...props }, ref) => (
     <motion.div
       {...overlayMotion}
       className={cn(
-        "fixed inset-0 !z-[40000] bg-slate-950/78 backdrop-blur-[4px]",
+        "lmx-layer-overlay fixed inset-0 !z-[40000]",
         className,
       )}
     />
@@ -65,7 +66,8 @@ const DrawerContent = React.forwardRef(
           {...sideSheetMotion.bottom}
           data-lmx-modal-content="drawer"
           className={cn(
-            "fixed inset-x-0 bottom-0 !z-[40010] mt-24 flex h-auto flex-col rounded-t-3xl border border-border/70 bg-background shadow-xl",
+            "fixed inset-x-0 bottom-0 !z-[40010] mt-24 flex h-auto flex-col rounded-t-3xl lmx-layer-surface-drawer",
+            LMX_LAYER_SURFACE_CLASS,
             className,
           )}
         >

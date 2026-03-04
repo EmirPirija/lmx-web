@@ -118,6 +118,7 @@ function UserAvatar({
       <UserAvatarMedia
         sources={[customAvatarUrl]}
         verificationSource={verificationSource}
+        showVerifiedBadge
         verificationSources={verificationSources}
         alt="Avatar"
         size={size}
@@ -595,6 +596,7 @@ const ProfileDropdown = ({
           size={36}
           ringClassName="border-2 border-slate-200 hover:border-primary/50 transition-colors"
           verificationSource={userData}
+          showVerifiedBadge
           verificationSources={sellerSettingsData ? [sellerSettingsData] : []}
           showNotifBadge={true}
           notifCount={userStats.unreadNotifications}
@@ -651,6 +653,7 @@ const ProfileDropdown = ({
             size={48}
             ringClassName="border-2 border-white dark:border-slate-700"
             verificationSource={userData}
+            showVerifiedBadge
             verificationSources={sellerSettingsData ? [sellerSettingsData] : []}
             showNotifBadge={false}
           />
@@ -982,6 +985,7 @@ const ProfileDropdown = ({
             size={36}
             ringClassName="border-2 border-slate-200 hover:border-primary/50 transition-colors"
             verificationSource={userData}
+            showVerifiedBadge
             verificationSources={sellerSettingsData ? [sellerSettingsData] : []}
             showNotifBadge={true}
             notifCount={userStats.unreadNotifications}

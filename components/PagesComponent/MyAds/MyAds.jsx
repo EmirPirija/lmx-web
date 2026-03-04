@@ -24,6 +24,7 @@ import {
 import { useSelector } from "react-redux";
 import ProductCardSkeleton from "@/components/Common/ProductCardSkeleton.jsx";
 import NoData from "@/components/EmptyStates/NoData";
+import StateSurface from "@/components/Common/StateSurface";
 import { Button } from "@/components/ui/button";
 import { getIsRtl } from "@/redux/reducer/languageSlice.js";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -92,7 +93,7 @@ function StatusTab({ item, count, isActive, onClick, compact = false, scope = "d
       whileTap={{ scale: 0.98 }}
       onClick={onClick}
       className={cn(
-        "group relative overflow-hidden inline-flex items-center gap-2.5 whitespace-nowrap rounded-2xl transition-all duration-200",
+        "group relative overflow-hidden inline-flex min-h-11 items-center gap-2.5 whitespace-nowrap rounded-2xl transition-all duration-200",
         compact ? "px-3 py-2.5" : "px-3.5 py-2.5",
         isActive
           ? "text-white dark:text-slate-900 shadow-[0_18px_42px_-28px_rgba(15,23,42,0.75)]"
@@ -251,54 +252,104 @@ function BulkActionsBar({
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 14 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 14 }}
-      className="sticky top-0 z-30 rounded-2xl border border-primary/30 bg-primary/5 p-3 sm:p-4 backdrop-blur"
-    >
-      <div className="flex flex-col gap-3">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <label className="inline-flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-200">
-            <Checkbox
-              checked={allVisibleSelected}
-              onCheckedChange={onToggleAllVisible}
-              className="data-[state=checked]:bg-primary data-[state=checked]:border-primary h-5 w-5"
-            />
-            Označi sve na ovoj stranici ({totalVisible})
-          </label>
+    <>
+      <motion.div
+        initial={{ opacity: 0, y: 14 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 14 }}
+        className="sticky top-0 z-30 hidden rounded-2xl border border-primary/30 bg-primary/5 p-4 backdrop-blur sm:block"
+      >
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <label className="inline-flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-200">
+              <Checkbox
+                checked={allVisibleSelected}
+                onCheckedChange={onToggleAllVisible}
+                className="data-[state=checked]:bg-primary data-[state=checked]:border-primary h-5 w-5"
+              />
+              Označi sve na ovoj stranici ({totalVisible})
+            </label>
 
-          <div className="flex items-center gap-2">
-            <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">
-              Označeno: {selectedCount}
-            </span>
-            <Button variant="ghost" className="h-9 rounded-xl px-3 text-sm" onClick={onCancel}>
-              <X size={16} />
-              Otkaži
-            </Button>
+            <div className="flex items-center gap-2">
+              <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">
+                Označeno: {selectedCount}
+              </span>
+              <Button variant="ghost" className="h-11 rounded-xl px-3 text-sm" onClick={onCancel}>
+                <X size={16} />
+                Otkaži
+              </Button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+            {actions.map((action) => {
+              const Icon = action.icon;
+              return (
+                <Button
+                  key={action.key}
+                  type="button"
+                  variant="outline"
+                  disabled={selectedCount === 0 || isApplying}
+                  onClick={() => onAction(action.key)}
+                  className={cn("h-11 justify-center gap-2 rounded-xl text-sm font-semibold", toneClasses[action.tone])}
+                >
+                  <Icon size={16} />
+                  {action.label}
+                </Button>
+              );
+            })}
           </div>
         </div>
+      </motion.div>
 
-        <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
-          {actions.map((action) => {
-            const Icon = action.icon;
-            return (
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 16 }}
+        className="fixed inset-x-0 bottom-[calc(0.75rem+env(safe-area-inset-bottom,0px))] z-40 px-3 sm:hidden"
+      >
+        <div className="rounded-2xl border border-slate-200/90 bg-white/97 p-3 shadow-[0_22px_42px_-26px_rgba(2,8,23,0.55)] backdrop-blur dark:border-slate-700 dark:bg-slate-950/96">
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+              Označeno: {selectedCount}
+            </span>
+            <div className="flex items-center gap-1.5">
               <Button
-                key={action.key}
-                type="button"
                 variant="outline"
-                disabled={selectedCount === 0 || isApplying}
-                onClick={() => onAction(action.key)}
-                className={cn("h-10 justify-center gap-2 rounded-xl text-sm font-semibold", toneClasses[action.tone])}
+                size="sm"
+                className="h-10 rounded-xl px-3 text-xs"
+                onClick={onToggleAllVisible}
               >
-                <Icon size={16} />
-                {action.label}
+                {allVisibleSelected ? "Poništi sve" : `Označi ${totalVisible}`}
               </Button>
-            );
-          })}
+              <Button variant="ghost" size="sm" className="h-10 rounded-xl px-3" onClick={onCancel}>
+                <X size={16} />
+                Otkaži
+              </Button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            {actions.map((action) => {
+              const Icon = action.icon;
+              return (
+                <Button
+                  key={action.key}
+                  type="button"
+                  variant="outline"
+                  disabled={selectedCount === 0 || isApplying}
+                  onClick={() => onAction(action.key)}
+                  className={cn("h-11 justify-center gap-2 rounded-xl text-xs font-semibold", toneClasses[action.tone])}
+                >
+                  <Icon size={16} />
+                  {action.label}
+                </Button>
+              );
+            })}
+          </div>
         </div>
-      </div>
-    </motion.div>
+      </motion.div>
+    </>
   );
 }
 
@@ -451,6 +502,7 @@ const MyAds = () => {
   const [lastPage, setLastPage] = useState(1);
   const [IsLoading, setIsLoading] = useState(true);
   const [IsLoadMore, setIsLoadMore] = useState(false);
+  const [listError, setListError] = useState("");
 
   const [statusCounts, setStatusCounts] = useState({
     approved: 0, inactive: 0, "sold out": 0, featured: 0, expired: 0, [RENEW_DUE_STATUS]: 0,
@@ -703,6 +755,7 @@ const MyAds = () => {
       setMyItems([]);
       setCurrentPage(1);
       setLastPage(1);
+      setListError("");
       setIsLoading(false);
       setIsLoadMore(false);
       return;
@@ -710,6 +763,9 @@ const MyAds = () => {
 
     try {
       page > 1 ? setIsLoadMore(true) : setIsLoading(true);
+      if (page === 1) {
+        setListError("");
+      }
 
       if (status === RENEW_DUE_STATUS) {
         if (page > 1) return;
@@ -719,6 +775,7 @@ const MyAds = () => {
         setCurrentPage(1);
         setLastPage(1);
         setStatusCounts((prev) => ({ ...prev, [RENEW_DUE_STATUS]: renewDueItems.length }));
+        setListError("");
         return;
       }
 
@@ -733,13 +790,31 @@ const MyAds = () => {
         page > 1 ? setMyItems((prev) => [...prev, ...data?.data?.data]) : setMyItems(data?.data?.data);
         setCurrentPage(data?.data?.current_page);
         setLastPage(data?.data?.last_page);
+        setListError("");
+      } else if (page === 1) {
+        setListError(getApiErrorMessage(data, "Ne možemo učitati oglase. Pokušaj ponovo."));
       }
     } catch (error) {
       const statusCode = Number(error?.response?.status || 0);
       if (statusCode === 401) {
+        if (page === 1) {
+          setMyItems([]);
+          setCurrentPage(1);
+          setLastPage(1);
+          setListError("Sesija je istekla. Prijavi se ponovo i osvježi stranicu.");
+        }
         return;
       }
       console.error(error);
+      const fallbackError = getApiErrorMessage(
+        error?.response?.data,
+        error?.message || "Ne možemo učitati oglase. Pokušaj ponovo.",
+      );
+      if (page === 1) {
+        setListError(fallbackError);
+      } else {
+        toast.error(fallbackError);
+      }
     }
     finally { setIsLoading(false); setIsLoadMore(false); }
   }, [isLoggedIn, sortValue, status, fetchRenewDueItems]);
@@ -789,6 +864,7 @@ const MyAds = () => {
     setRenewIds([]);
     setBulkSelectedIds([]);
     setBulkResult(null);
+    setListError("");
     updateURLParams("sort", value);
   };
 
@@ -796,6 +872,7 @@ const MyAds = () => {
     setRenewIds([]);
     setBulkSelectedIds([]);
     setBulkResult(null);
+    setListError("");
     updateURLParams("status", value);
   };
 
@@ -1226,8 +1303,15 @@ const MyAds = () => {
     }
   };
 
+  const activeStatusLabel = tabs.find((t) => t.value === status)?.label || "oglasa";
+  const isInitialLoading = IsLoading && MyItems.length === 0;
+  const hasBlockingListError =
+    !isInitialLoading && Boolean(listError) && MyItems.length === 0;
+  const hasEmptyState =
+    !isInitialLoading && !hasBlockingListError && MyItems?.length === 0;
+
   return (
-    <div className="space-y-6">
+    <div className={cn("space-y-6", bulkMode && "pb-36 sm:pb-6")}>
       {SELLER_OVERVIEW_ENABLED ? <SellerAnalyticsOverview /> : null}
 
       {/* Filter Bar */}
@@ -1394,18 +1478,38 @@ const MyAds = () => {
 
       {/* Ads Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 items-stretch gap-4 lg:gap-6">
-        {IsLoading ? (
-          [...Array(8)].map((_, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: i * 0.05 }}
-              className="h-full"
-            >
-              <ProductCardSkeleton />
-            </motion.div>
-          ))
+        {isInitialLoading ? (
+          <>
+            <div className="col-span-full">
+              <StateSurface
+                variant="loading"
+                compact
+                title={`Učitavamo ${activeStatusLabel.toLowerCase()}`}
+                description="Pripremamo tvoj feed oglasa i sinkronizujemo podatke."
+              />
+            </div>
+            {[...Array(6)].map((_, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: i * 0.04 }}
+                className="h-full"
+              >
+                <ProductCardSkeleton />
+              </motion.div>
+            ))}
+          </>
+        ) : hasBlockingListError ? (
+          <div className="col-span-full">
+            <StateSurface
+              variant="error"
+              title="Nismo uspjeli učitati tvoje oglase"
+              description={listError}
+              actionLabel="Pokušaj ponovo"
+              onAction={() => getMyItemsData(1)}
+            />
+          </div>
         ) : MyItems?.length > 0 ? (
           MyItems.map((item, index) => (
             <motion.div
@@ -1428,14 +1532,44 @@ const MyAds = () => {
               />
             </motion.div>
           ))
-        ) : (
+        ) : hasEmptyState ? (
           <div className="col-span-full">
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="py-16">
-              <NoData name="oglasa" />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.97 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="py-10 sm:py-14"
+            >
+              <NoData
+                name={activeStatusLabel.toLowerCase()}
+                title={`Nema ${activeStatusLabel.toLowerCase()}`}
+                description={
+                  status === "approved"
+                    ? "Kada objaviš prvi oglas, ovdje ćeš pratiti stanje, performanse i akcije."
+                    : "Nema oglasa u ovom statusu. Promijeni filter ili objavi novi oglas."
+                }
+                actionLabel={status === "approved" ? "Objavi oglas" : "Prikaži aktivne oglase"}
+                onAction={
+                  status === "approved"
+                    ? () => navigate("/ad-listing")
+                    : () => handleStatusChange("approved")
+                }
+                secondaryActionLabel={status === "approved" ? "Resetuj sortiranje" : "Objavi oglas"}
+                onSecondaryAction={
+                  status === "approved"
+                    ? () => handleSortChange("new-to-old")
+                    : () => navigate("/ad-listing")
+                }
+              />
             </motion.div>
           </div>
-        )}
+        ) : null}
       </div>
+
+      {bulkMode && (
+        <div className="sm:hidden rounded-2xl border border-slate-200/80 bg-slate-50/85 px-4 py-3 text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-300">
+          Skupne akcije su dostupne u donjoj sticky traci radi bržeg rada na mobitelu.
+        </div>
+      )}
 
       {/* Load More */}
       {currentPage < lastPage && (
@@ -1444,7 +1578,7 @@ const MyAds = () => {
             variant="outline"
             onClick={() => getMyItemsData(currentPage + 1)}
             disabled={IsLoading || IsLoadMore}
-            className="h-12 px-8 rounded-2xl border-2 gap-2 hover:border-primary/50"
+            className="h-12 min-h-[48px] px-8 rounded-2xl border-2 gap-2 hover:border-primary/50"
           >
             {IsLoadMore ? (
               <>

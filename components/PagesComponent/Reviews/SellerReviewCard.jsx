@@ -59,6 +59,7 @@ const SellerReviewCard = ({ rating }) => {
             <UserAvatarMedia
               sources={[rating?.buyer?.profile, rating?.buyer?.profile_image, rating?.buyer?.avatar]}
               verificationSource={rating?.buyer}
+              showVerifiedBadge
               alt={rating?.buyer?.name || "Korisnik"}
               size={48}
               className="ring-2 ring-gray-100 flex-shrink-0"

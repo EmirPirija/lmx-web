@@ -717,6 +717,7 @@ const SendMessageModal = ({ open, setOpen, seller, settings, onSuccess }) => {
                       seller?.avatar,
                     ]}
                     verificationSource={seller}
+                    showVerifiedBadge
                     alt={sellerDisplayName || "Prodavač"}
                     className="w-full h-full rounded-xl"
                     roundedClassName="rounded-xl"
@@ -1271,6 +1272,7 @@ export const SellerPreviewCard = ({
                           seller?.avatar,
                         ]}
                         verificationSource={seller}
+                        showVerifiedBadge
                         alt={sellerDisplayName || "Prodavač"}
                         className="w-full h-full rounded-xl"
                         roundedClassName="rounded-xl"

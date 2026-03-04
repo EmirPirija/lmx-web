@@ -269,6 +269,7 @@ const ChatListCard = ({
                 otherUser?.avatar,
               ]}
               verificationSource={otherUser}
+              showVerifiedBadge
               phoneVerifiedBadgeClassName={
                 isOnline ? "-left-0.5 !right-auto" : ""
               }

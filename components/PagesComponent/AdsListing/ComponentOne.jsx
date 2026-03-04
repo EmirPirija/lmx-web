@@ -218,6 +218,7 @@ const UserListItem = memo(({ user, onClick }) => {
         <UserAvatarMedia
           sources={[user?.profile, user?.profile_image, user?.avatar]}
               verificationSource={user}
+          showVerifiedBadge
           alt={user?.name || "Korisnik"}
           className="w-full h-full"
           imageClassName="w-full h-full object-cover"

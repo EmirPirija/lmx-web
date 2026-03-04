@@ -538,6 +538,7 @@ const SendMessageModal = ({ open, onOpenChange, seller, settings, itemId }) => {
                   seller?.avatar,
                 ]}
                 verificationSource={seller}
+                showVerifiedBadge
                 alt={sellerDisplayName || "Prodavač"}
                 className="w-8 h-8 rounded-lg"
                 roundedClassName="rounded-lg"
@@ -962,6 +963,7 @@ export const MinimalSellerCard = ({
                     seller?.avatar,
                   ]}
                   verificationSource={seller}
+                  showVerifiedBadge
                   phoneVerifiedBadgeClassName={
                     hasReel ? "-left-0.5 !right-auto" : ""
                   }

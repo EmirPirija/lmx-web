@@ -59,6 +59,7 @@ const QuestionItem = ({ question, isSeller, currentUserId, onAnswer, onLike, onD
               <UserAvatarMedia
                 sources={[question.user?.profile, question.user?.profile_image, question.user?.avatar]}
               verificationSource={question.user}
+                showVerifiedBadge
                 alt={question.user?.name || "Korisnik"}
                 className="w-full h-full"
                 imageClassName="w-full h-full object-cover"
@@ -378,6 +379,7 @@ const ProductQuestions = ({
               <UserAvatarMedia
                 sources={[currentUser?.profile, currentUser?.profile_image, currentUser?.avatar]}
               verificationSource={currentUser}
+                showVerifiedBadge
                 alt="Vi"
                 className="w-full h-full"
                 imageClassName="w-full h-full object-cover"

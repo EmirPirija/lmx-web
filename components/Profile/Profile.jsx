@@ -84,6 +84,7 @@ function ProfileAvatar({
       <UserAvatarMedia
         sources={[customAvatarUrl]}
         verificationSource={verificationSource}
+        showVerifiedBadge
         verificationSources={verificationSources}
         alt="Profilna slika"
         className={`${sizeClasses[size]} rounded-2xl border-2 border-slate-100 shadow-sm dark:border-slate-700`}
@@ -1368,6 +1369,7 @@ export default function Profile() {
                   size="lg"
                   onImageClick={() => fileInputRef.current?.click()}
                   verificationSource={UserData}
+                  showVerifiedBadge
                   verificationSources={
                     sellerSettingsData ? [sellerSettingsData] : []
                   }

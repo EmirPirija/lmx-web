@@ -29,12 +29,13 @@ import ProductHorizontalCardSkeleton from "@/components/Common/ProductHorizontal
 import NoData from "@/components/EmptyStates/NoData";
 import { IoGrid } from "@/components/Common/UnifiedIconPack";
 import { CiGrid2H } from "@/components/Common/UnifiedIconPack";
-import { Badge } from "@/components/ui/badge";
 import { IoMdClose } from "@/components/Common/UnifiedIconPack";
+import { Badge } from "@/components/ui/badge";
 import BreadCrumb from "@/components/BreadCrumb/BreadCrumb";
 import Layout from "@/components/Layout/Layout";
 import { useAdaptiveMobileDock } from "@/components/Layout/AdaptiveMobileDock";
 import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useDispatch, useSelector } from "react-redux";
 import {
   BreadcrumbPathData,
@@ -1627,89 +1628,32 @@ const Ads = () => {
   );
 
   const MobileActionSheet = ({ open, onClose, title, children }) => {
-    const openedAtRef = useRef(0);
-
-    useEffect(() => {
-      if (!open) return;
-      openedAtRef.current =
-        typeof performance !== "undefined" ? performance.now() : Date.now();
-    }, [open]);
-
-    const handleBackdropClick = () => {
-      const now =
-        typeof performance !== "undefined" ? performance.now() : Date.now();
-      if (now - openedAtRef.current < 220) return;
-      onClose();
-    };
-
     return (
-      <AnimatePresence initial={false} mode="wait">
-        {open ? (
-          <>
-            <motion.button
-              type="button"
-              aria-label="Zatvori"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
-              onClick={handleBackdropClick}
-              className="fixed inset-0 z-[127] bg-slate-950/30 md:hidden"
-            />
-            <motion.div
-              initial={{ y: "100%", opacity: 0.92, scale: 0.985 }}
-              animate={{ y: 0, opacity: 1, scale: 1 }}
-              exit={{ y: "100%", opacity: 0.94, scale: 0.99 }}
-              transition={{
-                type: "spring",
-                stiffness: 300,
-                damping: 30,
-                mass: 0.82,
-              }}
-              className="fixed inset-x-0 bottom-0 z-[128] md:hidden"
-              onClick={(event) => event.stopPropagation()}
-            >
-              <div className="rounded-t-[1.75rem] border border-slate-200 bg-white/95 px-4 pb-5 pt-3 shadow-[0_-20px_50px_-28px_rgba(15,23,42,0.5)] backdrop-blur-xl dark:border-slate-700 dark:bg-slate-900/95 dark:shadow-[0_-20px_50px_-28px_rgba(2,6,23,0.85)]">
-                <motion.div
-                  className="mx-auto mb-3 h-1 w-10 rounded-full bg-slate-300 dark:bg-slate-600"
-                  initial={{ opacity: 0.5, width: 32 }}
-                  animate={{ opacity: [0.55, 0.9, 0.55], width: [32, 44, 32] }}
-                  transition={{
-                    duration: 2.6,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                  }}
-                />
-                <motion.div
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{
-                    duration: 0.24,
-                    delay: 0.04,
-                    ease: [0.22, 1, 0.36, 1],
-                  }}
-                >
-                  <div className="mb-3 flex items-center justify-between border-b border-slate-100 px-1 pb-2 dark:border-slate-800">
-                    <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100">
-                      {title}
-                    </h3>
-                    <motion.button
-                      type="button"
-                      onClick={onClose}
-                      whileTap={{ scale: 0.92 }}
-                      className="grid h-8 w-8 place-items-center rounded-lg text-slate-500 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
-                      aria-label="Zatvori"
-                    >
-                      <IoMdClose size={16} />
-                    </motion.button>
-                  </div>
-                  {children}
-                </motion.div>
-              </div>
-            </motion.div>
-          </>
-        ) : null}
-      </AnimatePresence>
+      <div className="md:hidden">
+        <Sheet
+          open={open}
+          onOpenChange={(nextOpen) => {
+            if (!nextOpen) onClose?.();
+          }}
+        >
+          <SheetContent
+            side="bottom"
+            className="w-full max-w-none rounded-t-[1.75rem] border-x-0 border-b-0 px-4 pb-5 pt-3 sm:max-w-none"
+          >
+            <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-slate-300 dark:bg-slate-600" />
+
+            <SheetHeader className="mb-3 border-b border-slate-100 px-1 pb-2 text-left dark:border-slate-800">
+              <SheetTitle className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+                {title}
+              </SheetTitle>
+            </SheetHeader>
+
+            <div className="max-h-[calc(82dvh-1rem)] overflow-y-auto overscroll-contain pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+              {children}
+            </div>
+          </SheetContent>
+        </Sheet>
+      </div>
     );
   };
 

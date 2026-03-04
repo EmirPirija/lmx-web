@@ -317,6 +317,7 @@ const SoldOutModal = ({
                     <UserAvatarMedia
                       sources={[buyer?.profile, buyer?.profile_image, buyer?.avatar]}
               verificationSource={buyer}
+                      showVerifiedBadge
                       alt={buyer?.name || "Kupac"}
                       size={48}
                       className="border-2 border-white shadow-sm"
@@ -416,6 +417,7 @@ const SoldOutModal = ({
               <UserAvatarMedia
                 sources={[selectedBuyer?.profile, selectedBuyer?.profile_image, selectedBuyer?.avatar]}
               verificationSource={selectedBuyer}
+                showVerifiedBadge
                 alt={selectedBuyer?.name || "Kupac"}
                 size={36}
                 imageClassName="h-9 w-9 rounded-full object-cover"

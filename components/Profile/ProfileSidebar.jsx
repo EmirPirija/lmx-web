@@ -264,6 +264,7 @@ export default function ProfileSidebar({ badges = {} }) {
                 userData?.avatar,
               ]}
               verificationSource={userData}
+              showVerifiedBadge
               alt={userData?.name || "Korisnik"}
               className="h-12 w-12 ring-2 ring-slate-100 dark:ring-slate-700 rounded-xl"
               roundedClassName="rounded-xl"

@@ -7,6 +7,7 @@ import { MdVerified, User } from "@/components/Common/UnifiedIconPack";
 import { settingsData } from "@/redux/reducer/settingSlice";
 import { cn } from "@/lib/utils";
 import { resolvePhoneVerificationFromSources } from "@/lib/seller-contact";
+import { isSellerVerified } from "@/lib/seller-verification";
 import { resolveAvatarUrl } from "@/utils/avatar";
 
 const normalizeSources = (src, sources) => {
@@ -28,6 +29,11 @@ const UserAvatar = ({
   icon: Icon = User,
   verificationSource = null,
   verificationSources = [],
+  verified = null,
+  showVerifiedBadge = false,
+  verifiedSource = null,
+  verifiedSources = [],
+  verifiedBadgeClassName = "",
   phoneVerified = null,
   showPhoneVerifiedBadge = true,
   phoneVerifiedBadgeClassName = "",
@@ -56,6 +62,29 @@ const UserAvatar = ({
     );
   }, [phoneVerified, verificationSource, verificationSources]);
 
+  const resolvedVerified = useMemo(() => {
+    if (!showVerifiedBadge) return false;
+    if (typeof verified === "boolean") return verified;
+
+    const explicitSources = normalizeSources(verifiedSource, verifiedSources);
+    if (explicitSources.length > 0) {
+      return isSellerVerified(...explicitSources);
+    }
+
+    const fallbackSources = normalizeSources(
+      verificationSource,
+      verificationSources,
+    );
+    return isSellerVerified(...fallbackSources);
+  }, [
+    showVerifiedBadge,
+    verified,
+    verifiedSource,
+    verifiedSources,
+    verificationSource,
+    verificationSources,
+  ]);
+
   useEffect(() => {
     setImgError(false);
   }, [resolvedSrc]);
@@ -67,6 +96,12 @@ const UserAvatar = ({
     Number.isFinite(numericSize) && numericSize > 0
       ? Math.max(14, Math.round(numericSize * 0.33))
       : 14;
+  const verifiedBadgeSize =
+    Number.isFinite(numericSize) && numericSize > 0
+      ? Math.max(14, Math.round(numericSize * 0.36))
+      : 14;
+  const shouldRenderPhoneVerifiedBadge =
+    showPhoneVerifiedBadge && resolvedPhoneVerified === true && !resolvedVerified;
 
   return (
     <div
@@ -104,7 +139,22 @@ const UserAvatar = ({
         )}
       </div>
 
-      {showPhoneVerifiedBadge && resolvedPhoneVerified === true ? (
+      {resolvedVerified ? (
+        <span
+          className={cn(
+            "absolute right-0 top-0 z-30 flex items-center justify-center rounded-full border-2 border-white bg-emerald-500 shadow-sm dark:border-slate-900",
+            verifiedBadgeClassName,
+          )}
+          style={{
+            width: verifiedBadgeSize,
+            height: verifiedBadgeSize,
+          }}
+        >
+          <MdVerified className="text-white" size={10} />
+        </span>
+      ) : null}
+
+      {shouldRenderPhoneVerifiedBadge ? (
         <span
           className={cn(
             "absolute bottom-0 right-0 z-20 flex items-center justify-center rounded-full border-2 border-white bg-blue-500 shadow-sm dark:border-slate-900",

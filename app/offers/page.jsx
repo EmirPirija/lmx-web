@@ -214,6 +214,7 @@ const UserAvatar = ({ user, size = "md" }) => {
         <UserAvatarMedia
           sources={[user?.profile, user?.profile_image, user?.avatar]}
           verificationSource={user}
+          showVerifiedBadge
           alt={user?.name || "Korisnik"}
           className="h-full w-full rounded-xl"
           imageClassName="w-full h-full object-cover"
@@ -670,30 +671,6 @@ const OfferCard = ({ offer, type, onAction, isActionLoading }) => {
 };
 
 /* =====================================================
-   EMPTY STATE
-===================================================== */
-
-const EmptyState = ({ type }) => (
-  <motion.div variants={fadeInUp} className="text-center py-16">
-    <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-      {type === "received" ? (
-        <Inbox className="w-10 h-10 text-slate-400" />
-      ) : (
-        <Send className="w-10 h-10 text-slate-400" />
-      )}
-    </div>
-    <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
-      {type === "received" ? "Nema primljenih ponuda" : "Nema poslanih ponuda"}
-    </h3>
-    <p className="text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
-      {type === "received"
-        ? "Kada kupci pošalju ponude za vaše oglase, pojavit će se ovdje"
-        : "Vaše ponude za oglase drugih prodavača će se prikazati ovdje"}
-    </p>
-  </motion.div>
-);
-
-/* =====================================================
    MAIN PAGE
 ===================================================== */
 
@@ -921,7 +898,24 @@ const OffersPage = () => {
             ))}
           </motion.div>
         ) : offers.length === 0 ? (
-          <EmptyState type={activeTab} />
+          <motion.div variants={fadeInUp} initial="initial" animate="animate">
+            <NoData
+              name={activeTab === "received" ? "primljenih ponuda" : "poslanih ponuda"}
+              title={
+                activeTab === "received"
+                  ? "Nema primljenih ponuda"
+                  : "Nema poslanih ponuda"
+              }
+              description={
+                activeTab === "received"
+                  ? "Kada kupci pošalju ponude za vaše oglase, pojavit će se ovdje."
+                  : "Vaše ponude za oglase drugih prodavača će se prikazati ovdje."
+              }
+              actionLabel={activeTab === "sent" ? "Pregledaj oglase" : undefined}
+              onAction={activeTab === "sent" ? () => router.push("/ads") : undefined}
+              compact
+            />
+          </motion.div>
         ) : (
           <>
             <motion.div

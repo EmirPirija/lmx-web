@@ -9,6 +9,11 @@ import {
   useControllableLayerState,
   useGlobalModalLayerLock,
 } from "@/components/ui/modal-layer-manager";
+import {
+  LMX_LAYER_CLOSE_CLASS,
+  LMX_LAYER_OVERLAY_CLASS,
+  LMX_LAYER_SURFACE_CLASS,
+} from "@/components/ui/layer-styles";
 
 const focusFirstInteractiveElement = (container) => {
   if (!(container instanceof HTMLElement)) return false;
@@ -65,9 +70,7 @@ const SheetOverlay = React.forwardRef(({ className, ...props }, ref) => (
   <SheetPrimitive.Overlay
     ref={ref}
     className={cn(
-      "fixed inset-0 !z-[40000] bg-slate-950/78 backdrop-blur-[4px]",
-      "data-[state=open]:animate-in data-[state=open]:fade-in-0",
-      "data-[state=closed]:animate-out data-[state=closed]:fade-out-0",
+      LMX_LAYER_OVERLAY_CLASS,
       className,
     )}
     {...props}
@@ -76,16 +79,16 @@ const SheetOverlay = React.forwardRef(({ className, ...props }, ref) => (
 SheetOverlay.displayName = SheetPrimitive.Overlay.displayName;
 
 const sheetVariants = cva(
-  "fixed !z-[40010] gap-4 bg-background p-6 shadow-xl duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out",
+  "fixed !z-[40010] gap-4 p-6 duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] data-[state=open]:animate-in data-[state=closed]:animate-out lmx-layer-surface-sheet",
   {
     variants: {
       side: {
-        top: "inset-x-0 top-0 border-b border-border/70 rounded-b-2xl data-[state=open]:slide-in-from-top data-[state=closed]:slide-out-to-top",
+        top: "inset-x-0 top-0 rounded-b-2xl data-[state=open]:slide-in-from-top data-[state=closed]:slide-out-to-top",
         bottom:
-          "inset-x-0 bottom-0 border-t border-border/70 rounded-t-2xl data-[state=open]:slide-in-from-bottom data-[state=closed]:slide-out-to-bottom",
-        left: "inset-y-0 left-0 h-full w-3/4 border-r border-border/70 sm:max-w-sm data-[state=open]:slide-in-from-left data-[state=closed]:slide-out-to-left",
+          "inset-x-0 bottom-0 rounded-t-2xl data-[state=open]:slide-in-from-bottom data-[state=closed]:slide-out-to-bottom",
+        left: "inset-y-0 left-0 h-full w-3/4 sm:max-w-sm data-[state=open]:slide-in-from-left data-[state=closed]:slide-out-to-left",
         right:
-          "inset-y-0 right-0 h-full w-3/4 border-l border-border/70 sm:max-w-sm data-[state=open]:slide-in-from-right data-[state=closed]:slide-out-to-right",
+          "inset-y-0 right-0 h-full w-3/4 sm:max-w-sm data-[state=open]:slide-in-from-right data-[state=closed]:slide-out-to-right",
       },
     },
     defaultVariants: {
@@ -102,6 +105,7 @@ const SheetContent = React.forwardRef(
       children,
       overlayClassName,
       onOpenAutoFocus,
+      onCloseAutoFocus,
       ...props
     },
     ref,
@@ -119,6 +123,16 @@ const SheetContent = React.forwardRef(
       [onOpenAutoFocus],
     );
 
+    const handleCloseAutoFocus = React.useCallback(
+      (event) => {
+        onCloseAutoFocus?.(event);
+        if (!event.defaultPrevented) {
+          event.preventDefault();
+        }
+      },
+      [onCloseAutoFocus],
+    );
+
     return (
       <SheetPortal>
         <SheetOverlay className={overlayClassName} />
@@ -126,7 +140,8 @@ const SheetContent = React.forwardRef(
           ref={ref}
           data-lmx-modal-content="sheet"
           onOpenAutoFocus={handleOpenAutoFocus}
-          className={cn(sheetVariants({ side }), className)}
+          onCloseAutoFocus={handleCloseAutoFocus}
+          className={cn(LMX_LAYER_SURFACE_CLASS, sheetVariants({ side }), className)}
           {...props}
         >
           <SheetPrimitive.Title className="sr-only">Panel</SheetPrimitive.Title>
@@ -134,7 +149,12 @@ const SheetContent = React.forwardRef(
             Podesivi sadržaj bočnog panela.
           </SheetPrimitive.Description>
           {children}
-          <SheetPrimitive.Close className="absolute top-4 rounded-full border border-border/70 bg-background/80 p-2 text-muted-foreground transition-all duration-200 hover:bg-muted hover:text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:ring-offset-2 ltr:right-4 rtl:left-4">
+          <SheetPrimitive.Close
+            className={cn(
+              LMX_LAYER_CLOSE_CLASS,
+              "top-4 bg-slate-100/85 dark:bg-slate-800/80",
+            )}
+          >
             <X className="h-4 w-4" />
             <span className="sr-only">Zatvori</span>
           </SheetPrimitive.Close>

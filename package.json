@@ -9,7 +9,9 @@
     "start": "next start -p 3000",
     "lint": "next lint",
     "smoke:proxy": "node scripts/smoke/internal-proxy-smoke.mjs",
-    "test:contracts:internal-proxy": "node scripts/contracts/internal-proxy-contract.mjs"
+    "test:contracts:internal-proxy": "node scripts/contracts/internal-proxy-contract.mjs",
+    "guard:modal-regression": "node scripts/guards/modal-regression-guard.mjs",
+    "guard:modal-regression:update": "node scripts/guards/modal-regression-guard.mjs --update-allowlist"
   },
   "dependencies": {
     "@mingcute/react": "^1.4.1",

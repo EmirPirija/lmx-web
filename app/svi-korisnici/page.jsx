@@ -19,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { resolveMembership } from "@/lib/membership";
 import { normalizeSellerCardPreferences } from "@/lib/seller-settings-engine";
@@ -160,6 +161,8 @@ const UserCard = ({ user, view }) => {
         ratings={{ total: ratingTotal }}
         isPro={isPro}
         isShop={isShop}
+        showVerifiedAvatarBadge
+        avatarVerified={isVerified}
         enableOwnerReelControls={false}
       />
     </motion.article>
@@ -190,6 +193,7 @@ const FilterSidebar = ({
   const FilterSection = ({ title, section, children }) => (
     <div className="border-b border-slate-200 dark:border-slate-700 last:border-b-0">
       <button
+        type="button"
         onClick={() => toggleSection(section)}
         className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
       >
@@ -232,26 +236,8 @@ const FilterSidebar = ({
     </label>
   );
 
-  const content = (
-    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-      {/* Header */}
-      <div className="px-4 py-3 bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <SlidersHorizontal className="w-5 h-5 text-primary" />
-            <h3 className="font-bold text-slate-900 dark:text-white">
-              Filteri
-            </h3>
-          </div>
-          {totalUsers > 0 && (
-            <span className="text-xs text-slate-500">
-              {totalUsers} korisnika
-            </span>
-          )}
-        </div>
-      </div>
-
-      {/* Sections */}
+  const panelSections = (
+    <>
       <FilterSection title="Tip članstva" section="membership">
         <div className="space-y-1">
           <FilterOption
@@ -306,7 +292,6 @@ const FilterSidebar = ({
         />
       </FilterSection>
 
-      {/* Reset */}
       <div className="px-4 py-3 border-t border-slate-200 dark:border-slate-700">
         <Button
           variant="outline"
@@ -326,56 +311,82 @@ const FilterSidebar = ({
           Poništi filtere
         </Button>
       </div>
+    </>
+  );
+
+  const desktopContent = (
+    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+      {/* Header */}
+      <div className="px-4 py-3 bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <SlidersHorizontal className="w-5 h-5 text-primary" />
+            <h3 className="font-bold text-slate-900 dark:text-white">
+              Filteri
+            </h3>
+          </div>
+          {totalUsers > 0 && (
+            <span className="text-xs text-slate-500">
+              {totalUsers} korisnika
+            </span>
+          )}
+        </div>
+      </div>
+
+      {panelSections}
     </div>
   );
 
-  // Mobile overlay
+  // Desktop + mobile sheet
   if (isOpen !== undefined) {
     return (
       <>
         {/* Desktop */}
         <div className="hidden lg:block w-[320px] flex-shrink-0">
-          <div className="sticky top-24">{content}</div>
+          <div className="sticky top-24">{desktopContent}</div>
         </div>
 
-        {/* Mobile overlay */}
-        <AnimatePresence>
-          {isOpen && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="lg:hidden fixed inset-0 z-50 bg-black/50"
-              onClick={onClose}
+        {/* Mobile unified sheet */}
+        <div className="lg:hidden">
+          <Sheet
+            open={Boolean(isOpen)}
+            onOpenChange={(open) => {
+              if (!open) onClose?.();
+            }}
+          >
+            <SheetContent
+              side="bottom"
+              className="h-[88dvh] w-full max-w-none rounded-t-[1.45rem] border-x-0 border-b-0 p-0 sm:max-w-none"
             >
-              <motion.div
-                initial={{ x: "-100%" }}
-                animate={{ x: 0 }}
-                exit={{ x: "-100%" }}
-                className="absolute left-0 top-0 bottom-0 w-80 max-w-[90vw] bg-white dark:bg-slate-900 overflow-y-auto"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div className="sticky top-0 px-4 py-3 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
-                  <h3 className="font-bold text-slate-900 dark:text-white">
-                    Filteri
-                  </h3>
-                  <button
-                    onClick={onClose}
-                    className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
+              <div className="flex h-full flex-col bg-white dark:bg-slate-900">
+                <SheetHeader className="border-b border-slate-200 bg-slate-50 px-4 py-3 text-left dark:border-slate-700 dark:bg-slate-800">
+                  <div className="flex items-center justify-between gap-3 pr-8">
+                    <div className="flex items-center gap-2">
+                      <SlidersHorizontal className="w-5 h-5 text-primary" />
+                      <SheetTitle className="text-base font-bold text-slate-900 dark:text-white">
+                        Filteri
+                      </SheetTitle>
+                    </div>
+                    {totalUsers > 0 && (
+                      <span className="text-xs text-slate-500">
+                        {totalUsers} korisnika
+                      </span>
+                    )}
+                  </div>
+                </SheetHeader>
+
+                <div className="min-h-0 flex-1 overflow-y-auto">
+                  {panelSections}
                 </div>
-                {content}
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+              </div>
+            </SheetContent>
+          </Sheet>
+        </div>
       </>
     );
   }
 
-  return <div className="w-[320px] flex-shrink-0">{content}</div>;
+  return <div className="w-[320px] flex-shrink-0">{desktopContent}</div>;
 };
 
 /* =====================================================

@@ -78,6 +78,7 @@ const MyReviewsCard = ({ rating, setMyReviews }) => {
                   rating?.buyer?.avatar,
                 ]}
                 verificationSource={rating?.buyer}
+                showVerifiedBadge
                 alt={rating?.buyer?.name || "Korisnik"}
                 size={48}
                 className="ring-2 ring-gray-100"

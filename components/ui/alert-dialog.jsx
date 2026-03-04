@@ -9,6 +9,10 @@ import {
   useControllableLayerState,
   useGlobalModalLayerLock,
 } from "@/components/ui/modal-layer-manager";
+import {
+  LMX_LAYER_OVERLAY_CLASS,
+  LMX_LAYER_SURFACE_CLASS,
+} from "@/components/ui/layer-styles";
 
 const AlertDialog = ({
   open,
@@ -41,9 +45,7 @@ const AlertDialogOverlay = React.forwardRef(({ className, ...props }, ref) => (
   <AlertDialogPrimitive.Overlay
     ref={ref}
     className={cn(
-      "fixed inset-0 !z-[40000] bg-slate-950/78 backdrop-blur-[4px]",
-      "data-[state=open]:animate-in data-[state=open]:fade-in-0",
-      "data-[state=closed]:animate-out data-[state=closed]:fade-out-0",
+      LMX_LAYER_OVERLAY_CLASS,
       className,
     )}
     {...props}
@@ -59,10 +61,11 @@ const AlertDialogContent = React.forwardRef(
         ref={ref}
         data-lmx-modal-content="alert-dialog"
         className={cn(
-          "fixed left-[50%] top-[50%] !z-[40010] grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 rounded-2xl border border-border/70 bg-background p-6 shadow-xl",
-          "duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out",
+          "fixed left-[50%] top-[50%] !z-[40010] grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 rounded-2xl p-6 lmx-layer-surface-alert",
+          LMX_LAYER_SURFACE_CLASS,
+          "duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] data-[state=open]:animate-in data-[state=closed]:animate-out",
           "data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0",
-          "data-[state=open]:zoom-in-95 data-[state=closed]:zoom-out-95",
+          "data-[state=open]:zoom-in-[0.97] data-[state=closed]:zoom-out-[0.97]",
           "data-[state=open]:slide-in-from-top-2 data-[state=closed]:slide-out-to-top-2",
           className,
         )}

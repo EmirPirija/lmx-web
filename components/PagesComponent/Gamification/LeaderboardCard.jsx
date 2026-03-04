@@ -91,6 +91,7 @@ export default function LeaderboardCard({ user, rank }) {
           <UserAvatarMedia
             sources={[user?.profile, user?.profile_image, user?.avatar]}
             verificationSource={user}
+            showVerifiedBadge
             alt={user?.name || "Korisnik"}
             className="h-12 w-12"
             imageClassName="h-12 w-12 object-cover"

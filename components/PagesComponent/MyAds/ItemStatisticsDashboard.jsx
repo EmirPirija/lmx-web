@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { itemStatisticsApi } from "@/utils/api";
+import StateSurface from "@/components/Common/StateSurface";
 import {
   IoEyeOutline,
   IoTrendingUp,
@@ -857,6 +858,13 @@ const TodayYesterdayComparison = ({ summary }) => {
 // ============================================
 const LoadingState = () => (
   <div className="space-y-8">
+    <StateSurface
+      variant="loading"
+      compact
+      title="Učitavamo analitiku oglasa"
+      description="Prikupljamo trendove pregleda, poruka i interakcija."
+      className="min-h-[unset] border-slate-200/90 bg-white/90 dark:border-slate-700 dark:bg-slate-900/75"
+    />
     <div className="bg-white rounded-3xl border border-slate-100 p-8 shadow-sm">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="space-y-3">
@@ -882,43 +890,27 @@ const LoadingState = () => (
 // ERROR STATE
 // ============================================
 const ErrorState = ({ onRetry }) => (
-  <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center shadow-sm">
-    <div className="w-20 h-20 bg-red-50 rounded-3xl flex items-center justify-center mx-auto mb-6">
-      <IoRefreshOutline size={36} className="text-red-500" />
-    </div>
-    <h3 className="text-xl font-bold text-slate-800 mb-2">
-      Ups, došlo je do greške
-    </h3>
-    <p className="text-slate-500 mb-8 max-w-md mx-auto">
-      Nismo uspjeli učitati statistiku za tvoj oglas. Molimo provjeri internet
-      konekciju ili pokušaj ponovo.
-    </p>
-    <button
-      onClick={onRetry}
-      className="inline-flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-colors font-medium shadow-lg shadow-slate-200"
-    >
-      <IoRefreshOutline size={20} />
-      Pokušaj ponovo
-    </button>
-  </div>
+  <StateSurface
+    variant="error"
+    title="Ups, došlo je do greške"
+    description="Nismo uspjeli učitati statistiku za tvoj oglas. Provjeri konekciju i pokušaj ponovo."
+    actionLabel="Pokušaj ponovo"
+    onAction={onRetry}
+    className="border-slate-200/90 bg-white/90 dark:border-slate-700 dark:bg-slate-900/75"
+  />
 );
 
 // ============================================
 // EMPTY STATE
 // ============================================
 const EmptyState = () => (
-  <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center shadow-sm">
-    <div className="w-24 h-24 bg-gradient-to-br from-slate-50 to-slate-100 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-inner">
-      <IoStatsChartOutline size={40} className="text-slate-400" />
-    </div>
-    <h3 className="text-xl font-bold text-slate-800 mb-2">
-      Nema dostupne statistike
-    </h3>
-    <p className="text-slate-500 max-w-md mx-auto">
-      Tvoj oglas još uvijek nema zabilježenih aktivnosti. Podijeli ga na
-      društvenim mrežama da povećaš vidljivost!
-    </p>
-  </div>
+  <StateSurface
+    variant="empty"
+    icon={IoStatsChartOutline}
+    title="Nema dostupne statistike"
+    description="Tvoj oglas još nema zabilježenih aktivnosti. Podijeli ga na društvenim mrežama da povećaš vidljivost."
+    className="border-slate-200/90 bg-white/90 dark:border-slate-700 dark:bg-slate-900/75"
+  />
 );
 
 // ============================================
