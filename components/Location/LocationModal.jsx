@@ -22,7 +22,7 @@ const LocationModal = ({
     <Dialog open={IsLocationModalOpen} onOpenChange={setIsLocationModalOpen}>
       <DialogContent
         onInteractOutside={(e) => e.preventDefault()}
-        className="!gap-6 border-slate-200 bg-white shadow-[0_40px_120px_-55px_rgba(2,8,23,0.85)] dark:border-slate-700 dark:bg-slate-950"
+        className="!gap-6"
       >
         {IsMapLocation ? (
           <MapLocation

@@ -11,7 +11,6 @@ import ScrollToTopButton from "./ScrollToTopButton";
 import { AdaptiveMobileDockProvider } from "./AdaptiveMobileDock";
 import LiveTrafficTracker from "./LiveTrafficTracker";
 import FrontendObservabilityBridge from "./FrontendObservabilityBridge";
-import GlobalForceUpdateGate from "./GlobalForceUpdateGate";
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 
@@ -80,7 +79,6 @@ export default function Layout({ children }) {
   return (
     <PushNotificationLayout>
       <AdaptiveMobileDockProvider>
-        <GlobalForceUpdateGate />
         <LiveTrafficTracker />
         <FrontendObservabilityBridge />
         <div

@@ -2,9 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
-import { useSelector } from "react-redux";
 import Api from "@/api/AxiosInterceptors";
-import { getIsLiveTrackingEnabled } from "@/redux/reducer/settingSlice";
 
 const VISITOR_KEY = "lmx_live_visitor_id";
 const SESSION_KEY = "lmx_live_session_id";
@@ -81,7 +79,6 @@ const getLiveTrackingEndpoint = () => {
 };
 
 export default function LiveTrafficTracker() {
-  const isLiveTrackingEnabled = useSelector(getIsLiveTrackingEnabled);
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const lastViewPayloadRef = useRef("");
@@ -95,7 +92,6 @@ export default function LiveTrafficTracker() {
   const sendEvent = useCallback(
     async (eventType = "heartbeat") => {
       if (typeof window === "undefined") return;
-      if (!isLiveTrackingEnabled) return;
 
       const payload = {
         visitor_id: getVisitorId(),
@@ -120,16 +116,14 @@ export default function LiveTrafficTracker() {
         // silent: tracking must never block UX
       }
     },
-    [pagePath, isLiveTrackingEnabled],
+    [pagePath],
   );
 
   useEffect(() => {
-    if (!isLiveTrackingEnabled) return;
     sendEvent("view");
-  }, [sendEvent, isLiveTrackingEnabled]);
+  }, [sendEvent]);
 
   useEffect(() => {
-    if (!isLiveTrackingEnabled) return undefined;
     if (typeof window === "undefined" || typeof document === "undefined") {
       return undefined;
     }
@@ -183,7 +177,7 @@ export default function LiveTrafficTracker() {
       window.removeEventListener("focus", startHeartbeat);
       window.removeEventListener("pagehide", onPageHide);
     };
-  }, [pagePath, sendEvent, isLiveTrackingEnabled]);
+  }, [pagePath, sendEvent]);
 
   return null;
 }

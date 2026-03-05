@@ -1,12 +1,10 @@
 import { NextResponse } from 'next/server'
 
-const SETTINGS_CACHE_TTL_MS = 30_000;
-const SETTINGS_TIMEOUT_MS = 3_000;
-
-let cachedMaintenanceState = {
-  value: null,
-  expiresAt: 0,
-};
+const MAINTENANCE_PUBLIC_PATHS = new Set([
+  '/privacy-policy',
+  '/terms-and-condition',
+  '/data-deletion',
+]);
 
 const createRequestId = () => {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
@@ -15,87 +13,19 @@ const createRequestId = () => {
   return `req_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
 };
 
-const toBooleanFlag = (value, fallback = false) => {
-  if (value === null || value === undefined || value === "") return fallback;
-  if (typeof value === "boolean") return value;
-  if (typeof value === "number") return value === 1;
-
-  const normalized = String(value).trim().toLowerCase();
-  if (normalized === "1" || normalized === "true" || normalized === "on" || normalized === "yes") {
-    return true;
-  }
-  if (normalized === "0" || normalized === "false" || normalized === "off") {
-    return false;
-  }
-  return fallback;
-};
-
-const normalizePath = (value) => String(value || "").replace(/^\/+|\/+$/g, "");
-
-const getBackendControlPlaneUrl = () => {
-  const apiHost = String(
-    process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || "",
-  ).trim();
-  const endpointRaw = String(
-    process.env.API_ENDPOINT || process.env.NEXT_PUBLIC_END_POINT || "/api",
-  ).trim();
-
-  if (!apiHost) return null;
-  const host = apiHost.replace(/\/+$/, "");
-  const endpoint = normalizePath(endpointRaw);
-  return `${host}/${endpoint}/frontend-control-plane`;
-};
-
-const getEnvMaintenanceMode = () =>
-  String(process.env.MAINTENANCE_MODE || "").trim().toLowerCase() === "true";
-
-const resolveMaintenanceMode = async () => {
-  const envMaintenance = getEnvMaintenanceMode();
-  if (envMaintenance) return true;
-
-  const now = Date.now();
-  if (cachedMaintenanceState.expiresAt > now && cachedMaintenanceState.value !== null) {
-    return cachedMaintenanceState.value;
-  }
-
-  const settingsUrl = getBackendControlPlaneUrl();
-  if (!settingsUrl) return envMaintenance;
-
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), SETTINGS_TIMEOUT_MS);
-  try {
-    const response = await fetch(settingsUrl, {
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-      },
-      cache: "no-store",
-      signal: controller.signal,
-    });
-    const data = await response.json().catch(() => null);
-    const value = toBooleanFlag(
-      data?.data?.controls?.maintenance_mode ?? data?.data?.maintenance_mode,
-      envMaintenance,
-    );
-    cachedMaintenanceState = {
-      value,
-      expiresAt: now + SETTINGS_CACHE_TTL_MS,
-    };
-    return value;
-  } catch {
-    return envMaintenance;
-  } finally {
-    clearTimeout(timeoutId);
-  }
-};
-
-export async function middleware(req) {
-  const isMaintenanceMode = await resolveMaintenanceMode();
+export function middleware(req) {
+  const isMaintenanceMode = process.env.MAINTENANCE_MODE === 'true';
   const requestId = req.headers.get("x-request-id") || createRequestId();
   const requestHeaders = new Headers(req.headers);
   requestHeaders.set("x-request-id", requestId);
+  const normalizedPath =
+    req.nextUrl.pathname === '/'
+      ? '/'
+      : req.nextUrl.pathname.replace(/\/+$/, '');
 
-  if (isMaintenanceMode) {
+  const isPublicMaintenancePath = MAINTENANCE_PUBLIC_PATHS.has(normalizedPath);
+
+  if (isMaintenanceMode && !isPublicMaintenancePath) {
     return new NextResponse(
       `<!DOCTYPE html>
       <html>
@@ -157,5 +87,5 @@ export async function middleware(req) {
 }
 
 export const config = {
-  matcher: '/((?!api|internal-api|_next/static|_next/image|favicon.ico).*)',
+  matcher: '/((?!api|_next/static|_next/image|favicon.ico).*)',
 }

@@ -4,8 +4,6 @@ import { Providers } from "@/redux/store/providers";
 import { Toaster } from "@/components/ui/sonner";
 
 import CompareFloatingBar from "@/components/Compare/CompareFloatingBar";
-import { getAdminControlPlane } from "@/lib/server/adminControlPlane";
-import AdminControlPlaneBootstrap from "@/components/Layout/AdminControlPlaneBootstrap";
 
 // --- DARK MODE IMPORTI ---
 import { ThemeProvider } from "@/components/ThemeProvider";
@@ -85,43 +83,7 @@ export const generateMetadata = () => {
   };
 };
 
-export default async function RootLayout({ children }) {
-  const { controlPlane, settingsPayload } = await getAdminControlPlane();
-  const isMaintenanceMode = Boolean(controlPlane?.maintenanceMode);
-
-  if (isMaintenanceMode) {
-    return (
-      <html
-        lang="en"
-        web-version={process.env.NEXT_PUBLIC_WEB_VERSION}
-        data-scroll-behavior="smooth"
-        className="scroll-smooth"
-        suppressHydrationWarning
-      >
-        <head />
-        <body
-          suppressHydrationWarning
-          className={`${manrope.className} lmx-app-background text-black dark:text-white transition-colors duration-300`}
-        >
-          <div className="min-h-screen w-full bg-[#06080f] text-[#f6f8ff]">
-            <div className="mx-auto flex min-h-screen w-full max-w-3xl flex-col items-center justify-center px-8 py-12 text-center">
-              <div className="inline-flex items-center rounded-full border border-white/20 bg-white/10 px-4 py-1 text-xs tracking-[0.14em] uppercase">
-                Maintenance Mode
-              </div>
-              <h1 className="mt-6 text-3xl font-semibold tracking-tight md:text-5xl">
-                LMX je trenutno privremeno zatvoren.
-              </h1>
-              <p className="mt-4 max-w-2xl text-sm text-[#c8cfdd] md:text-base">
-                Administratorska postavka održavanja je aktivna. Aplikacija će se automatski vratiti čim se
-                održavanje završi.
-              </p>
-            </div>
-          </div>
-        </body>
-      </html>
-    );
-  }
-
+export default function RootLayout({ children }) {
   return (
     <html
       lang="en"
@@ -151,10 +113,6 @@ export default async function RootLayout({ children }) {
           {/* 2. Redux Providers */}
           <div className="lmx-app-surface">
             <Providers>
-              <AdminControlPlaneBootstrap
-                settingsPayload={settingsPayload}
-                controlPlane={controlPlane}
-              />
               {children}
               {/* <PromoWelcomeModal /> */}
               <CompareFloatingBar />

@@ -36,7 +36,6 @@ import { getIsLoggedIn } from "@/redux/reducer/authSlice";
 import { useNavigate } from "@/components/Common/useNavigate";
 import { cn } from "@/lib/utils";
 import { isPromoFreeAccessEnabled } from "@/lib/promoMode";
-import { handleSafeLogout } from "@/lib/auth/sessionRecovery";
 import {
   LivePhotoFill as MgLivePhotoFill,
   EyeCloseFill as MgEyeCloseFill,
@@ -526,7 +525,6 @@ const MyAds = () => {
   const [selectedPackageId, setSelectedPackageId] = useState("");
   const [isRenewingAd, setIsRenewingAd] = useState(false);
   const actionLocksRef = useRef(new Set());
-  const authFailureHandledRef = useRef(false);
 
   const tabs = useMemo(() => [
     { value: "approved", label: "Aktivni" },
@@ -616,38 +614,6 @@ const MyAds = () => {
     [getPositionRenewHint]
   );
 
-  const handleUnauthorizedSession = useCallback((statusCode = 401) => {
-    if (authFailureHandledRef.current) return;
-    authFailureHandledRef.current = true;
-    handleSafeLogout({
-      status: statusCode,
-      reason: "my-ads-unauthorized",
-      showUnauthorizedModal: true,
-    });
-  }, []);
-
-  const safeGetMyItems = useCallback(
-    async (params = {}) => {
-      try {
-        return await getMyItemsApi.getMyItems(params);
-      } catch (error) {
-        const statusCode = Number(error?.response?.status || 0);
-        if (statusCode === 401 || statusCode === 419) {
-          handleUnauthorizedSession(statusCode);
-          return null;
-        }
-        throw error;
-      }
-    },
-    [handleUnauthorizedSession]
-  );
-
-  useEffect(() => {
-    if (isLoggedIn) {
-      authFailureHandledRef.current = false;
-    }
-  }, [isLoggedIn]);
-
   const fetchRenewDueItems = useCallback(
     async ({ sortBy = sortValue } = {}) => {
       if (!isLoggedIn) return [];
@@ -658,12 +624,11 @@ const MyAds = () => {
       let safetyCounter = 0;
 
       do {
-        const res = await safeGetMyItems({
+        const res = await getMyItemsApi.getMyItems({
           status: "approved",
           page,
           sort_by: sortBy,
         });
-        if (!res) return [];
         const payload = res?.data?.data;
         const rows = payload?.data || [];
 
@@ -676,7 +641,7 @@ const MyAds = () => {
       const now = new Date();
       return approvedItems.filter((item) => isAdEligibleForPositionRenew(item, now));
     },
-    [isLoggedIn, sortValue, safeGetMyItems]
+    [isLoggedIn, sortValue]
   );
 
   const refreshStatusCounts = useCallback(async () => {
@@ -696,14 +661,11 @@ const MyAds = () => {
     const regularTabs = tabs.filter((t) => t.value !== RENEW_DUE_STATUS);
     const promises = regularTabs.map(async (t) => {
       try {
-        const res = await safeGetMyItems({
+        const res = await getMyItemsApi.getMyItems({
           status: t.value,
           page: 1,
           sort_by: "new-to-old",
         });
-        if (!res) {
-          return { status: t.value, count: 0 };
-        }
         return { status: t.value, count: res?.data?.data?.total || 0 };
       } catch {
         return { status: t.value, count: 0 };
@@ -716,7 +678,7 @@ const MyAds = () => {
       newCounts[item.status] = item.count;
     });
     setStatusCounts((prev) => ({ ...prev, ...newCounts }));
-  }, [isLoggedIn, tabs, safeGetMyItems]);
+  }, [isLoggedIn, tabs]);
 
   useEffect(() => {
     if (isLoggedIn) {
@@ -820,16 +782,7 @@ const MyAds = () => {
       const params = { page, sort_by: sortValue };
       if (status !== "all") params.status = status;
 
-      const res = await safeGetMyItems(params);
-      if (!res) {
-        if (page === 1) {
-          setMyItems([]);
-          setCurrentPage(1);
-          setLastPage(1);
-          setListError("Sesija je istekla. Prijavi se ponovo i osvježi stranicu.");
-        }
-        return;
-      }
+      const res = await getMyItemsApi.getMyItems(params);
       const data = res?.data;
 
       if (data?.error === false) {
@@ -864,7 +817,7 @@ const MyAds = () => {
       }
     }
     finally { setIsLoading(false); setIsLoadMore(false); }
-  }, [isLoggedIn, sortValue, status, fetchRenewDueItems, safeGetMyItems]);
+  }, [isLoggedIn, sortValue, status, fetchRenewDueItems]);
 
   const refreshAfterMutation = useCallback(async () => {
     await getMyItemsData(1);

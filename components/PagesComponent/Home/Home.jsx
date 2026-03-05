@@ -5,6 +5,7 @@ import FeaturedSections from "./FeaturedSections";
 import { FeaturedSectionApi, allItemApi, sliderApi } from "@/utils/api";
 import { getCurrentLangCode } from "@/redux/reducer/languageSlice";
 import { useSelector } from "react-redux";
+import { getCityData, getKilometerRange } from "@/redux/reducer/locationSlice";
 import OfferSliderSkeleton from "@/components/PagesComponent/Home/OfferSliderSkeleton";
 import FeaturedSectionsSkeleton from "./FeaturedSectionsSkeleton";
 import PopularCategories from "./PopularCategories";
@@ -13,6 +14,8 @@ import HomeReels from "./HomeReels";
 
 import PlatformBenefitsStrip from "./PlatformBenefitsStrip";
 import { isHomeFeaturedItem } from "@/utils/featuredPlacement";
+import LowInventoryItems from "./LowInventoryItems";
+import { buildHomeLocationKey, buildHomeLocationParams } from "./locationParams";
 import {
   ensureFeaturedSectionsDemoFill,
   isHomeDemoFillEnabled,
@@ -29,15 +32,17 @@ const extractItemsFromGetItemsResponse = (responseData) => {
   if (Array.isArray(payload?.data)) return payload.data;
   return [];
 };
-const HOME_DEFAULT_COUNTRY = "Bosna i Hercegovina";
 
 const Home = () => {
+  const KmRange = useSelector(getKilometerRange);
+  const cityData = useSelector(getCityData);
   const currentLanguageCode = useSelector(getCurrentLangCode);
   const [IsFeaturedLoading, setIsFeaturedLoading] = useState(false);
   const [featuredData, setFeaturedData] = useState([]);
   const [Slider, setSlider] = useState([]);
   const [IsSliderLoading, setIsSliderLoading] = useState(true);
   const allEmpty = featuredData?.every((ele) => ele?.section_data.length === 0);
+  const locationKey = buildHomeLocationKey(cityData);
 
   useEffect(() => {
     const fetchSliderData = async () => {
@@ -58,9 +63,7 @@ const Home = () => {
     const fetchFeaturedSectionData = async () => {
       setIsFeaturedLoading(true);
       try {
-        const params = {
-          country: HOME_DEFAULT_COUNTRY,
-        };
+        const params = buildHomeLocationParams({ cityData, KmRange });
         const [featuredResponse, featuredItemsResponse] = await Promise.all([
           FeaturedSectionApi.getFeaturedSections({
             ...params,
@@ -80,9 +83,9 @@ const Home = () => {
         ]);
 
         const featuredSections = featuredResponse?.data?.data || [];
-        const featuredItems = extractItemsFromGetItemsResponse(
-          featuredItemsResponse?.data,
-        ).filter((item) => isHomeFeaturedItem(item, { strict: true }));
+        const featuredItems = extractItemsFromGetItemsResponse(featuredItemsResponse?.data).filter((item) =>
+          isHomeFeaturedItem(item, { strict: true })
+        );
 
         const featuredItemsById = new Map(
           featuredItems
@@ -125,7 +128,7 @@ const Home = () => {
       }
     };
     fetchFeaturedSectionData();
-  }, [currentLanguageCode]);
+  }, [locationKey, KmRange, currentLanguageCode]);
   return (
     <>
       {IsSliderLoading ? (
@@ -149,7 +152,7 @@ const Home = () => {
         />
       )}
       
-      <AllItems />
+      <AllItems cityData={cityData} KmRange={KmRange} />
       <PlatformBenefitsStrip />
     </>
   );

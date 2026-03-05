@@ -66,39 +66,6 @@ export const getIsFreAdListing = createSelector(
   (settings) => Number(settings?.data?.data?.free_ad_listing) === 1
 );
 
-export const getIsForceUpdateMode = createSelector(
-  (state) => state.Settings,
-  (settings) => Number(settings?.data?.data?.force_update) === 1
-);
-
-export const getIsRealtimeEventsEnabled = createSelector(
-  (state) => state.Settings,
-  (settings) => Number(settings?.data?.data?.realtime_events_enabled ?? 1) === 1
-);
-
-export const getIsPushNotificationsEnabled = createSelector(
-  (state) => state.Settings,
-  (settings) =>
-    Number(settings?.data?.data?.push_notifications_enabled ?? 1) === 1
-);
-
-export const getIsLiveTrackingEnabled = createSelector(
-  (state) => state.Settings,
-  (settings) => Number(settings?.data?.data?.live_tracking_enabled ?? 1) === 1
-);
-
-export const getIsEngagementTrackingEnabled = createSelector(
-  (state) => state.Settings,
-  (settings) =>
-    Number(settings?.data?.data?.engagement_tracking_enabled ?? 1) === 1
-);
-
-export const getIsFrontendObservabilityEnabled = createSelector(
-  (state) => state.Settings,
-  (settings) =>
-    Number(settings?.data?.data?.frontend_observability_enabled ?? 1) === 1
-);
-
 export const getMinRange = createSelector(
   (state) => state.Settings,
   (settings) => Number(settings?.data?.data?.min_length)

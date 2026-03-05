@@ -1196,7 +1196,7 @@ const Ads = () => {
   const getSingleCatItem = async (page) => {
     const requestId = ++latestItemsRequestRef.current;
     try {
-      const parameters = { page, limit: 12, compact: 1 };
+      const parameters = { page, limit: 12 };
       if (sortBy) parameters.sort_by = sortBy;
       if (isMinPrice) parameters.min_price = min_price;
       if (max_price) parameters.max_price = max_price;
