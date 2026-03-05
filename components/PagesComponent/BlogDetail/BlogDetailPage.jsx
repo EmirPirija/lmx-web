@@ -26,7 +26,6 @@ import NoData from "@/components/EmptyStates/NoData";
 import PageLoader from "@/components/Common/PageLoader";
 import CustomImage from "@/components/Common/CustomImage";
 import UserAvatarMedia from "@/components/Common/UserAvatar";
-import { sanitizeHtml } from "@/utils/sanitizeHtml";
 
 const BlogDetailPage = ({ slug }) => {
   const CurrentLanguage = useSelector(CurrentLanguageData);
@@ -127,11 +126,9 @@ const BlogDetailPage = ({ slug }) => {
                 />
                 <div className="max-w-full prose lg:prose-lg">
                   {parse(
-                    sanitizeHtml(
-                      blogData?.translated_description ||
-                        blogData?.description ||
-                        "",
-                    ),
+                    blogData?.translated_description ||
+                      blogData?.description ||
+                      ""
                   )}
                 </div>
                 <div className="border-t pt-4 flex items-center justify-between ">

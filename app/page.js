@@ -2,61 +2,106 @@ import Layout from "@/components/Layout/Layout";
 import StructuredData from "@/components/Layout/StructuredData";
 import Home from "@/components/PagesComponent/Home/Home";
 import { SEO_REVALIDATE_SECONDS } from "@/lib/constants";
-import {
-  fetchBackendJson,
-  fetchSeoPageMetadata,
-  shouldSkipSeo,
-} from "@/lib/server/seo-metadata";
 
 export const generateMetadata = async ({ searchParams }) => {
+  if (process.env.NEXT_PUBLIC_SEO === "false") return;
   const langCode = (await searchParams)?.lang;
-  return fetchSeoPageMetadata({
-    page: "home",
-    langCode: langCode || "en",
-    revalidate: SEO_REVALIDATE_SECONDS,
-  });
+
+  try {
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}${process.env.NEXT_PUBLIC_END_POINT}seo-settings?page=home`,
+      {
+        headers: {
+          "Content-Language": langCode || "en",
+        },
+        next: {
+          revalidate: SEO_REVALIDATE_SECONDS,
+        },
+      }
+    );
+    const data = await res.json();
+    const home = data?.data?.[0];
+
+    return {
+      title: home?.translated_title || process.env.NEXT_PUBLIC_META_TITLE,
+      description:
+        home?.translated_description ||
+        process.env.NEXT_PUBLIC_META_DESCRIPTION,
+      openGraph: {
+        images: home?.image ? [home?.image] : [],
+      },
+      keywords:
+        home?.translated_keywords || process.env.NEXT_PUBLIC_META_kEYWORDS,
+    };
+  } catch (error) {
+    console.error("Error fetching MetaData:", error);
+    return null;
+  }
 };
 
 const fetchCategories = async (langCode) => {
-  if (shouldSkipSeo()) return [];
+  if (process.env.NEXT_PUBLIC_SEO === "false") return [];
   try {
-    const data = await fetchBackendJson({
-      path: "get-categories",
-      query: { page: 1 },
-      langCode: langCode || "en",
-      revalidate: SEO_REVALIDATE_SECONDS,
-    });
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}${process.env.NEXT_PUBLIC_END_POINT}get-categories?page=1`,
+      {
+        headers: {
+          "Content-Language": langCode || "en",
+        },
+        next: {
+          revalidate: SEO_REVALIDATE_SECONDS,
+        },
+      }
+    );
+    const data = await res.json();
     return data?.data?.data || [];
-  } catch {
+  } catch (error) {
+    console.error("Error fetching Categories Data:", error);
     return [];
   }
 };
 
 const fetchProductItems = async (langCode) => {
-  if (shouldSkipSeo()) return [];
+  if (process.env.NEXT_PUBLIC_SEO === "false") return [];
   try {
-    const data = await fetchBackendJson({
-      path: "get-item",
-      query: { page: 1 },
-      langCode: langCode || "en",
-      revalidate: SEO_REVALIDATE_SECONDS,
-    });
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}${process.env.NEXT_PUBLIC_END_POINT}get-item?page=1`,
+      {
+        headers: {
+          "Content-Language": langCode || "en",
+        },
+        next: {
+          revalidate: SEO_REVALIDATE_SECONDS,
+        },
+      }
+    );
+    const data = await res.json();
     return data?.data?.data || [];
-  } catch {
+  } catch (error) {
+    console.error("Error fetching Product Items Data:", error);
     return [];
   }
 };
 
 const fetchFeaturedSections = async (langCode) => {
-  if (shouldSkipSeo()) return [];
+  if (process.env.NEXT_PUBLIC_SEO === "false") return [];
   try {
-    const data = await fetchBackendJson({
-      path: "get-featured-section",
-      langCode: langCode || "en",
-      revalidate: SEO_REVALIDATE_SECONDS,
-    });
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}${process.env.NEXT_PUBLIC_END_POINT}get-featured-section`,
+      {
+        headers: {
+          "Content-Language": langCode || "en",
+        },
+        next: {
+          revalidate: SEO_REVALIDATE_SECONDS,
+        },
+      }
+    );
+
+    const data = await res.json();
     return data?.data || [];
-  } catch {
+  } catch (error) {
+    console.error("Error fetching Featured sections Data:", error);
     return [];
   }
 };
@@ -72,7 +117,7 @@ export default async function HomePage({ searchParams }) {
 
   let jsonLd = null;
 
-  if (!shouldSkipSeo()) {
+  if (process.env.NEXT_PUBLIC_SEO !== "false") {
     const existingSlugs = new Set(
       productItemsData.map((product) => product.slug)
     );

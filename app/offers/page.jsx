@@ -12,13 +12,11 @@ import CustomImage from "@/components/Common/CustomImage";
 import UserAvatarMedia from "@/components/Common/UserAvatar";
 import CustomLink from "@/components/Common/CustomLink";
 import NoData from "@/components/EmptyStates/NoData";
-import StateSurface from "@/components/Common/StateSurface";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { resolvePhoneVerificationFromSources } from "@/lib/seller-contact";
-import { isSellerVerified } from "@/lib/seller-verification";
 import {
   formatDate,
   formatPriceAbbreviated,
@@ -236,7 +234,7 @@ const UserAvatar = ({ user, size = "md" }) => {
 
 const OfferUserCard = ({ user, role, onClick }) => {
   const memberSince = user?.created_at ? extractYear(user.created_at) : null;
-  const isVerified = isSellerVerified(user);
+  const isVerified = user?.is_verified || user?.verified;
 
   return (
     <div
@@ -689,7 +687,6 @@ const OffersPage = () => {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
-  const [listError, setListError] = useState("");
   const [activeTab, setActiveTab] = useState(
     searchParams.get("type") || "received",
   );
@@ -710,7 +707,6 @@ const OffersPage = () => {
       try {
         if (page === 1) {
           setIsLoading(true);
-          setListError("");
         } else {
           setIsLoadingMore(true);
         }
@@ -739,24 +735,10 @@ const OffersPage = () => {
           } else {
             setSentCount(data?.total || 0);
           }
-          if (page === 1) {
-            setListError("");
-          }
-        } else if (page === 1) {
-          setOffers([]);
-          setListError(response?.data?.message || "Ne možemo učitati ponude.");
         }
       } catch (error) {
         console.error("Error fetching offers:", error);
-        if (page > 1) {
-          toast.error("Greška pri učitavanju ponuda");
-        } else {
-          setOffers([]);
-          setListError(
-            error?.response?.data?.message ||
-              "Greška pri učitavanju ponuda. Pokušaj ponovo.",
-          );
-        }
+        toast.error("Greška pri učitavanju ponuda");
       } finally {
         setIsLoading(false);
         setIsLoadingMore(false);
@@ -914,17 +896,6 @@ const OffersPage = () => {
             {[...Array(4)].map((_, i) => (
               <OfferCardSkeleton key={i} />
             ))}
-          </motion.div>
-        ) : listError && offers.length === 0 ? (
-          <motion.div variants={fadeInUp} initial="initial" animate="animate">
-            <StateSurface
-              variant="error"
-              compact
-              title="Ne možemo učitati ponude"
-              description={listError}
-              actionLabel="Pokušaj ponovo"
-              onAction={() => fetchOffers(1, activeTab)}
-            />
           </motion.div>
         ) : offers.length === 0 ? (
           <motion.div variants={fadeInUp} initial="initial" animate="animate">

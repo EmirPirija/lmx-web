@@ -1,8 +1,5 @@
-import {
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { DialogTitle } from "@radix-ui/react-dialog";
+import { DialogFooter, DialogHeader } from "../ui/dialog";
 import { t } from "@/utils";
 import { MdArrowBack } from "@/components/Common/UnifiedIconPack";
 import { IoSearch } from "@/components/Common/UnifiedIconPack";

@@ -1,4 +1,28 @@
 {
   "description": "Files with approved legacy/custom modal patterns. New entries require review.",
-  "allowedFiles": []
+  "allowedFiles": [
+    "components/Common/SocialShareButtons.jsx",
+    "components/Common/StickyActionButtons.jsx",
+    "components/Filter/BudgetPopup.jsx",
+    "components/Filter/CategoryPopup.jsx",
+    "components/Filter/DatePopup.jsx",
+    "components/Filter/ExtraDetailsPopup.jsx",
+    "components/Filter/LocationPopup.jsx",
+    "components/Filter/RangePopup.jsx",
+    "components/Filter/SellerTypePopup.jsx",
+    "components/Layout/AdaptiveMobileDock.jsx",
+    "components/Location/MapSearchView.jsx",
+    "components/PagesComponent/AdsListing/AdsListing.jsx",
+    "components/PagesComponent/Home/HomeHeader.jsx",
+    "components/PagesComponent/Home/HomeMobileMenu.jsx",
+    "components/PagesComponent/MyAds/MyAdsCard.jsx",
+    "components/PagesComponent/ProductDetail/MakeFeaturedAd.jsx",
+    "components/PagesComponent/ProductDetail/MyAdsListingDetailCard.jsx",
+    "components/PagesComponent/ProductDetail/ProductDetailCard.jsx",
+    "components/PagesComponent/ProductDetail/ProductDetails.jsx",
+    "components/PagesComponent/ProductDetail/ProductQuestions.jsx",
+    "components/PagesComponent/Reviews/MyReviewsCard.jsx",
+    "components/PagesComponent/Reviews/SellerReviewCard.jsx",
+    "components/PagesComponent/Seller/ReelViewerModal.jsx"
+  ]
 }

@@ -649,7 +649,7 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
                 onPointerUp={endDockInteraction}
                 onPointerCancel={endDockInteraction}
                 onPointerLeave={endDockInteraction}
-                className="fixed bottom-0 left-0 right-0 top-0 z-[119] bg-slate-950/24 backdrop-blur-[2px] lg:hidden"
+                className="fixed inset-0 z-[119] bg-slate-950/24 backdrop-blur-[2px] lg:hidden"
               />
             )}
 
@@ -672,7 +672,7 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
                   : { y: "calc(100% + 14px)", opacity: 0, scale: 0.985 }
               }
               transition={dockRootTransition}
-              className="fixed bottom-0 left-0 right-0 z-[120] pointer-events-none px-0 lg:hidden"
+              className="fixed inset-x-0 bottom-0 z-[120] pointer-events-none px-0 lg:hidden"
               style={{
                 bottom: "var(--lmx-mobile-viewport-bottom-offset, 0px)",
                 willChange: "transform, opacity",
@@ -703,10 +703,10 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
                             }
                             transition={dockSheetTransition}
                             className="pointer-events-auto absolute inset-x-0 bottom-full mb-2"
-                            onPointerDown={beginDockInteraction}
-                            onPointerUp={endDockInteraction}
-                            onPointerCancel={endDockInteraction}
-                            onPointerLeave={endDockInteraction}
+                            onPointerDownCapture={beginDockInteraction}
+                            onPointerUpCapture={endDockInteraction}
+                            onPointerCancelCapture={endDockInteraction}
+                            onPointerLeaveCapture={endDockInteraction}
                           >
                             <motion.div
                               layoutId="adaptive-dock-nav-shell"
@@ -760,10 +760,10 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
                           ? "pointer-events-none"
                           : "pointer-events-auto"
                       }`}
-                      onPointerDown={beginDockInteraction}
-                      onPointerUp={endDockInteraction}
-                      onPointerCancel={endDockInteraction}
-                      onPointerLeave={endDockInteraction}
+                      onPointerDownCapture={beginDockInteraction}
+                      onPointerUpCapture={endDockInteraction}
+                      onPointerCancelCapture={endDockInteraction}
+                      onPointerLeaveCapture={endDockInteraction}
                     >
                       <motion.span
                         aria-hidden="true"

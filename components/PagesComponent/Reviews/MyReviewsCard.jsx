@@ -11,7 +11,6 @@ import ReportReviewModal from "./ReportReviewModal";
 import CustomImage from "@/components/Common/CustomImage";
 import UserAvatarMedia from "@/components/Common/UserAvatar";
 import { cn } from "@/lib/utils";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
 import {
   Tooltip,
   TooltipContent,
@@ -223,46 +222,38 @@ const MyReviewsCard = ({ rating, setMyReviews }) => {
       </div>
 
       {/* Modal za prikaz uvećane slike */}
-      <Dialog
-        open={Boolean(selectedImage)}
-        onOpenChange={(nextOpen) => {
-          if (!nextOpen) setSelectedImage(null);
-        }}
-      >
-        <DialogContent
-          showCloseButton={false}
-          className="!z-[40140] !max-w-4xl !p-0 !border-0 !bg-black/90 !shadow-none"
+      {selectedImage && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+          onClick={() => setSelectedImage(null)}
         >
-          {selectedImage ? (
-            <div className="relative flex max-h-[90dvh] items-center justify-center p-3 sm:p-4">
-              <img
-                src={selectedImage}
-                alt="Uvećana slika"
-                className="max-h-[86dvh] max-w-full rounded-lg object-contain"
-              />
-              <button
-                onClick={() => setSelectedImage(null)}
-                className="absolute right-2 top-2 rounded-full bg-black/60 p-2 text-white transition-colors hover:bg-black/80"
-                aria-label="Zatvori pregled slike"
+          <div className="relative max-w-4xl max-h-[90vh]">
+            <img
+              src={selectedImage}
+              alt="Uvećana slika"
+              className="max-w-full max-h-[90vh] object-contain rounded-lg"
+            />
+            <button
+              onClick={() => setSelectedImage(null)}
+              className="absolute top-2 right-2 p-2 bg-black/50 hover:bg-black/70 text-white rounded-full transition-colors"
+            >
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
               >
-                <svg
-                  className="h-5 w-5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
-            </div>
-          ) : null}
-        </DialogContent>
-      </Dialog>
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Report Modal */}
       <ReportReviewModal

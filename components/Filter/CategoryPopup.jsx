@@ -16,7 +16,6 @@ import useGetCategories from "../Layout/useGetCategories";
 import { categoryApi } from "@/utils/api";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
 const RECENT_CATEGORY_STORAGE_KEY = "lmx:ads:recent-categories:v1";
@@ -362,17 +361,14 @@ const CategoryPopup = ({ onClose, extraDetails }) => {
   );
 
   return (
-    <Dialog
-      open
-      onOpenChange={(nextOpen) => {
-        if (!nextOpen) onClose?.();
-      }}
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/60 backdrop-blur-sm sm:items-center"
+      onClick={onClose}
     >
-      <DialogContent
-        showCloseButton={false}
-        className="!z-[40120] !w-full !max-w-4xl !max-h-[88dvh] !overflow-hidden !rounded-t-3xl sm:!rounded-2xl !p-0"
+      <div
+        className="flex max-h-[90vh] w-full flex-col overflow-hidden rounded-t-3xl border border-slate-200 bg-white shadow-[0_30px_70px_-35px_rgba(2,6,23,0.75)] sm:max-h-[88vh] sm:max-w-4xl sm:rounded-2xl dark:border-slate-700 dark:bg-slate-900"
+        onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex h-full w-full flex-col overflow-hidden border border-slate-200 bg-white shadow-[0_30px_70px_-35px_rgba(2,6,23,0.75)] dark:border-slate-700 dark:bg-slate-900">
         <div className="sticky top-0 z-20 space-y-3 border-b border-slate-200 bg-white/95 px-4 py-4 backdrop-blur sm:px-5 md:px-6 dark:border-slate-700 dark:bg-slate-900/95">
           <div className="flex items-start justify-between gap-3">
             <div>
@@ -705,9 +701,8 @@ const CategoryPopup = ({ onClose, extraDetails }) => {
             </div>
           )}
         </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </div>
   );
 };
 

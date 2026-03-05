@@ -79,16 +79,16 @@ const SheetOverlay = React.forwardRef(({ className, ...props }, ref) => (
 SheetOverlay.displayName = SheetPrimitive.Overlay.displayName;
 
 const sheetVariants = cva(
-  "fixed !z-[40010] gap-4 p-6 duration-300 [transition-timing-function:cubic-bezier(0.22,1,0.36,1)] data-[state=open]:animate-in data-[state=closed]:animate-out motion-reduce:transition-none motion-reduce:data-[state=open]:animate-none motion-reduce:data-[state=closed]:animate-none lmx-layer-surface-sheet",
+  "fixed !z-[40010] gap-4 p-6 duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] data-[state=open]:animate-in data-[state=closed]:animate-out lmx-layer-surface-sheet",
   {
     variants: {
       side: {
         top: "inset-x-0 top-0 rounded-b-2xl data-[state=open]:slide-in-from-top data-[state=closed]:slide-out-to-top",
         bottom:
           "inset-x-0 bottom-0 rounded-t-2xl data-[state=open]:slide-in-from-bottom data-[state=closed]:slide-out-to-bottom",
-        left: "inset-y-0 left-0 h-full w-3/4 sm:max-w-sm data-[state=open]:slide-in-from-left data-[state=closed]:slide-out-to-left max-sm:inset-x-0 max-sm:bottom-0 max-sm:top-auto max-sm:h-[88dvh] max-sm:w-full max-sm:rounded-t-2xl max-sm:rounded-b-none max-sm:data-[state=open]:slide-in-from-bottom max-sm:data-[state=closed]:slide-out-to-bottom",
+        left: "inset-y-0 left-0 h-full w-3/4 sm:max-w-sm data-[state=open]:slide-in-from-left data-[state=closed]:slide-out-to-left",
         right:
-          "inset-y-0 right-0 h-full w-3/4 sm:max-w-sm data-[state=open]:slide-in-from-right data-[state=closed]:slide-out-to-right max-sm:inset-x-0 max-sm:bottom-0 max-sm:top-auto max-sm:h-[88dvh] max-sm:w-full max-sm:rounded-t-2xl max-sm:rounded-b-none max-sm:data-[state=open]:slide-in-from-bottom max-sm:data-[state=closed]:slide-out-to-bottom",
+          "inset-y-0 right-0 h-full w-3/4 sm:max-w-sm data-[state=open]:slide-in-from-right data-[state=closed]:slide-out-to-right",
       },
     },
     defaultVariants: {
@@ -144,9 +144,6 @@ const SheetContent = React.forwardRef(
           className={cn(LMX_LAYER_SURFACE_CLASS, sheetVariants({ side }), className)}
           {...props}
         >
-          {(side === "left" || side === "right" || side === "bottom") && (
-            <div className="mx-auto -mt-1 mb-1 h-1.5 w-12 rounded-full bg-slate-300/80 dark:bg-slate-600/80 sm:hidden" />
-          )}
           <SheetPrimitive.Title className="sr-only">Panel</SheetPrimitive.Title>
           <SheetPrimitive.Description className="sr-only">
             Podesivi sadržaj bočnog panela.

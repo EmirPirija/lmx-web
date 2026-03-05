@@ -6,7 +6,6 @@ import {
 } from "@/components/Common/UnifiedIconPack";
 import { MdDescription } from "@/components/Common/UnifiedIconPack";
 import { cn } from "@/lib/utils";
-import { sanitizeHtml } from "@/utils/sanitizeHtml";
 
 const ProductDescription = ({ productDetails }) => {
   const [showFullDescription, setShowFullDescription] = useState(false);
@@ -55,10 +54,8 @@ const ProductDescription = ({ productDetails }) => {
           ref={descriptionRef}
         >
           {parse(
-            sanitizeHtml(
-              fullDescription ||
-                "<p class='italic text-slate-400 dark:text-slate-500'>Prodavač nije unio opis oglasa.</p>",
-            ),
+            fullDescription ||
+              "<p class='italic text-slate-400 dark:text-slate-500'>Prodavač nije unio opis oglasa.</p>",
           )}
         </div>
 

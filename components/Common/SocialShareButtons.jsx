@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useSocialSharing } from "@/hooks/useSocialSharing";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
 import {
   Share2,
   Copy,
@@ -270,21 +269,25 @@ export const ShareModal = ({ item, isOpen, onClose }) => {
   ];
 
   return (
-    <Dialog
-      open={isOpen}
-      onOpenChange={(nextOpen) => {
-        if (!nextOpen) onClose?.();
-      }}
-    >
-      <DialogContent
-        showCloseButton={false}
-        className="!z-[40120] !w-full !max-w-md !max-h-[90dvh] !overflow-y-auto !rounded-t-3xl sm:!rounded-2xl !p-0"
-      >
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          {/* Backdrop */}
           <motion.div
-            initial={{ y: 30, opacity: 0 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
+            onClick={onClose}
+          />
+          
+          {/* Modal */}
+          <motion.div
+            initial={{ y: "100%", opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
+            exit={{ y: "100%", opacity: 0 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="bg-white"
+            className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-3xl shadow-xl max-h-[90vh] overflow-y-auto"
           >
             {/* Handle */}
             <div className="flex justify-center pt-3 pb-2">
@@ -341,8 +344,9 @@ export const ShareModal = ({ item, isOpen, onClose }) => {
               <CopyLinkButton onClick={handleCopy} copied={copied} />
             </div>
           </motion.div>
-      </DialogContent>
-    </Dialog>
+        </>
+      )}
+    </AnimatePresence>
   );
 };
 

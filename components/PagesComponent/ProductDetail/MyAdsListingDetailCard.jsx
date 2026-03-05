@@ -26,12 +26,6 @@ import { useNavigate } from "@/components/Common/useNavigate";
 import AdStatisticsSection from "@/components/PagesComponent/MyAds/AdStatisticsSection";
 import { cn } from "@/lib/utils";
 import { getFeaturedMeta } from "@/utils/featuredPlacement";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 
 // ============================================
 // HELPERI
@@ -376,34 +370,30 @@ const MyAdsListingDetailCard = ({ productDetails, onMakeFeatured }) => {
       </div>
 
       {/* STATISTIKA MODAL */}
-      <Dialog open={showStatsModal} onOpenChange={setShowStatsModal}>
-        <DialogContent
-          showCloseButton={false}
-          size="xl"
-          className="sm:max-w-4xl"
-          fallbackTitle="Statistika oglasa"
-          fallbackDescription="Pregledi i interakcije za ovaj oglas."
-        >
-          <DialogHeader className="border-b border-slate-100 pb-4 dark:border-slate-800">
-            <div className="flex items-center justify-between gap-3">
-              <DialogTitle className="flex items-center gap-2 text-xl font-bold text-slate-800 dark:text-slate-100">
+      {showStatsModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div 
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in" 
+            onClick={() => setShowStatsModal(false)} 
+          />
+          <div className="relative w-full max-w-4xl bg-white dark:bg-slate-900 rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900">
+              <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
                 <IoStatsChartOutline className="text-blue-500" /> Statistika oglasa
-              </DialogTitle>
-              <button
-                type="button"
-                onClick={() => setShowStatsModal(false)}
-                className="rounded-full p-2 text-slate-500 transition-colors hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
-                aria-label="Zatvori statistiku oglasa"
+              </h3>
+              <button 
+                onClick={() => setShowStatsModal(false)} 
+                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full text-slate-500 dark:text-slate-400 transition-colors"
               >
                 <IoClose size={24} />
               </button>
             </div>
-          </DialogHeader>
-          <div className="max-h-[calc(min(90dvh,800px)-140px)] overflow-y-auto pt-4">
-            <AdStatisticsSection itemId={productDetails.id} />
+            <div className="overflow-y-auto p-6 flex-1 bg-white dark:bg-slate-900">
+              <AdStatisticsSection itemId={productDetails.id} />
+            </div>
           </div>
-        </DialogContent>
-      </Dialog>
+        </div>
+      )}
 
       {/* DELETE CONFIRMATION */}
       <ReusableAlertDialog

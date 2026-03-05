@@ -1,13 +1,5 @@
-import {
-  handleSafeLogout,
-  recoverAuthSession,
-  shouldAttemptAuthRecovery,
-} from "@/lib/auth/sessionRecovery";
-import {
-  emitFlowTelemetry,
-  emitRequestFailureTelemetry,
-  emitRequestSuccessTelemetry,
-} from "@/lib/observability/frontendTelemetry";
+import { logoutSuccess } from "@/redux/reducer/authSlice";
+import { setIsUnauthorized } from "@/redux/reducer/globalStateSlice";
 import { getAppStore } from "@/redux/store/storeRef";
 import axios from "axios";
 
@@ -96,61 +88,6 @@ const isInternalProxyRequest = (config = {}) => {
   return false;
 };
 
-const resolveBrowserRequestUrl = (config = {}) => {
-  if (typeof window === "undefined") return null;
-  try {
-    const base = config?.baseURL || window.location.origin;
-    const url = config?.url || "";
-    return new URL(url, base);
-  } catch {
-    return null;
-  }
-};
-
-const isInternalProxyUrl = (value = "") => {
-  const internalBasePath = getInternalProxyBasePath();
-  const normalized = String(value || "").replace(/\/+$/, "");
-  return (
-    normalized === internalBasePath ||
-    normalized.startsWith(`${internalBasePath}/`)
-  );
-};
-
-const enforceBrowserBffContract = (config = {}, requestId) => {
-  if (typeof window === "undefined") return;
-  if (config?.__allowExternalRequest) return;
-
-  const resolved = resolveBrowserRequestUrl(config);
-  if (!resolved) return;
-
-  const sameOrigin = resolved.origin === window.location.origin;
-  const isInternalPath = isInternalProxyUrl(resolved.pathname);
-  if (sameOrigin && isInternalPath) return;
-
-  const contractError = new axios.AxiosError(
-    "Blocked by API/BFF contract guard.",
-    "ERR_BFF_CONTRACT_VIOLATION",
-    config,
-  );
-  contractError.response = {
-    status: 400,
-    data: {
-      error: true,
-      code: "BFF_CONTRACT_VIOLATION",
-      message:
-        "Direct external API calls are blocked in browser context. Use /api/internal/* or /internal-api/*.",
-      trace_id: requestId,
-      blocked_url: resolved.toString(),
-    },
-    config,
-    headers: {
-      "x-request-id": requestId,
-    },
-  };
-  contractError.normalized = normalizeApiError(contractError);
-  throw contractError;
-};
-
 const getProxyAlertWindowMs = () =>
   parsePositiveNumber(
     process.env.NEXT_PUBLIC_INTERNAL_PROXY_ALERT_WINDOW_MS,
@@ -208,7 +145,6 @@ const recordInternalProxyIncident = (error) => {
     path: String(error?.config?.url || ""),
     requestId:
       error?.response?.headers?.["x-request-id"] ||
-      error?.response?.headers?.["x-correlation-id"] ||
       error?.config?.metadata?.requestId ||
       null,
   });
@@ -321,7 +257,6 @@ const normalizeApiError = (error) => {
   const data = error?.response?.data;
   const requestId =
     error?.response?.headers?.["x-request-id"] ||
-    error?.response?.headers?.["x-correlation-id"] ||
     error?.config?.metadata?.requestId ||
     null;
 
@@ -343,6 +278,10 @@ const normalizeApiError = (error) => {
   };
 };
 
+let isUnauthorizedToastShown = false;
+const UNAUTHORIZED_COOLDOWN_MS = 10000;
+let lastUnauthorizedAt = 0;
+
 Api.interceptors.request.use(function (config) {
   config.headers = config.headers || {};
   config.timeout = config.timeout ?? 15000;
@@ -361,7 +300,6 @@ Api.interceptors.request.use(function (config) {
     requestProxyMode: requestViaInternalProxy ? "internal" : "direct",
   };
   config.headers["X-Request-Id"] = requestId;
-  enforceBrowserBffContract(config, requestId);
 
   let token = undefined;
   let langCode = undefined;
@@ -416,24 +354,10 @@ Api.interceptors.response.use(
 
     const startedAt = response?.config?.metadata?.startedAt;
     if (Number.isFinite(startedAt)) {
-      const responseRequestId =
-        response?.headers?.["x-request-id"] ||
-        response?.headers?.["x-correlation-id"] ||
-        response?.config?.metadata?.requestId ||
-        null;
       response.lmxMeta = {
-        requestId: responseRequestId,
+        requestId: response?.config?.metadata?.requestId || null,
         durationMs: Date.now() - startedAt,
       };
-
-      emitRequestSuccessTelemetry({
-        requestId: responseRequestId,
-        method: response?.config?.method || "get",
-        path: response?.config?.url || "",
-        durationMs: response.lmxMeta.durationMs,
-        proxyMode: response?.config?.metadata?.requestProxyMode || "unknown",
-        status: Number(response?.status || 0),
-      });
     }
 
     return response;
@@ -451,52 +375,39 @@ Api.interceptors.response.use(
       }
     }
 
-    const status = Number(error?.response?.status || 0);
+    const status = error?.response?.status;
 
-    if (shouldAttemptAuthRecovery(error)) {
-      const recovery = await recoverAuthSession({
-        apiInstance: Api,
-        error,
-      });
+    if (status === 401) {
+      const appStore = getAppStore();
+      const state = appStore?.getState?.();
+      const hasTokenInStore = Boolean(state?.UserSignup?.data?.token);
+      const hadAuthHeader = Boolean(
+        error?.config?.headers?.authorization ||
+        error?.config?.headers?.Authorization,
+      );
+      const requestUrl = String(error?.config?.url || "");
+      const isLogoutRequest = requestUrl.includes("logout");
 
-      if (recovery?.ok) {
-        const retryConfig = {
-          ...(error.config || {}),
-          __isRetryAfterAuthRecovery: true,
-        };
-        retryConfig.headers = {
-          ...(error?.config?.headers || {}),
-        };
-        const requestId = error?.config?.metadata?.requestId || null;
-        if (requestId) {
-          retryConfig.headers["X-Request-Id"] = requestId;
+      // Avoid endless unauthorized popups for guests/public requests.
+      // Only handle when there was an authenticated session/request.
+      if (!isLogoutRequest && (hasTokenInStore || hadAuthHeader)) {
+        if (appStore?.dispatch) {
+          appStore.dispatch(logoutSuccess());
         }
-        emitFlowTelemetry({
-          flow: "auth",
-          stage: "recovery-retry",
-          status: "success",
-          requestId,
-          extras: {
-            mode: recovery.mode || "unknown",
-          },
-        });
-        return Api(retryConfig);
-      }
 
-      handleSafeLogout({
-        status,
-        reason: recovery?.reason || "session-recovery-failed",
-      });
-      emitFlowTelemetry({
-        flow: "auth",
-        stage: "safe-logout",
-        status: "warning",
-        requestId: error?.config?.metadata?.requestId || null,
-        extras: {
-          reason: recovery?.reason || "session-recovery-failed",
-          status,
-        },
-      });
+        const now = Date.now();
+        const canShowModal =
+          now - lastUnauthorizedAt >= UNAUTHORIZED_COOLDOWN_MS;
+        if (!isUnauthorizedToastShown && canShowModal) {
+          appStore?.dispatch?.(setIsUnauthorized(true));
+          isUnauthorizedToastShown = true;
+          lastUnauthorizedAt = now;
+
+          setTimeout(() => {
+            isUnauthorizedToastShown = false;
+          }, 3000);
+        }
+      }
     }
 
     const endpointKey = resolveEndpointKey(error?.config || {});
@@ -516,25 +427,6 @@ Api.interceptors.response.use(
     }
 
     recordInternalProxyIncident(error);
-
-    const startedAt = error?.config?.metadata?.startedAt;
-    const durationMs = Number.isFinite(startedAt) ? Date.now() - startedAt : null;
-    const failureRequestId =
-      error?.response?.headers?.["x-request-id"] ||
-      error?.response?.headers?.["x-correlation-id"] ||
-      error?.config?.metadata?.requestId ||
-      null;
-    emitRequestFailureTelemetry({
-      requestId: failureRequestId,
-      method: error?.config?.method || "get",
-      path: error?.config?.url || "",
-      durationMs,
-      proxyMode: error?.config?.metadata?.requestProxyMode || "unknown",
-      status,
-      isNetwork: !status,
-      isTimeout: String(error?.code || "") === "ECONNABORTED",
-      errorCode: error?.code || error?.response?.data?.code || null,
-    });
 
     error.normalized = normalizeApiError(error);
     return Promise.reject(error);

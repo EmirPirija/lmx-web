@@ -4,7 +4,7 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from "../ui/dialog";
 import mainSentImg from "../../public/assets/Mail Verification.svg";
 import { t } from "@/utils";
 import CustomImage from "../Common/CustomImage";

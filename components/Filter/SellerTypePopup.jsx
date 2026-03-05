@@ -13,7 +13,6 @@ import {
   Users,
   X,
 } from "@/components/Common/UnifiedIconPack";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 const SELLER_TYPE_OPTIONS = [
   {
@@ -88,17 +87,14 @@ const SellerTypePopup = ({ onClose }) => {
   };
 
   return (
-    <Dialog
-      open
-      onOpenChange={(nextOpen) => {
-        if (!nextOpen) onClose?.();
-      }}
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm"
+      onClick={onClose}
     >
-      <DialogContent
-        showCloseButton={false}
-        className="!z-[40120] !w-full !max-w-lg !max-h-[90dvh] !overflow-hidden !rounded-t-3xl sm:!rounded-2xl !p-0"
+      <div
+        className="w-full sm:max-w-lg max-h-[90vh] overflow-hidden rounded-t-3xl sm:rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900"
+        onClick={(e) => e.stopPropagation()}
       >
-        <div className="w-full h-full overflow-hidden border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900">
         <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 dark:border-slate-700">
           <div>
             <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">
@@ -205,9 +201,8 @@ const SellerTypePopup = ({ onClose }) => {
             Primijeni filter
           </button>
         </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </div>
   );
 };
 

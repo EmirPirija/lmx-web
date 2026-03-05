@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo, useRef, memo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { useSelector } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
@@ -23,7 +23,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { cn } from "@/lib/utils";
 import { resolveMembership } from "@/lib/membership";
 import { normalizeSellerCardPreferences } from "@/lib/seller-settings-engine";
-import { resolveSellerVerificationModel } from "@/lib/seller-verification";
+import { isSellerVerified } from "@/lib/seller-verification";
 import { resolveAvatarUrl } from "@/utils/avatar";
 import { usersApi, getSellerApi } from "@/utils/api";
 import { CurrentLanguageData } from "@/redux/reducer/languageSlice";
@@ -103,16 +103,14 @@ const isTruthyFlagValue = (value) => {
    USER CARD KOMPONENTA
 ===================================================== */
 
-const UserCard = memo(({ user, view }) => {
+const UserCard = ({ user, view }) => {
   const membership = resolveMembership(user, user?.membership);
   const isPro = membership.isPro;
   const isShop = membership.isShop;
-  const isVerified = resolveSellerVerificationModel(
-    user,
-    user?.seller,
-    user?.user,
-    user?.verification,
-  ).isVerified;
+  const isVerified =
+    isTruthyFlagValue(user?.isVerified) ||
+    isTruthyFlagValue(user?.is_verified) ||
+    isTruthyFlagValue(user?.verified);
   const baseSellerSettings =
     user?.seller_settings || user?.sellerSettings || {};
   const parsedCardPreferences = normalizeSellerCardPreferences(
@@ -169,8 +167,7 @@ const UserCard = memo(({ user, view }) => {
       />
     </motion.article>
   );
-});
-UserCard.displayName = "UserCard";
+};
 
 /* =====================================================
    FILTER SIDEBAR
@@ -486,14 +483,22 @@ const SviKorisniciPage = () => {
   const resolveVerifiedState = (user = {}, details = {}) => {
     const seller = details?.seller || {};
     const detailsUser = details?.user || {};
-    return resolveSellerVerificationModel(
-      user,
-      seller,
-      details,
-      detailsUser,
-      user?.seller,
-      user?.user,
-    ).isVerified;
+
+    if (
+      isTruthyFlagValue(user?.isVerified) ||
+      isTruthyFlagValue(user?.is_verified) ||
+      isTruthyFlagValue(user?.verified) ||
+      isTruthyFlagValue(seller?.is_verified) ||
+      isTruthyFlagValue(seller?.verified) ||
+      isTruthyFlagValue(seller?.seller_verified) ||
+      isTruthyFlagValue(seller?.account_verified) ||
+      isTruthyFlagValue(detailsUser?.is_verified) ||
+      isTruthyFlagValue(detailsUser?.verified)
+    ) {
+      return true;
+    }
+
+    return isVerifiedUser(user, details);
   };
 
   const resolveAverageRating = (user = {}, details = {}) => {
@@ -560,11 +565,9 @@ const SviKorisniciPage = () => {
   const getMembershipFlags = (user, details) =>
     resolveMembership(user, details, details?.membership, details?.seller);
 
-  const normalizeUser = (user, details) => {
-    if (!user) return user;
-    const { isPro, isShop } = getMembershipFlags(user, details);
+  const isVerifiedUser = (user, details) => {
     const seller = details?.seller || {};
-    const verificationModel = resolveSellerVerificationModel(
+    return isSellerVerified(
       user,
       seller,
       details,
@@ -572,7 +575,13 @@ const SviKorisniciPage = () => {
       user?.seller,
       user?.user,
     );
-    const verified = verificationModel.isVerified;
+  };
+
+  const normalizeUser = (user, details) => {
+    if (!user) return user;
+    const { isPro, isShop } = getMembershipFlags(user, details);
+    const seller = details?.seller || {};
+    const verified = resolveVerifiedState(user, details);
     const averageRating = resolveAverageRating(user, details);
     const ratingCount = resolveRatingCount(user, details);
     const verificationStatus =
@@ -581,9 +590,6 @@ const SviKorisniciPage = () => {
       seller?.verification_status ??
       seller?.verificationStatus ??
       seller?.verification?.status ??
-      (verificationModel.status !== "unknown"
-        ? verificationModel.status
-        : null) ??
       null;
     const derivedReelCount =
       seller?.reels_count ??
@@ -675,14 +681,7 @@ const SviKorisniciPage = () => {
       responses.forEach((res, idx) => {
         if (res.status !== "fulfilled") return;
         const data = res.value?.data?.data;
-        const hasDetailPayload =
-          Boolean(data?.seller) ||
-          Boolean(data?.user) ||
-          Boolean(data?.seller_settings) ||
-          Boolean(data?.membership) ||
-          data?.is_pro !== undefined ||
-          data?.is_shop !== undefined;
-        if (!hasDetailPayload) return;
+        if (!data?.seller?.id) return;
         updates[chunk[idx]] = {
           seller: data.seller,
           ratings: data.ratings,

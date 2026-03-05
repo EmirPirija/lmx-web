@@ -5,7 +5,6 @@ import parse from "html-react-parser";
 import { useSelector } from "react-redux";
 import BreadCrumb from "@/components/BreadCrumb/BreadCrumb";
 import { t } from "@/utils";
-import { sanitizeHtml } from "@/utils/sanitizeHtml";
 
 const FALLBACK_ABOUT_US_HTML = `
   <section>
@@ -47,7 +46,7 @@ const AboutUs = () => {
             </p>
           ) : null}
           <article className="prose max-w-none prose-slate lg:prose-lg dark:prose-invert">
-            {parse(sanitizeHtml(content))}
+            {parse(content)}
           </article>
         </div>
       </div>

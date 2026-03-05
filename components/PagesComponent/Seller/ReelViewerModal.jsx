@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useSelector, useDispatch } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "@/utils/toastBs";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { createPortal } from "react-dom";
 
 import {
   MdClose,
@@ -215,6 +215,7 @@ const ReelViewerModal = ({
   const [moreMenu, setMoreMenu] = useState(false);
   const [msgInput, setMsgInput] = useState(false);
   const [dir, setDir] = useState(0);
+  const [portalReady, setPortalReady] = useState(false);
 
   const vidRef = useRef(null);
   const holdRef = useRef(null);
@@ -233,6 +234,10 @@ const ReelViewerModal = ({
   const iIdxRef = useRef(0);
   const navLockRef = useRef(false);
   const navUnlockTimerRef = useRef(null);
+
+  useEffect(() => {
+    setPortalReady(true);
+  }, []);
 
   useEffect(() => {
     sIdxRef.current = sIdx;
@@ -368,7 +373,11 @@ const ReelViewerModal = ({
     } else if (userId) {
       fetchUser();
     }
-    return undefined;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev || "";
+    };
   }, [
     open,
     sellersProp,
@@ -974,7 +983,7 @@ const ReelViewerModal = ({
     router.push(`/seller/${sid}`);
   };
 
-  if (!open) return null;
+  if (!open || !portalReady) return null;
 
   const city = item?.translated_city || item?.city || null;
   const created = item?.created_at || null;
@@ -990,29 +999,23 @@ const ReelViewerModal = ({
     : null;
 
   const modalContent = (
-    <Dialog
-      open={open}
-      onOpenChange={(nextOpen) => {
-        onOpenChange?.(nextOpen);
-      }}
-    >
-      <DialogContent
-        showCloseButton={false}
-        fallbackTitle={item?.name || "Pregled oglasa"}
-        fallbackDescription="Pregled video oglasa prodavača."
-        className="w-[min(100vw,430px)] h-[100dvh] max-h-[100dvh] bg-black/95 border-white/10 p-0 sm:h-auto sm:max-h-[92vh] sm:rounded-[32px] sm:border"
-        onInteractOutside={(event) => {
-          event.preventDefault();
-          onOpenChange?.(false);
-        }}
-      >
-        <AnimatePresence mode="wait">
+    <AnimatePresence mode="wait">
+      {open && (
+        <motion.div
+          key="reel-overlay"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.25 }}
+          className="fixed inset-0 z-[2147483000] bg-black/95 backdrop-blur-[2px] flex items-center justify-center"
+        >
+          {/* ── story container ── */}
           <motion.div
             key={`seller-${sIdx}`}
             initial={{ opacity: 0, scale: 0.92, x: dir * 50 }}
             animate={{ opacity: 1, scale: 1, x: 0 }}
             transition={{ duration: 0.35, ease: [0.32, 0.72, 0, 1] }}
-            className="relative mx-auto h-full w-full overflow-hidden bg-[#0b0b0f] touch-manipulation"
+            className="relative w-full h-full max-w-[430px] sm:max-h-[92vh] sm:rounded-[32px] overflow-hidden mx-auto bg-[#0b0b0f] sm:border sm:border-white/10 sm:shadow-2xl touch-manipulation"
             onPointerDown={pDown}
             onPointerUp={pUp}
             onPointerCancel={pLeave}
@@ -1515,11 +1518,12 @@ const ReelViewerModal = ({
               </div>
             </motion.div>
           </motion.div>
-        </AnimatePresence>
-      </DialogContent>
-    </Dialog>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
-  return modalContent;
+
+  return createPortal(modalContent, document.body);
 };
 
 export default ReelViewerModal;

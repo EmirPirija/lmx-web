@@ -33,7 +33,6 @@ import CustomImage from "@/components/Common/CustomImage";
 import UserAvatarMedia from "@/components/Common/UserAvatar";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
-import { isSellerVerified } from "@/lib/seller-verification";
 
 const formatLastSeen = (timestamp) => {
   if (!timestamp) return "";
@@ -110,11 +109,7 @@ const SelectedChatHeader = ({
     !isOnline && userData?.last_seen
       ? formatLastSeen(userData.last_seen)
       : null;
-  const isVerified = isSellerVerified(
-    userData,
-    userData?.seller,
-    userData?.verification,
-  );
+  const isVerified = userData?.email_verified_at ? true : false;
   const rating = userData?.rating || null;
 
   const handleToggleMute = async () => {

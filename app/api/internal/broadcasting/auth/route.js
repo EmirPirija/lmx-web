@@ -47,10 +47,7 @@ const proxyBroadcastAuth = async (request) => {
       },
       {
         status: 500,
-        headers: {
-          "x-request-id": requestId,
-          "x-correlation-id": requestId,
-        },
+        headers: { "x-request-id": requestId },
       },
     );
   }
@@ -86,10 +83,7 @@ const proxyBroadcastAuth = async (request) => {
         },
         {
           status: 401,
-          headers: {
-            "x-request-id": requestId,
-            "x-correlation-id": requestId,
-          },
+          headers: { "x-request-id": requestId },
         },
       );
     }
@@ -97,7 +91,6 @@ const proxyBroadcastAuth = async (request) => {
     const responseText = await upstreamResponse.text();
     const responseHeaders = new Headers();
     responseHeaders.set("x-request-id", requestId);
-    responseHeaders.set("x-correlation-id", requestId);
     const upstreamContentType = upstreamResponse.headers.get("content-type");
     if (upstreamContentType) {
       responseHeaders.set("content-type", upstreamContentType);
@@ -120,10 +113,7 @@ const proxyBroadcastAuth = async (request) => {
       },
       {
         status: isTimeout ? 504 : 502,
-        headers: {
-          "x-request-id": requestId,
-          "x-correlation-id": requestId,
-        },
+        headers: { "x-request-id": requestId },
       },
     );
   } finally {
@@ -142,7 +132,6 @@ export async function OPTIONS(request) {
     headers: {
       Allow: "POST,OPTIONS",
       "x-request-id": requestId,
-      "x-correlation-id": requestId,
     },
   });
 }

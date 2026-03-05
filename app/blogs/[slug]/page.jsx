@@ -1,7 +1,6 @@
 import StructuredData from "@/components/Layout/StructuredData";
 import BlogDetailPage from "@/components/PagesComponent/BlogDetail/BlogDetailPage";
 import { SEO_REVALIDATE_SECONDS } from "@/lib/constants";
-import { fetchBackendJson, shouldSkipSeo } from "@/lib/server/seo-metadata";
 
 const stripHtml = (html) => {
   return html.replace(/<[^>]*>/g, ""); // Regular expression to remove HTML tags
@@ -16,16 +15,27 @@ const formatDate = (dateString) => {
 
 export const generateMetadata = async ({ params, searchParams }) => {
   try {
-    if (shouldSkipSeo()) return;
+    if (process.env.NEXT_PUBLIC_SEO === "false") return;
     const slugParams = await params;
     const langParams = await searchParams;
     const langCode = langParams?.lang || "en";
-    const responseData = await fetchBackendJson({
-      path: "blogs",
-      query: { slug: slugParams?.slug },
-      langCode,
-      revalidate: SEO_REVALIDATE_SECONDS,
-    });
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}${process.env.NEXT_PUBLIC_END_POINT}blogs?slug=${slugParams?.slug}`,
+      {
+        headers: {
+          "Content-Language": langCode || "en",
+        },
+        next: {
+          revalidate: SEO_REVALIDATE_SECONDS,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch metadata");
+    }
+
+    const responseData = await response.json();
     const data = responseData?.data?.data[0];
 
     const plainTextDescription = data?.translated_description?.replace(
@@ -43,22 +53,33 @@ export const generateMetadata = async ({ params, searchParams }) => {
       },
       keywords: data?.translated_tags || process.env.NEXT_PUBLIC_META_kEYWORDS,
     };
-  } catch {
+  } catch (error) {
+    console.error("Error fetching MetaData:", error);
     return null;
   }
 };
 
 const fetchSingleBlogItem = async (slug, langCode) => {
   try {
-    if (shouldSkipSeo()) return;
-    const responseData = await fetchBackendJson({
-      path: "blogs",
-      query: { slug },
-      langCode,
-      revalidate: SEO_REVALIDATE_SECONDS,
+    if (process.env.NEXT_PUBLIC_SEO === "false") return;
+    const url = `${process.env.NEXT_PUBLIC_API_URL}${process.env.NEXT_PUBLIC_END_POINT}blogs?slug=${slug}`;
+    const response = await fetch(url, {
+      headers: {
+        "Content-Language": langCode || "en",
+      },
+      next: {
+        revalidate: SEO_REVALIDATE_SECONDS,
+      },
     });
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch blog data");
+    }
+
+    const responseData = await response.json();
     return responseData?.data?.data[0] || [];
-  } catch {
+  } catch (error) {
+    console.error("Error fetching Blog Items Data:", error);
     return [];
   }
 };

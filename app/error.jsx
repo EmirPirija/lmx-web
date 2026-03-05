@@ -103,7 +103,7 @@ export default function Error({ error }) {
 
         {/* Support link */}
         <p
-          className={`text-[12px] text-gray-400 transition-all duration-500 [transition-delay:400ms] ${
+          className={`text-[12px] text-gray-400 transition-all duration-500 delay-[400ms] ${
             mounted ? "opacity-100" : "opacity-0"
           }`}
         >

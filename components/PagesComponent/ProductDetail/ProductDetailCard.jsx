@@ -29,7 +29,7 @@ import {
 } from "@/redux/reducer/compareSlice";
 import { getLocationApi, manageFavouriteApi } from "@/utils/api";
 import ShareDropdown from "@/components/Common/ShareDropdown";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { createPortal } from "react-dom";
 import { getScarcityCopy, getScarcityState } from "@/utils/scarcity";
 import { resolveRealEstateDisplayPricing } from "@/utils/realEstatePricing";
 
@@ -1106,15 +1106,32 @@ const PriceHistorySparkline = ({ points = [], trend = "stable" }) => {
 // MODAL ZA HISTORIJU CIJENA (Desktop & Mobile)
 // ============================================
 const PriceHistoryModal = ({ isOpen, onClose, insights }) => {
-  if (!isOpen || !insights?.hasAnyPrice) return null;
+  const modalRef = useRef(null);
 
-  return (
-    <Dialog open={isOpen} onOpenChange={(nextOpen) => !nextOpen && onClose?.()}>
-      <DialogContent
-        showCloseButton={false}
-        className="!z-[40140] !w-full !max-w-2xl !max-h-[90dvh] !overflow-hidden !rounded-2xl !p-0"
+  useEffect(() => {
+    if (!isOpen) return undefined;
+
+    const onKeyDown = (event) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isOpen, onClose]);
+
+  if (!isOpen || !insights?.hasAnyPrice) return null;
+  if (typeof window === "undefined") return null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-5">
+      <div
+        className="absolute inset-0 bg-slate-950/65 backdrop-blur-sm transition-opacity animate-in fade-in duration-200"
+        onClick={onClose}
+      />
+
+      <div
+        ref={modalRef}
+        className="relative w-full max-w-2xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl animate-in zoom-in-95 slide-in-from-bottom-3 duration-300 dark:border-slate-800 dark:bg-slate-900"
       >
-      <div className="relative w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-900">
         <div className="flex items-start justify-between border-b border-slate-200 bg-gradient-to-r from-slate-50 to-white px-4 py-4 dark:border-slate-800 dark:from-slate-900 dark:to-slate-900 sm:px-5">
           <div className="flex items-start gap-3">
             <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-primary dark:border-slate-700 dark:bg-slate-800">
@@ -1275,8 +1292,8 @@ const PriceHistoryModal = ({ isOpen, onClose, insights }) => {
           </section>
         </div>
       </div>
-      </DialogContent>
-    </Dialog>
+    </div>,
+    document.body,
   );
 };
 

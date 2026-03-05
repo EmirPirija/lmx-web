@@ -1,7 +1,7 @@
 "use client";
 
 export const LMX_LAYER_OVERLAY_CLASS =
-  "lmx-layer-overlay fixed inset-0 !z-[40000] data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 duration-300 [transition-timing-function:cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none motion-reduce:data-[state=open]:animate-none motion-reduce:data-[state=closed]:animate-none";
+  "lmx-layer-overlay fixed inset-0 !z-[40000] data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]";
 
 export const LMX_LAYER_SURFACE_CLASS =
   "lmx-layer-surface outline-none border border-white/70 dark:border-slate-700/70 bg-white/98 dark:bg-slate-950/96 supports-[backdrop-filter]:backdrop-blur-xl";

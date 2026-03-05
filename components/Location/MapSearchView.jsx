@@ -12,7 +12,6 @@ import { getCityData, getKilometerRange } from "@/redux/reducer/locationSlice";
 import { t } from "@/utils";
 import { cn } from "@/lib/utils";
 import { resolveRealEstateDisplayPricing } from "@/utils/realEstatePricing";
-import StateSurface from "@/components/Common/StateSurface";
 
 // Dynamic import za mapu
 const MapWithListingsMarkers = dynamic(() => import("./MapWithListingsMarkers"), {
@@ -91,7 +90,7 @@ const MapSearchView = ({
     <div
       className={cn(
         "bg-white rounded-2xl border border-slate-200 shadow-lg overflow-hidden transition-all duration-300",
-        isFullscreen && "fixed bottom-0 left-0 right-0 top-0 z-50 rounded-none"
+        isFullscreen && "fixed inset-0 z-50 rounded-none"
       )}
     >
       {/* Toolbar */}
@@ -138,7 +137,6 @@ const MapSearchView = ({
                 ? "bg-primary text-white" 
                 : "bg-slate-100 text-slate-600 hover:bg-slate-200"
             )}
-            aria-label={showFilters ? "Zatvori filtere na mapi" : "Otvori filtere na mapi"}
           >
             <MdFilterList className="text-xl" />
           </button>
@@ -153,7 +151,6 @@ const MapSearchView = ({
                   ? "bg-white text-slate-800 shadow-sm" 
                   : "text-slate-600 hover:text-slate-800"
               )}
-              aria-label="Prikaži mapu i listu oglasa"
             >
               {"Oboje" || "Oboje"}
             </button>
@@ -165,7 +162,6 @@ const MapSearchView = ({
                   ? "bg-white text-slate-800 shadow-sm" 
                   : "text-slate-600 hover:text-slate-800"
               )}
-              aria-label="Prikaži samo mapu oglasa"
             >
               {"Mapa" || "Mapa"}
             </button>
@@ -177,7 +173,6 @@ const MapSearchView = ({
                   ? "bg-white text-slate-800 shadow-sm" 
                   : "text-slate-600 hover:text-slate-800"
               )}
-              aria-label="Prikaži samo listu oglasa"
             >
               {"Lista" || "Lista"}
             </button>
@@ -187,11 +182,6 @@ const MapSearchView = ({
           <button
             onClick={() => setIsFullscreen(!isFullscreen)}
             className="p-2 bg-slate-100 hover:bg-slate-200 rounded-lg transition-all"
-            aria-label={
-              isFullscreen
-                ? "Izađi iz full-screen prikaza mape"
-                : "Uvećaj mapu preko cijelog ekrana"
-            }
           >
             {isFullscreen ? (
               <FiMinimize2 className="text-xl text-slate-600" />
@@ -269,24 +259,13 @@ const MapSearchView = ({
             )}
           >
             {isLoading ? (
-              <div className="flex items-center justify-center h-full px-5 py-8">
-                <StateSurface
-                  variant="loading"
-                  compact
-                  title="Učitavanje oglasa"
-                  description="Pripremamo rezultate za mapu i listu."
-                  className="w-full"
-                />
+              <div className="flex items-center justify-center h-full">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
               </div>
             ) : ads.length === 0 ? (
-              <div className="flex items-center justify-center h-full px-5 py-8">
-                <StateSurface
-                  variant="empty"
-                  compact
-                  title="Nema oglasa na mapi"
-                  description="Promijeni lokaciju ili filtere i pokušaj ponovo."
-                  className="w-full"
-                />
+              <div className="flex flex-col items-center justify-center h-full gap-3 text-slate-500">
+                <MdMap className="text-6xl text-slate-300" />
+                <p className="text-sm">{"Nema oglasa" || "Nema pronađenih oglasa"}</p>
               </div>
             ) : (
               <div className="p-4 space-y-3">

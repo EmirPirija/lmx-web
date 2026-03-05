@@ -3,13 +3,12 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { motion } from "framer-motion";
-import { Trophy, Flame, Rocket, Medal } from "@/components/Common/UnifiedIconPack";
+import { Trophy, Flame, Rocket, Medal, RefreshCw } from "@/components/Common/UnifiedIconPack";
 import { toast } from "@/utils/toastBs";
 
 import Layout from "@/components/Layout/Layout";
 import LeaderboardCard from "@/components/PagesComponent/Gamification/LeaderboardCard";
 import { Skeleton } from "@/components/ui/skeleton";
-import StateSurface from "@/components/Common/StateSurface";
 import { gamificationApi } from "@/utils/api";
 import { updateMetadata } from "@/utils";
 import {
@@ -158,13 +157,16 @@ export default function LeaderboardPage() {
               ))}
             </div>
           ) : error ? (
-            <StateSurface
-              variant="error"
-              title="Ljestvica trenutno nije dostupna"
-              description={error}
-              actionLabel="Pokušaj ponovo"
-              onAction={() => fetchLeaderboard(currentFilter, page)}
-            />
+            <div className="rounded-2xl border border-rose-200 dark:border-rose-700/60 bg-rose-50 dark:bg-rose-900/20 p-4">
+              <p className="text-sm font-semibold text-rose-700 dark:text-rose-300">{error}</p>
+              <button
+                type="button"
+                onClick={() => fetchLeaderboard(currentFilter, page)}
+                className="mt-3 inline-flex items-center gap-2 rounded-xl border border-rose-300 px-3 py-1.5 text-xs font-semibold text-rose-700 dark:border-rose-600 dark:text-rose-300"
+              >
+                <RefreshCw className="h-3.5 w-3.5" /> Pokušaj ponovo
+              </button>
+            </div>
           ) : users.length ? (
             <div className="space-y-3">
               {users.map((user, index) => (
@@ -176,11 +178,9 @@ export default function LeaderboardPage() {
               ))}
             </div>
           ) : (
-            <StateSurface
-              variant="empty"
-              title="Nema podataka za odabrani period"
-              description="Probaj drugi vremenski filter ili osvježi stranicu."
-            />
+            <div className="rounded-2xl border border-slate-200/70 dark:border-slate-700/70 bg-white dark:bg-slate-900/60 p-8 text-center text-sm text-slate-500 dark:text-slate-300">
+              Nema podataka za izabrani period.
+            </div>
           )}
         </div>
 

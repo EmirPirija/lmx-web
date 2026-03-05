@@ -12,10 +12,8 @@
     "test:contracts:internal-proxy": "node scripts/contracts/internal-proxy-contract.mjs",
     "guard:modal-regression": "node scripts/guards/modal-regression-guard.mjs",
     "guard:modal-regression:update": "node scripts/guards/modal-regression-guard.mjs --update-allowlist",
-    "guard:modal-standard": "node scripts/guards/modal-standard-guard.mjs",
     "guard:verified-avatar": "node scripts/guards/verified-avatar-guard.mjs",
-    "guard:verified-avatar:update": "node scripts/guards/verified-avatar-guard.mjs --update-allowlist",
-    "guard:bff-contract": "node scripts/guards/bff-contract-guard.mjs"
+    "guard:verified-avatar:update": "node scripts/guards/verified-avatar-guard.mjs --update-allowlist"
   },
   "dependencies": {
     "@mingcute/react": "^1.4.1",
