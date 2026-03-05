@@ -123,11 +123,11 @@ const LocationPopup = ({ onClose, extraDetails = {}, country, state, city, area 
   }, [area, city, state, country, currentLocationSlug]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm transition-all duration-300" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 transition-all duration-300" onClick={onClose}>
       <div className="bg-white rounded-t-3xl sm:rounded-2xl w-full sm:max-w-xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden animate-in slide-in-from-bottom-10 fade-in duration-300" onClick={(e) => e.stopPropagation()}>
         
         {/* HEADER */}
-        <div className="px-6 py-5 border-b border-gray-100 bg-white/95 backdrop-blur sticky top-0 z-20 space-y-4">
+        <div className="px-6 py-5 border-b border-gray-100 bg-white sticky top-0 z-20 space-y-4">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-xl font-bold text-gray-900">Lokacija</h2>

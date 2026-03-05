@@ -1007,7 +1007,7 @@ const ReelViewerModal = ({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.25 }}
-          className="fixed inset-0 z-[2147483000] bg-black/95 backdrop-blur-[2px] flex items-center justify-center"
+          className="fixed inset-0 z-[2147483000] bg-black/95 flex items-center justify-center"
         >
           {/* ── story container ── */}
           <motion.div

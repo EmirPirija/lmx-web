@@ -131,7 +131,7 @@ const DesktopDropdown = ({
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -10, scale: 0.95 }}
           transition={{ duration: 0.15, ease: "easeOut" }}
-          className="absolute top-full left-0 z-[82] mt-2 w-[360px] overflow-hidden rounded-2xl border border-slate-200 bg-white/95 shadow-2xl shadow-slate-900/15 backdrop-blur-xl dark:border-slate-700 dark:bg-slate-900/95 dark:shadow-black/40"
+          className="absolute top-full left-0 z-[82] mt-2 w-[360px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-900/15 dark:border-slate-700 dark:bg-slate-900 dark:shadow-black/40"
         >
           {/* Header */}
           <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-4 py-3 dark:border-slate-800 dark:from-slate-900 dark:to-slate-900/90">
@@ -263,7 +263,7 @@ const BottomSheet = ({ isOpen, onClose, title, children }) => {
           side="bottom"
           className="h-[88dvh] w-full max-w-none rounded-t-[1.75rem] border-x-0 border-b-0 p-0 sm:max-w-none"
         >
-          <div className="flex h-full flex-col bg-white/95 backdrop-blur-xl dark:bg-slate-900/95">
+          <div className="flex h-full flex-col bg-white dark:bg-slate-900">
             <div className="flex justify-center pt-3 pb-2">
               <div className="h-1 w-10 rounded-full bg-slate-300 dark:bg-slate-600" />
             </div>
@@ -828,7 +828,7 @@ export default function SavedSearchControls({
           SAVE DIALOG
           ═══════════════════════════════════════════════════════════════ */}
       <Dialog open={isSaveOpen} onOpenChange={setIsSaveOpen}>
-        <DialogContent className="sm:max-w-[480px] overflow-hidden rounded-2xl border border-slate-200 bg-white/95 p-0 backdrop-blur-xl dark:border-slate-700 dark:bg-slate-900/95">
+        <DialogContent className="sm:max-w-[480px] overflow-hidden rounded-2xl border border-slate-200 bg-white p-0 dark:border-slate-700 dark:bg-slate-900">
           {/* Header with gradient */}
           <div className="bg-gradient-to-r from-slate-50 to-white px-6 py-5 dark:from-slate-900 dark:to-slate-900/90">
             <DialogTitle className="flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-slate-100">
@@ -904,7 +904,7 @@ export default function SavedSearchControls({
           MANAGE DIALOG
           ═══════════════════════════════════════════════════════════════ */}
       <Dialog open={isManageOpen} onOpenChange={setIsManageOpen}>
-        <DialogContent className="sm:max-w-[700px] max-h-[85vh] flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white/95 p-0 backdrop-blur-xl dark:border-slate-700 dark:bg-slate-900/95">
+        <DialogContent className="sm:max-w-[700px] max-h-[85vh] flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white p-0 dark:border-slate-700 dark:bg-slate-900">
           {/* Header */}
           <div className="shrink-0 bg-gradient-to-r from-slate-50 to-white px-6 py-5 dark:from-slate-900 dark:to-slate-900/90">
             <DialogTitle className="flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-slate-100">

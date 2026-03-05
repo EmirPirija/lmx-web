@@ -66,7 +66,7 @@ const RangePopup = ({ onClose }) => {
 
   return (
     <div 
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm transition-all duration-300" 
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 transition-all duration-300" 
       onClick={onClose}
     >
       <div 
@@ -75,7 +75,7 @@ const RangePopup = ({ onClose }) => {
       >
         
         {/* HEADER */}
-        <div className="px-6 py-5 border-b border-gray-100 bg-white/95 backdrop-blur sticky top-0 z-20">
+        <div className="px-6 py-5 border-b border-gray-100 bg-white sticky top-0 z-20">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
                <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl">

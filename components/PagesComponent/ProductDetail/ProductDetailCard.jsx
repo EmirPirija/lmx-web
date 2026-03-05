@@ -1124,7 +1124,7 @@ const PriceHistoryModal = ({ isOpen, onClose, insights }) => {
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-5">
       <div
-        className="absolute inset-0 bg-slate-950/65 backdrop-blur-sm transition-opacity animate-in fade-in duration-200"
+        className="absolute inset-0 bg-slate-950/75 transition-opacity animate-in fade-in duration-200"
         onClick={onClose}
       />
 

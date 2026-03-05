@@ -152,7 +152,7 @@ const SheetContent = React.forwardRef(
           <SheetPrimitive.Close
             className={cn(
               LMX_LAYER_CLOSE_CLASS,
-              "top-4 bg-slate-100/85 dark:bg-slate-800/80",
+              "top-4 bg-slate-100 dark:bg-slate-800",
             )}
           >
             <X className="h-4 w-4" />

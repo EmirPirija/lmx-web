@@ -540,7 +540,7 @@ const PopularCategoryFilterModal = ({ open, onOpenChange, category }) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[calc(100dvh-1.5rem)] max-w-[760px] overflow-y-auto rounded-[28px] border border-slate-200/70 bg-white/95 p-0 shadow-[0_28px_80px_-36px_rgba(15,23,42,0.55)] dark:border-slate-700/70 dark:bg-slate-900/95">
+      <DialogContent className="max-h-[calc(100dvh-1.5rem)] max-w-[760px] overflow-y-auto rounded-[28px] border border-slate-200/70 bg-white p-0 shadow-[0_28px_80px_-36px_rgba(15,23,42,0.55)] dark:border-slate-700/70 dark:bg-slate-900">
         <DialogHeader className="border-b border-slate-200/70 px-4 pb-3 pt-4 sm:px-6 dark:border-slate-700/70">
           <DialogTitle>Filtriraj prije pretrage</DialogTitle>
           <DialogDescription>

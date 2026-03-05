@@ -46,7 +46,7 @@ export default function PromoWelcomeModal() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="sm:max-w-[560px] border border-slate-200 bg-white/95 p-0 backdrop-blur-xl dark:border-slate-700 dark:bg-slate-900/95">
+      <DialogContent className="sm:max-w-[560px] border border-slate-200 bg-white p-0 dark:border-slate-700 dark:bg-slate-900">
         <div className="rounded-t-xl border-b border-slate-200/80 bg-gradient-to-r from-emerald-50 via-cyan-50 to-white px-6 py-5 dark:border-slate-700 dark:from-emerald-900/20 dark:via-cyan-900/20 dark:to-slate-900">
           <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-emerald-700 dark:border-emerald-500/40 dark:bg-slate-900/70 dark:text-emerald-300">
             <ShieldCheck size={14} />

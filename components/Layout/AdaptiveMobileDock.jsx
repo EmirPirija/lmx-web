@@ -649,7 +649,7 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
                 onPointerUp={endDockInteraction}
                 onPointerCancel={endDockInteraction}
                 onPointerLeave={endDockInteraction}
-                className="fixed inset-0 z-[119] bg-slate-950/24 backdrop-blur-[2px] lg:hidden"
+                className="fixed inset-0 z-[119] bg-slate-950/45 lg:hidden"
               />
             )}
 

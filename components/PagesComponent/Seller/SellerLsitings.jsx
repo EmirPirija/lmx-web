@@ -786,8 +786,8 @@ const SellerLsitings = ({
           side="bottom"
           onOpenAutoFocus={preventSheetAutoFocusScroll}
           onCloseAutoFocus={preventSheetAutoFocusScroll}
-          overlayClassName="bg-slate-950/45 backdrop-blur-[1.5px]"
-          className="max-h-[78vh] w-screen max-w-none overflow-hidden rounded-t-2xl border-x-0 border-b-0 border-slate-200 bg-white/98 p-0 shadow-2xl dark:border-slate-700 dark:bg-slate-900/98 [&>button]:hidden"
+          overlayClassName="bg-slate-950/70"
+          className="max-h-[78vh] w-screen max-w-none overflow-hidden rounded-t-2xl border-x-0 border-b-0 border-slate-200 bg-white p-0 shadow-2xl dark:border-slate-700 dark:bg-slate-900 [&>button]:hidden"
         >
           <div className="flex flex-col bg-white dark:bg-slate-900">
             <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3 dark:border-slate-800">

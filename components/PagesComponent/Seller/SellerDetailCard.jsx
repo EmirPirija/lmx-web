@@ -698,7 +698,7 @@ const SendMessageModal = ({ open, setOpen, seller, settings, onSuccess }) => {
       <DialogContent
         showCloseButton={false}
         onOpenAutoFocus={focusMessageInput}
-        className="w-screen max-w-none overflow-hidden rounded-t-[1.6rem] border-x-0 border-b-0 border-slate-200 bg-white/98 p-0 shadow-[0_-24px_64px_-34px_rgba(15,23,42,0.52)] dark:border-slate-700 dark:bg-slate-900/98 sm:w-full sm:max-w-lg sm:rounded-xl sm:border sm:border-slate-100 sm:shadow-lg [&>div:nth-child(2)]:px-0 [&>div:nth-child(2)]:pb-0 [&>div:nth-child(2)]:pt-0"
+        className="w-screen max-w-none overflow-hidden rounded-t-[1.6rem] border-x-0 border-b-0 border-slate-200 bg-white p-0 shadow-[0_-24px_64px_-34px_rgba(15,23,42,0.52)] dark:border-slate-700 dark:bg-slate-900 sm:w-full sm:max-w-lg sm:rounded-xl sm:border sm:border-slate-100 sm:shadow-lg [&>div:nth-child(2)]:px-0 [&>div:nth-child(2)]:pb-0 [&>div:nth-child(2)]:pt-0"
       >
         <motion.div
           {...fadeInUp}
@@ -914,7 +914,7 @@ const ContactSheet = ({
       <DialogContent
         showCloseButton={false}
         onOpenAutoFocus={focusPrimaryAction}
-        className="w-screen max-w-none gap-0 overflow-hidden rounded-t-[1.6rem] border-x-0 border-b-0 border-slate-200 bg-white/98 p-0 shadow-[0_-24px_64px_-34px_rgba(15,23,42,0.52)] dark:border-slate-700 dark:bg-slate-900/98 sm:w-full sm:max-w-md sm:rounded-xl sm:border sm:shadow-lg [&>div:nth-child(2)]:px-0 [&>div:nth-child(2)]:pb-0 [&>div:nth-child(2)]:pt-0"
+        className="w-screen max-w-none gap-0 overflow-hidden rounded-t-[1.6rem] border-x-0 border-b-0 border-slate-200 bg-white p-0 shadow-[0_-24px_64px_-34px_rgba(15,23,42,0.52)] dark:border-slate-700 dark:bg-slate-900 sm:w-full sm:max-w-md sm:rounded-xl sm:border sm:shadow-lg [&>div:nth-child(2)]:px-0 [&>div:nth-child(2)]:pb-0 [&>div:nth-child(2)]:pt-0"
       >
         <motion.div
           {...fadeInUp}

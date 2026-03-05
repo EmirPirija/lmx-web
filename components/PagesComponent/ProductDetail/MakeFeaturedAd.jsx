@@ -274,7 +274,7 @@ const MakeFeaturedAd = ({
           <div className="fixed inset-0 z-[110] flex items-end justify-center p-0 sm:items-center sm:p-4">
             <button
               type="button"
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              className="absolute inset-0 bg-black/70"
               onClick={closeModal}
               disabled={isSubmitting}
               aria-label="Zatvori modal"

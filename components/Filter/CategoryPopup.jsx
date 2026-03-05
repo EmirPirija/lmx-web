@@ -362,14 +362,14 @@ const CategoryPopup = ({ onClose, extraDetails }) => {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/60 backdrop-blur-sm sm:items-center"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/75 sm:items-center"
       onClick={onClose}
     >
       <div
         className="flex max-h-[90vh] w-full flex-col overflow-hidden rounded-t-3xl border border-slate-200 bg-white shadow-[0_30px_70px_-35px_rgba(2,6,23,0.75)] sm:max-h-[88vh] sm:max-w-4xl sm:rounded-2xl dark:border-slate-700 dark:bg-slate-900"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="sticky top-0 z-20 space-y-3 border-b border-slate-200 bg-white/95 px-4 py-4 backdrop-blur sm:px-5 md:px-6 dark:border-slate-700 dark:bg-slate-900/95">
+        <div className="sticky top-0 z-20 space-y-3 border-b border-slate-200 bg-white px-4 py-4 sm:px-5 md:px-6 dark:border-slate-700 dark:bg-slate-900">
           <div className="flex items-start justify-between gap-3">
             <div>
               <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Kategorija</h2>

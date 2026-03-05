@@ -3119,7 +3119,7 @@ const AdsListing = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[130] flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur-md"
+              className="fixed inset-0 z-[130] flex items-center justify-center bg-slate-950/82 p-4"
             >
               <div className="pointer-events-none absolute -left-24 -top-24 h-72 w-72 rounded-full bg-primary/35 blur-3xl" />
               <div className="pointer-events-none absolute -bottom-28 -right-20 h-72 w-72 rounded-full bg-cyan-400/35 blur-3xl" />
@@ -3129,7 +3129,7 @@ const AdsListing = () => {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 12, scale: 0.98 }}
                 transition={{ duration: 0.25 }}
-                className="relative w-full max-w-md overflow-hidden rounded-3xl border border-white/20 bg-white/10 p-6 text-white shadow-[0_24px_90px_-35px_rgba(0,0,0,0.8)] backdrop-blur-xl sm:p-7"
+                className="relative w-full max-w-md overflow-hidden rounded-3xl border border-slate-700 bg-slate-950 p-6 text-white shadow-[0_24px_90px_-35px_rgba(0,0,0,0.8)] sm:p-7"
               >
                 <div className="absolute -right-10 -top-10 h-28 w-28 rounded-full bg-white/10 blur-2xl" />
 

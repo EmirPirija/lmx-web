@@ -957,8 +957,8 @@ const ProfileDropdown = ({
             side="bottom"
             onOpenAutoFocus={preventSheetAutoFocusScroll}
             onCloseAutoFocus={preventSheetAutoFocusScroll}
-            overlayClassName="z-[127] bg-slate-950/45 backdrop-blur-[1.5px]"
-            className="z-[128] h-auto w-screen max-w-none max-h-[min(82dvh,760px)] p-0 overflow-hidden rounded-t-[1.75rem] border-x-0 border-b-0 border-slate-200 bg-white/98 shadow-2xl dark:border-slate-700 dark:bg-slate-900/98 [&>button]:hidden"
+            overlayClassName="z-[127] bg-slate-950/70"
+            className="z-[128] h-auto w-screen max-w-none max-h-[min(82dvh,760px)] p-0 overflow-hidden rounded-t-[1.75rem] border-x-0 border-b-0 border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900 [&>button]:hidden"
           >
             {MenuPanel}
           </SheetContent>

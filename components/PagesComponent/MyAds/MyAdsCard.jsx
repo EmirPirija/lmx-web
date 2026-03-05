@@ -668,7 +668,7 @@ const FeaturedPlanModal = ({
       >
         <button
           type="button"
-          className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+          className="absolute inset-0 bg-black/70"
           onClick={handleClose}
           disabled={isSubmitting}
         />
@@ -1112,7 +1112,7 @@ const SmartQuickActionsPanel = ({
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="fixed inset-0 z-[85] bg-slate-950/45 backdrop-blur-[2px]"
+                className="fixed inset-0 z-[85] bg-slate-950/70"
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
@@ -1136,7 +1136,7 @@ const SmartQuickActionsPanel = ({
                   exit={{ opacity: 0, y: 18, scale: 0.98 }}
                   transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
                   className={cn(
-                    "overflow-hidden border border-slate-200 bg-white/95 p-4 shadow-[0_28px_68px_-42px_rgba(15,23,42,0.7)] backdrop-blur-xl dark:border-slate-700 dark:bg-slate-900/95 sm:p-5",
+                    "overflow-hidden border border-slate-200 bg-white p-4 shadow-[0_28px_68px_-42px_rgba(15,23,42,0.7)] dark:border-slate-700 dark:bg-slate-900 sm:p-5",
                     isMobile
                       ? "max-h-[84vh] overflow-y-auto rounded-3xl"
                       : "max-h-[84vh] overflow-y-auto rounded-[30px]",

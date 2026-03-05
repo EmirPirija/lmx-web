@@ -241,7 +241,7 @@ const DialogContent = React.forwardRef(
             <DialogPrimitive.Close
               className={cn(
                 LMX_LAYER_CLOSE_CLASS,
-                "bg-slate-100/85 dark:bg-slate-800/80",
+                "bg-slate-100 dark:bg-slate-800",
               )}
             >
               <X className="h-5 w-5" />
