@@ -419,6 +419,7 @@ export const allItemApi = {
     scarcity_enabled,
     low_inventory_only,
     inventory_lte,
+    compact,
     no_cache,
   } = {}) => {
     const params = {
@@ -464,6 +465,7 @@ export const allItemApi = {
       scarcity_enabled,
       low_inventory_only,
       inventory_lte,
+      compact,
     };
 
     const shouldUseCache = !no_cache;

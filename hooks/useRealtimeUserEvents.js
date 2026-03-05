@@ -26,7 +26,7 @@ const parsePort = (value, fallback) => {
   return Number.isFinite(n) && n > 0 ? n : fallback;
 };
 
-export default function useRealtimeUserEvents({ onEvent } = {}) {
+export default function useRealtimeUserEvents({ onEvent, enabled = true } = {}) {
   const isLoggedIn = useSelector(getIsLoggedIn);
   const authState = useSelector((state) => state?.UserSignup?.data);
   const pusherRef = useRef(null);
@@ -41,6 +41,7 @@ export default function useRealtimeUserEvents({ onEvent } = {}) {
     const userId = authState?.data?.id;
     const token = authState?.token;
 
+    if (!enabled) return;
     if (!isLoggedIn || !userId || !token) return;
 
     const key = process.env.NEXT_PUBLIC_REVERB_APP_KEY;
@@ -150,5 +151,5 @@ export default function useRealtimeUserEvents({ onEvent } = {}) {
         pusherRef.current = null;
       }
     };
-  }, [authState?.data?.id, authState?.token, isLoggedIn]);
+  }, [authState?.data?.id, authState?.token, isLoggedIn, enabled]);
 }

@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useSelector } from "react-redux";
+import { getIsFrontendObservabilityEnabled } from "@/redux/reducer/settingSlice";
 
 const INTERNAL_PROXY_BASE_PATH = String(
   process.env.NEXT_PUBLIC_INTERNAL_PROXY_BASE_PATH || "/internal-api",
@@ -52,10 +54,14 @@ const flushViaFetch = async (records) => {
 };
 
 const FrontendObservabilityBridge = () => {
+  const isFrontendObservabilityEnabled = useSelector(
+    getIsFrontendObservabilityEnabled,
+  );
   const queueRef = useRef([]);
   const flushingRef = useRef(false);
 
   useEffect(() => {
+    if (!isFrontendObservabilityEnabled) return undefined;
     if (typeof window === "undefined") return undefined;
 
     const flush = async ({ useBeacon = false } = {}) => {
@@ -116,7 +122,7 @@ const FrontendObservabilityBridge = () => {
       document.removeEventListener("visibilitychange", onVisibilityChange);
       void flush({ useBeacon: true });
     };
-  }, []);
+  }, [isFrontendObservabilityEnabled]);
 
   return null;
 };

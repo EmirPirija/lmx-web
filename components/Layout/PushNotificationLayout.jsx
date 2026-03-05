@@ -6,6 +6,10 @@ import { useDispatch, useSelector } from "react-redux";
 import { setNotification } from "@/redux/reducer/globalStateSlice";
 import { useNavigate } from "../Common/useNavigate";
 import { getIsLoggedIn, userSignUpData } from "@/redux/reducer/authSlice";
+import {
+  getIsPushNotificationsEnabled,
+  getIsRealtimeEventsEnabled,
+} from "@/redux/reducer/settingSlice";
 import useRealtimeUserEvents from "@/hooks/useRealtimeUserEvents";
 import { toast } from "@/utils/toastBs";
 
@@ -54,11 +58,14 @@ const PushNotificationLayout = ({ children }) => {
   const { navigate } = useNavigate();
   const isLoggedIn = useSelector(getIsLoggedIn);
   const currentUser = useSelector(userSignUpData);
+  const isPushNotificationsEnabled = useSelector(getIsPushNotificationsEnabled);
+  const isRealtimeEventsEnabled = useSelector(getIsRealtimeEventsEnabled);
   const unsubscribeRef = useRef(null);
   const eventTimestampsRef = useRef(new Map());
   const shouldEnablePushNotifications = useMemo(() => {
     if (typeof window === "undefined") return false;
     if (!isLoggedIn) return false;
+    if (!isPushNotificationsEnabled) return false;
     if (!window.isSecureContext) return false;
 
     const host = String(window.location?.hostname || "").toLowerCase();
@@ -84,7 +91,7 @@ const PushNotificationLayout = ({ children }) => {
     if (featureFlag === "0" || featureFlag === "false") return false;
 
     return true;
-  }, [isLoggedIn]);
+  }, [isLoggedIn, isPushNotificationsEnabled]);
 
   const getCurrentUserId = useCallback(() => {
     return Number(
@@ -206,6 +213,7 @@ const PushNotificationLayout = ({ children }) => {
 
   const processRealtimeEvent = useCallback(
     (detail = {}) => {
+      if (!isRealtimeEventsEnabled) return;
       if (!detail || isDuplicateEvent(detail)) return;
 
       const payload = detail?.payload || {};
@@ -216,7 +224,7 @@ const PushNotificationLayout = ({ children }) => {
       emitRealtimeEvent(detail);
       showRealtimePopup(detail);
     },
-    [dispatch, emitRealtimeEvent, isDuplicateEvent, showRealtimePopup]
+    [dispatch, emitRealtimeEvent, isDuplicateEvent, showRealtimePopup, isRealtimeEventsEnabled]
   );
 
   const handleFetchToken = useCallback(async () => {
@@ -280,13 +288,17 @@ const PushNotificationLayout = ({ children }) => {
 
   const handleRealtimeEvent = useCallback(
     (eventData) => {
+      if (!isRealtimeEventsEnabled) return;
       if (!eventData) return;
       processRealtimeEvent(eventData);
     },
-    [processRealtimeEvent]
+    [processRealtimeEvent, isRealtimeEventsEnabled]
   );
 
-  useRealtimeUserEvents({ onEvent: handleRealtimeEvent });
+  useRealtimeUserEvents({
+    onEvent: handleRealtimeEvent,
+    enabled: isRealtimeEventsEnabled,
+  });
 
   return children;
 };

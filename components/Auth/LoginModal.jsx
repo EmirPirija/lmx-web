@@ -112,6 +112,10 @@ const LoginModal = ({ IsLoginOpen, setIsRegisterModalOpen }) => {
   const mobile_authentication = Number(settings?.mobile_authentication);
   const google_authentication = Number(settings?.google_authentication);
   const email_authentication = Number(settings?.email_authentication);
+  const hasAnyAuthMethod =
+    mobile_authentication === 1 ||
+    email_authentication === 1 ||
+    google_authentication === 1;
 
   const [IsLoginWithEmail, setIsLoginWithEmail] = useState(
     mobile_authentication === 0 && email_authentication === 1 ? true : false,
@@ -125,7 +129,7 @@ const LoginModal = ({ IsLoginOpen, setIsRegisterModalOpen }) => {
   const canUseBothMethods =
     mobile_authentication === 1 && email_authentication === 1;
 
-  const canShowCredentialForm = !hasOnlyGoogleAuth;
+  const canShowCredentialForm = hasAnyAuthMethod && !hasOnlyGoogleAuth;
 
   const canShowGoogleDivider =
     canShowCredentialForm && google_authentication === 1;
@@ -508,6 +512,13 @@ xl:max-w-7xl
                         </div>
                       ) : null}
 
+                      {!hasAnyAuthMethod ? (
+                        <div className="rounded-xl border border-red-300/60 bg-red-500/10 px-3 py-3 text-sm text-red-700 dark:text-red-300">
+                          Prijava je trenutno onemogućena u admin postavkama.
+                          Kontaktiraj podršku ili pokušaj kasnije.
+                        </div>
+                      ) : null}
+
                       {canUseBothMethods ? (
                         <div className="grid grid-cols-2 gap-1.5 rounded-2xl bg-muted/60 p-1.5">
                           <button
@@ -642,28 +653,32 @@ xl:max-w-7xl
                         </Button>
                       ) : null}
 
-                      <div className="flex items-center justify-between rounded-xl bg-muted/50 px-3 py-2.5">
-                        <label
-                          htmlFor="remember-login-device"
-                          className="flex cursor-pointer items-center gap-2 text-sm text-foreground"
-                        >
-                          <Checkbox
-                            id="remember-login-device"
-                            checked={rememberMe}
-                            onCheckedChange={handleRememberChange}
-                          />
-                          <span>Zapamti me na ovom uređaju</span>
-                        </label>
-                        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                          <Smartphone className="h-3.5 w-3.5" />
-                          Brži pristup
-                        </span>
-                      </div>
+                      {hasAnyAuthMethod ? (
+                        <>
+                          <div className="flex items-center justify-between rounded-xl bg-muted/50 px-3 py-2.5">
+                            <label
+                              htmlFor="remember-login-device"
+                              className="flex cursor-pointer items-center gap-2 text-sm text-foreground"
+                            >
+                              <Checkbox
+                                id="remember-login-device"
+                                checked={rememberMe}
+                                onCheckedChange={handleRememberChange}
+                              />
+                              <span>Zapamti me na ovom uređaju</span>
+                            </label>
+                            <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                              <Smartphone className="h-3.5 w-3.5" />
+                              Brži pristup
+                            </span>
+                          </div>
 
-                      <TermsAndPrivacyLinks
-                        settings={settings}
-                        OnHide={OnHide}
-                      />
+                          <TermsAndPrivacyLinks
+                            settings={settings}
+                            OnHide={OnHide}
+                          />
+                        </>
+                      ) : null}
                     </motion.div>
                   )}
                 </AnimatePresence>

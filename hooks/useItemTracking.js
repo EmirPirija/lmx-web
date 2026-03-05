@@ -102,6 +102,22 @@ const getUserId = () => {
   }
 };
 
+const isEngagementTrackingEnabled = () => {
+  try {
+    const state = getAppStore()?.getState?.();
+    const raw = state?.Settings?.data?.data?.engagement_tracking_enabled;
+    if (raw === undefined || raw === null || raw === "") return true;
+    if (typeof raw === "boolean") return raw;
+    if (typeof raw === "number") return raw === 1;
+    const normalized = String(raw).trim().toLowerCase();
+    if (["1", "true", "yes", "on"].includes(normalized)) return true;
+    if (["0", "false", "off"].includes(normalized)) return false;
+    return true;
+  } catch {
+    return true;
+  }
+};
+
 const getLandingUrl = () => {
   if (typeof window === "undefined") return null;
   return window.location.href;
@@ -203,6 +219,16 @@ const getAttributionSource = ({
 
 const trackingRequest = async (endpoint, data, options = {}) => {
   const { returnPayload = false } = options;
+  if (!isEngagementTrackingEnabled()) {
+    if (returnPayload) {
+      return {
+        ok: false,
+        status: 204,
+        payload: { error: false, disabled: true },
+      };
+    }
+    return false;
+  }
   try {
     const token = getAuthToken();
     const headers = {};

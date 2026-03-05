@@ -132,17 +132,17 @@ export const generateMetadata = async ({ searchParams }) => {
   }
 };
 
+const SEO_LIST_LIMIT = 8;
+
 const getAllItems = async (langCode, searchParams) => {
   if (shouldSkipSeo()) return;
 
   try {
-    const queryString = buildIndexableParams(searchParams)
-      ? buildIndexableParams(searchParams)
-      : "";
+    const queryString = buildIndexableParams(searchParams) || "";
     const query = Object.fromEntries(new URLSearchParams(queryString).entries());
     const data = await fetchBackendJson({
       path: "get-item",
-      query: { page: 1, ...query },
+      query: { page: 1, limit: SEO_LIST_LIMIT, compact: 1, ...query },
       langCode: langCode || "en",
       revalidate: SEO_REVALIDATE_SECONDS,
     });
