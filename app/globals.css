@@ -168,7 +168,7 @@
   --lmx-scroll-offset: 0px;
   --lmx-scroll-wave: 0px;
   --lmx-layer-overlay-rgb: 2, 8, 23;
-  --lmx-layer-overlay-alpha: 0.62;
+  --lmx-layer-overlay-alpha: 0.78;
   --lmx-layer-backdrop-blur: 8px;
   --lmx-layer-shadow:
     0 28px 80px -32px rgba(2, 8, 23, 0.52),
@@ -184,7 +184,7 @@
     --background-start-rgb: 15, 23, 42;
     --background-end-rgb: 15, 23, 42;
     --lmx-layer-overlay-rgb: 2, 6, 23;
-    --lmx-layer-overlay-alpha: 0.72;
+    --lmx-layer-overlay-alpha: 0.86;
     --lmx-layer-shadow:
       0 32px 90px -32px rgba(1, 4, 15, 0.8),
       0 0 0 1px rgba(148, 163, 184, 0.18);
@@ -1201,9 +1201,6 @@ body.lmx-modal-open #__next,
 body.lmx-modal-open .lmx-app-surface {
   pointer-events: none !important;
   user-select: none !important;
-  filter: blur(2px) saturate(0.88) brightness(0.96);
-  opacity: 0.88;
-  transition: filter 180ms ease, opacity 180ms ease;
 }
 
 body.lmx-modal-open [data-lmx-modal-content],

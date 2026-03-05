@@ -5,7 +5,6 @@ import FeaturedSections from "./FeaturedSections";
 import { FeaturedSectionApi, allItemApi, sliderApi } from "@/utils/api";
 import { getCurrentLangCode } from "@/redux/reducer/languageSlice";
 import { useSelector } from "react-redux";
-import { getCityData, getKilometerRange } from "@/redux/reducer/locationSlice";
 import OfferSliderSkeleton from "@/components/PagesComponent/Home/OfferSliderSkeleton";
 import FeaturedSectionsSkeleton from "./FeaturedSectionsSkeleton";
 import PopularCategories from "./PopularCategories";
@@ -14,8 +13,6 @@ import HomeReels from "./HomeReels";
 
 import PlatformBenefitsStrip from "./PlatformBenefitsStrip";
 import { isHomeFeaturedItem } from "@/utils/featuredPlacement";
-import LowInventoryItems from "./LowInventoryItems";
-import { buildHomeLocationKey, buildHomeLocationParams } from "./locationParams";
 import {
   ensureFeaturedSectionsDemoFill,
   isHomeDemoFillEnabled,
@@ -32,34 +29,15 @@ const extractItemsFromGetItemsResponse = (responseData) => {
   if (Array.isArray(payload?.data)) return payload.data;
   return [];
 };
-
-const HOME_FEATURED_MIN_LOCATION_RESULTS = 8;
-
-const mergeUniqueItemsById = (primary = [], secondary = []) => {
-  const merged = new Map();
-  const append = (entry) => {
-    const id = Number(entry?.id);
-    if (!Number.isFinite(id) || id <= 0) return;
-    if (!merged.has(id)) {
-      merged.set(id, entry);
-    }
-  };
-
-  (primary || []).forEach(append);
-  (secondary || []).forEach(append);
-  return Array.from(merged.values());
-};
+const HOME_DEFAULT_COUNTRY = "Bosna i Hercegovina";
 
 const Home = () => {
-  const KmRange = useSelector(getKilometerRange);
-  const cityData = useSelector(getCityData);
   const currentLanguageCode = useSelector(getCurrentLangCode);
   const [IsFeaturedLoading, setIsFeaturedLoading] = useState(false);
   const [featuredData, setFeaturedData] = useState([]);
   const [Slider, setSlider] = useState([]);
   const [IsSliderLoading, setIsSliderLoading] = useState(true);
   const allEmpty = featuredData?.every((ele) => ele?.section_data.length === 0);
-  const locationKey = buildHomeLocationKey(cityData);
 
   useEffect(() => {
     const fetchSliderData = async () => {
@@ -80,8 +58,9 @@ const Home = () => {
     const fetchFeaturedSectionData = async () => {
       setIsFeaturedLoading(true);
       try {
-        const params = buildHomeLocationParams({ cityData, KmRange });
-        const hasLocationScope = Object.keys(params).length > 0;
+        const params = {
+          country: HOME_DEFAULT_COUNTRY,
+        };
         const [featuredResponse, featuredItemsResponse] = await Promise.all([
           FeaturedSectionApi.getFeaturedSections({
             ...params,
@@ -101,38 +80,9 @@ const Home = () => {
         ]);
 
         const featuredSections = featuredResponse?.data?.data || [];
-        const scopedFeaturedItems = extractItemsFromGetItemsResponse(
+        const featuredItems = extractItemsFromGetItemsResponse(
           featuredItemsResponse?.data,
         ).filter((item) => isHomeFeaturedItem(item, { strict: true }));
-
-        let featuredItems = scopedFeaturedItems;
-
-        if (
-          hasLocationScope &&
-          scopedFeaturedItems.length < HOME_FEATURED_MIN_LOCATION_RESULTS
-        ) {
-          try {
-            const globalFeaturedItemsResponse = await allItemApi.getItems({
-              current_page: "home",
-              is_feature: 1,
-              placement: "home",
-              positions: "home",
-              page: 1,
-              limit: 120,
-              no_cache: 1,
-            });
-            const globalFeaturedItems = extractItemsFromGetItemsResponse(
-              globalFeaturedItemsResponse?.data,
-            ).filter((item) => isHomeFeaturedItem(item, { strict: true }));
-
-            featuredItems = mergeUniqueItemsById(
-              scopedFeaturedItems,
-              globalFeaturedItems,
-            );
-          } catch {
-            featuredItems = scopedFeaturedItems;
-          }
-        }
 
         const featuredItemsById = new Map(
           featuredItems
@@ -175,7 +125,7 @@ const Home = () => {
       }
     };
     fetchFeaturedSectionData();
-  }, [locationKey, KmRange, currentLanguageCode]);
+  }, [currentLanguageCode]);
   return (
     <>
       {IsSliderLoading ? (
@@ -199,7 +149,7 @@ const Home = () => {
         />
       )}
       
-      <AllItems cityData={cityData} KmRange={KmRange} />
+      <AllItems />
       <PlatformBenefitsStrip />
     </>
   );
