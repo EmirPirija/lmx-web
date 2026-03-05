@@ -1,6 +1,11 @@
 import StructuredData from "@/components/Layout/StructuredData";
 import Products from "@/components/PagesComponent/Ads/Ads";
 import { SEO_REVALIDATE_SECONDS } from "@/lib/constants";
+import {
+  fetchBackendJson,
+  fetchSeoPageMetadata,
+  shouldSkipSeo,
+} from "@/lib/server/seo-metadata";
 import { generateKeywords } from "@/utils/generateKeywords";
 
 export const dynamic = "force-dynamic";
@@ -69,7 +74,7 @@ const buildCanonicalParams = (searchParams) => {
 };
 
 export const generateMetadata = async ({ searchParams }) => {
-  if (process.env.NEXT_PUBLIC_SEO === "false") return;
+  if (shouldSkipSeo()) return;
 
   try {
     const originalSearchParams = await searchParams;
@@ -82,18 +87,12 @@ export const generateMetadata = async ({ searchParams }) => {
     let image = "";
 
     if (slug) {
-      // Fetch category-specific SEO
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}${process.env.NEXT_PUBLIC_END_POINT}get-categories?slug=${slug}`,
-        {
-          headers: { "Content-Language": langCode || "en" },
-          next: {
-            revalidate: SEO_REVALIDATE_SECONDS,
-          },
-        }
-      );
-
-      const data = await response.json();
+      const data = await fetchBackendJson({
+        path: "get-categories",
+        query: { slug },
+        langCode: langCode || "en",
+        revalidate: SEO_REVALIDATE_SECONDS,
+      });
       const selfCategory = data?.self_category;
 
       title = selfCategory?.translated_name || title;
@@ -102,23 +101,15 @@ export const generateMetadata = async ({ searchParams }) => {
         generateKeywords(selfCategory?.translated_description) || keywords;
       image = selfCategory?.image || image;
     } else {
-      // Fetch default ad listing SEO
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}${process.env.NEXT_PUBLIC_END_POINT}seo-settings?page=ad-listing`,
-        {
-          headers: { "Content-Language": langCode || "en" },
-          next: {
-            revalidate: SEO_REVALIDATE_SECONDS,
-          },
-        }
-      );
-      const data = await res.json();
-      const adListing = data?.data?.[0];
-
-      title = adListing?.translated_title || title;
-      description = adListing?.translated_description || description;
-      keywords = adListing?.translated_keywords || keywords;
-      image = adListing?.image || image;
+      const adListingMeta = await fetchSeoPageMetadata({
+        page: "ad-listing",
+        langCode: langCode || "en",
+        revalidate: SEO_REVALIDATE_SECONDS,
+      });
+      title = adListingMeta?.title || title;
+      description = adListingMeta?.description || description;
+      keywords = adListingMeta?.keywords || keywords;
+      image = adListingMeta?.openGraph?.images?.[0] || image;
     }
 
     const baseUrl = process.env.NEXT_PUBLIC_WEB_URL;
@@ -136,36 +127,27 @@ export const generateMetadata = async ({ searchParams }) => {
         canonical: canonicalUrl,
       },
     };
-  } catch (error) {
-    console.error("Error fetching MetaData:", error);
+  } catch {
     return null;
   }
 };
 
 const getAllItems = async (langCode, searchParams) => {
-  if (process.env.NEXT_PUBLIC_SEO === "false") return;
+  if (shouldSkipSeo()) return;
 
   try {
     const queryString = buildIndexableParams(searchParams)
       ? buildIndexableParams(searchParams)
       : "";
-    const url = `${process.env.NEXT_PUBLIC_API_URL}${
-      process.env.NEXT_PUBLIC_END_POINT
-    }get-item?page=1${queryString ? `&${queryString}` : ""}`;
-
-    const res = await fetch(url, {
-      headers: {
-        "Content-Language": langCode || "en",
-      },
-      next: {
-        revalidate: SEO_REVALIDATE_SECONDS,
-      },
+    const query = Object.fromEntries(new URLSearchParams(queryString).entries());
+    const data = await fetchBackendJson({
+      path: "get-item",
+      query: { page: 1, ...query },
+      langCode: langCode || "en",
+      revalidate: SEO_REVALIDATE_SECONDS,
     });
-
-    const data = await res.json();
     return data?.data?.data || [];
-  } catch (error) {
-    console.error("Error fetching Product Items Data:", error);
+  } catch {
     return [];
   }
 };

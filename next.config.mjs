@@ -6,6 +6,7 @@ const isDev = process.env.NODE_ENV !== "production";
 
 const nextConfig = {
   reactStrictMode: false,
+  poweredByHeader: false,
   htmlLimitedBots: /.*/,
   images: {
     unoptimized: shouldDisableImageOptimization,
@@ -37,17 +38,6 @@ const nextConfig = {
       },
     ],
   },
-  // ADD THIS SECTION BELOW
-  async rewrites() {
-    return [
-      {
-        // Keep local /api passthrough for legacy/dev calls, but never override
-        // Next.js internal proxy handlers under /api/internal/*.
-        source: "/api/:path((?!internal(?:/|$)).*)",
-        destination: "https://admin.lmx.ba/api/:path*",
-      },
-    ];
-  },
   async headers() {
     const scriptSrc = ["'self'", "'unsafe-inline'", "https:"];
     if (isDev) {
@@ -69,25 +59,42 @@ const nextConfig = {
       "manifest-src 'self'",
       "media-src 'self' blob: data: https:",
       "form-action 'self' https://admin.lmx.ba",
+      "block-all-mixed-content",
       "upgrade-insecure-requests",
     ].join("; ");
+
+    const commonHeaders = [
+      { key: "Content-Security-Policy", value: csp },
+      { key: "X-Frame-Options", value: "SAMEORIGIN" },
+      { key: "X-Content-Type-Options", value: "nosniff" },
+      { key: "X-DNS-Prefetch-Control", value: "off" },
+      { key: "X-Permitted-Cross-Domain-Policies", value: "none" },
+      { key: "X-Download-Options", value: "noopen" },
+      { key: "Cross-Origin-Opener-Policy", value: "same-origin-allow-popups" },
+      { key: "Cross-Origin-Resource-Policy", value: "same-site" },
+      { key: "Origin-Agent-Cluster", value: "?1" },
+      {
+        key: "Referrer-Policy",
+        value: "strict-origin-when-cross-origin",
+      },
+      {
+        key: "Permissions-Policy",
+        value:
+          "camera=(), microphone=(), geolocation=(), payment=(), usb=(), serial=(), accelerometer=(), gyroscope=(), magnetometer=()",
+      },
+    ];
+
+    if (!isDev) {
+      commonHeaders.push({
+        key: "Strict-Transport-Security",
+        value: "max-age=63072000; includeSubDomains; preload",
+      });
+    }
 
     return [
       {
         source: "/:path*",
-        headers: [
-          { key: "Content-Security-Policy", value: csp },
-          { key: "X-Frame-Options", value: "SAMEORIGIN" },
-          { key: "X-Content-Type-Options", value: "nosniff" },
-          {
-            key: "Referrer-Policy",
-            value: "strict-origin-when-cross-origin",
-          },
-          {
-            key: "Permissions-Policy",
-            value: "camera=(), microphone=(), geolocation=()",
-          },
-        ],
+        headers: commonHeaders,
       },
     ];
   },

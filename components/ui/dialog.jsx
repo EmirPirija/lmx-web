@@ -207,6 +207,7 @@ const DialogContent = React.forwardRef(
             "data-[state=open]:animate-in data-[state=closed]:animate-out",
             "data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0",
             "data-[state=open]:slide-in-from-bottom-[40%] data-[state=closed]:slide-out-to-bottom-[40%]",
+            "motion-reduce:transition-none motion-reduce:data-[state=open]:animate-none motion-reduce:data-[state=closed]:animate-none",
 
             /* ── Animacija: Desktop – zoom + fade ── */
             "sm:data-[state=open]:slide-in-from-bottom-[2%] sm:data-[state=closed]:slide-out-to-bottom-[2%]",

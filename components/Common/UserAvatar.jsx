@@ -7,7 +7,7 @@ import { MdVerified, User } from "@/components/Common/UnifiedIconPack";
 import { settingsData } from "@/redux/reducer/settingSlice";
 import { cn } from "@/lib/utils";
 import { resolvePhoneVerificationFromSources } from "@/lib/seller-contact";
-import { isSellerVerified } from "@/lib/seller-verification";
+import { resolveSellerVerificationModel } from "@/lib/seller-verification";
 import { resolveAvatarUrl } from "@/utils/avatar";
 
 const normalizeSources = (src, sources) => {
@@ -39,6 +39,8 @@ const UserAvatar = ({
   phoneVerifiedBadgeClassName = "",
   onError,
   loading = "lazy",
+  decoding = "async",
+  fetchPriority = "auto",
   ...props
 }) => {
   const settings = useSelector(settingsData);
@@ -68,14 +70,14 @@ const UserAvatar = ({
 
     const explicitSources = normalizeSources(verifiedSource, verifiedSources);
     if (explicitSources.length > 0) {
-      return isSellerVerified(...explicitSources);
+      return resolveSellerVerificationModel(...explicitSources).isVerified;
     }
 
     const fallbackSources = normalizeSources(
       verificationSource,
       verificationSources,
     );
-    return isSellerVerified(...fallbackSources);
+    return resolveSellerVerificationModel(...fallbackSources).isVerified;
   }, [
     showVerifiedBadge,
     verified,
@@ -121,6 +123,8 @@ const UserAvatar = ({
             alt={alt}
             className={cn("h-full w-full object-cover", imageClassName)}
             loading={loading}
+            decoding={decoding}
+            fetchPriority={fetchPriority}
             onError={(event) => {
               setImgError(true);
               onError?.(event);

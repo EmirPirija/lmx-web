@@ -1,12 +1,12 @@
 "use client";
 
 import { useMemo, useState, useCallback, useEffect, useRef } from "react";
-import { createPortal } from "react-dom";
 import { toast } from "@/utils/toastBs";
 import { MdRocketLaunch } from "@/components/Common/UnifiedIconPack";
 import { CalendarDays, Home, Layers3, Sparkles, X } from "@/components/Common/UnifiedIconPack";
 
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { createFeaturedItemApi } from "@/utils/api";
 
 const placementOptions = [
@@ -95,7 +95,6 @@ const MakeFeaturedAd = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedPlacement, setSelectedPlacement] = useState(DEFAULT_PLACEMENT);
   const [selectedDuration, setSelectedDuration] = useState(DEFAULT_DURATION);
-  const [portalReady, setPortalReady] = useState(false);
   const submitLockRef = useRef(false);
 
   const isControlled = typeof open === "boolean";
@@ -115,33 +114,6 @@ const MakeFeaturedAd = ({
     if (isSubmitting) return;
     setModalOpen(false);
   }, [isSubmitting, setModalOpen]);
-
-  useEffect(() => {
-    setPortalReady(true);
-  }, []);
-
-  useEffect(() => {
-    if (!isModalOpen) return undefined;
-    if (typeof document === "undefined") return undefined;
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [isModalOpen]);
-
-  useEffect(() => {
-    if (!isModalOpen) return undefined;
-
-    const handleKeyDown = (event) => {
-      if (event.key === "Escape") closeModal();
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isModalOpen, closeModal]);
 
   const selectedPlacementMeta = useMemo(
     () =>
@@ -268,19 +240,21 @@ const MakeFeaturedAd = ({
         </div>
       )}
 
-      {portalReady &&
-        isModalOpen &&
-        createPortal(
-          <div className="fixed inset-0 z-[110] flex items-end justify-center p-0 sm:items-center sm:p-4">
-            <button
-              type="button"
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-              onClick={closeModal}
-              disabled={isSubmitting}
-              aria-label="Zatvori modal"
-            />
-
-            <div className="relative z-10 w-full max-w-xl rounded-t-3xl border border-slate-200 bg-white p-4 shadow-2xl dark:border-slate-800 dark:bg-slate-900 sm:rounded-3xl sm:p-6">
+      <Dialog
+        open={isModalOpen}
+        onOpenChange={(nextOpen) => {
+          if (nextOpen) {
+            setModalOpen(true);
+            return;
+          }
+          closeModal();
+        }}
+      >
+        <DialogContent
+          showCloseButton={false}
+          className="!z-[40135] !w-full !max-w-xl !max-h-[92dvh] !overflow-y-auto !rounded-t-3xl sm:!rounded-3xl !p-4 sm:!p-6"
+        >
+            <div className="relative w-full rounded-3xl border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-900">
               <div className="mb-5 flex items-start justify-between gap-3">
                 <div>
                   <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100">Postavke izdvajanja</h3>
@@ -400,9 +374,8 @@ const MakeFeaturedAd = ({
                 </div>
               </div>
             </div>
-          </div>,
-          document.body
-        )}
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

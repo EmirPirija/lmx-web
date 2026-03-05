@@ -12,6 +12,7 @@ import {
 
 import UserAvatarMedia from "@/components/Common/UserAvatar";
 import { cn } from "@/lib/utils";
+import { isSellerVerified } from "@/lib/seller-verification";
 
 const RankMark = ({ rank }) => {
   const r = Number(rank || 0);
@@ -63,11 +64,7 @@ const Pill = ({ icon: Icon, children, tone = "slate" }) => {
 export default function LeaderboardCard({ user, rank }) {
   const router = useRouter();
 
-  const isVerified =
-    Boolean(user?.is_verified) ||
-    Boolean(user?.verified) ||
-    user?.verification_status === "verified" ||
-    user?.verification === "verified";
+  const isVerified = isSellerVerified(user);
 
   const points = Number(user?.total_points || 0);
   const periodPoints = Number(user?.period_points || 0);

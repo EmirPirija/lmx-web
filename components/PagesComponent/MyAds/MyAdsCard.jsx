@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { createPortal } from "react-dom";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 import {
   CalendarDays,
@@ -644,41 +644,41 @@ const FeaturedPlanModal = ({
     [placement],
   );
 
-  useEffect(() => {
-    if (!isOpen) return undefined;
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [isOpen]);
-
-  if (!isOpen) return null;
-  if (typeof document === "undefined") return null;
-
-  return createPortal(
-    <AnimatePresence>
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[110] flex items-center justify-center p-3 sm:p-4"
+  return (
+    <Dialog
+      open={isOpen}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) {
+          handleClose();
+        }
+      }}
+    >
+      <DialogContent
+        showCloseButton={false}
+        size="lg"
+        fallbackTitle="Postavke izdvajanja"
+        fallbackDescription="Postavke za isticanje oglasa."
+        className="sm:max-w-xl max-h-[90vh] border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900"
+        onInteractOutside={(event) => {
+          if (isSubmitting) {
+            event.preventDefault();
+            return;
+          }
+          handleClose();
+        }}
+        onEscapeKeyDown={(event) => {
+          if (isSubmitting) {
+            event.preventDefault();
+            return;
+          }
+          handleClose();
+        }}
       >
-        <button
-          type="button"
-          className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-          onClick={handleClose}
-          disabled={isSubmitting}
-        />
-
         <motion.div
           initial={{ opacity: 0, y: 26, scale: 0.98 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 26, scale: 0.98 }}
           transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-          className="relative z-10 w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-3xl border border-slate-200 bg-white p-4 shadow-2xl dark:border-slate-800 dark:bg-slate-900 sm:p-6"
+          className="relative w-full"
         >
           <div className="mb-5 flex items-start justify-between gap-3">
             <div>
@@ -869,9 +869,8 @@ const FeaturedPlanModal = ({
             </div>
           </div>
         </motion.div>
-      </motion.div>
-    </AnimatePresence>,
-    document.body,
+      </DialogContent>
+    </Dialog>
   );
 };
 
@@ -1090,59 +1089,45 @@ const SmartQuickActionsPanel = ({
     }
   };
 
-  useEffect(() => {
-    if (!isVisible) return undefined;
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [isVisible]);
-
-  return typeof document === "undefined"
-    ? null
-    : createPortal(
-        <AnimatePresence>
-          {isVisible ? (
-            <>
-              <motion.button
-                type="button"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="fixed inset-0 z-[85] bg-slate-950/45 backdrop-blur-[2px]"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  onClose();
-                }}
-                aria-label="Zatvori panel akcija"
-              />
-
-              <div
-                className={cn(
-                  "fixed left-1/2 top-1/2 z-[90] -translate-x-1/2 -translate-y-1/2",
-                  isMobile
-                    ? "w-[min(640px,calc(100vw-0.75rem))]"
-                    : "w-[min(920px,calc(100vw-2rem))]",
-                )}
-              >
-                <motion.div
-                  layout
-                  initial={{ opacity: 0, y: 18, scale: 0.98 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 18, scale: 0.98 }}
-                  transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
-                  className={cn(
-                    "overflow-hidden border border-slate-200 bg-white/95 p-4 shadow-[0_28px_68px_-42px_rgba(15,23,42,0.7)] backdrop-blur-xl dark:border-slate-700 dark:bg-slate-900/95 sm:p-5",
-                    isMobile
-                      ? "max-h-[84vh] overflow-y-auto rounded-3xl"
-                      : "max-h-[84vh] overflow-y-auto rounded-[30px]",
-                  )}
-                  onClick={(e) => e.stopPropagation()}
-                >
+  return (
+    <Dialog
+      open={isVisible}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) {
+          onClose?.();
+        }
+      }}
+    >
+      <DialogContent
+        showCloseButton={false}
+        size="xl"
+        fallbackTitle="Pametne akcije oglasa"
+        fallbackDescription={panelHint}
+        className={cn(
+          "border border-slate-200 bg-white/95 p-0 shadow-[0_28px_68px_-42px_rgba(15,23,42,0.7)] backdrop-blur-xl dark:border-slate-700 dark:bg-slate-900/95",
+          isMobile
+            ? "w-[min(640px,calc(100vw-0.75rem))] max-h-[84vh]"
+            : "w-[min(920px,calc(100vw-2rem))] max-h-[84vh]",
+        )}
+        onInteractOutside={(event) => {
+          event.preventDefault();
+          onClose?.();
+        }}
+        onEscapeKeyDown={(event) => {
+          event.preventDefault();
+          onClose?.();
+        }}
+      >
+        <motion.div
+          layout
+          initial={{ opacity: 0, y: 18, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+          className={cn(
+            "overflow-y-auto p-4 sm:p-5",
+            isMobile ? "max-h-[84vh] rounded-3xl" : "max-h-[84vh] rounded-[30px]",
+          )}
+        >
                   <div className="mb-4 flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="text-[clamp(24px,1.9vw,33px)] font-semibold tracking-tight text-slate-900 dark:text-slate-100">
@@ -1250,13 +1235,10 @@ const SmartQuickActionsPanel = ({
                       ))}
                     </div>
                   ) : null}
-                </motion.div>
-              </div>
-            </>
-          ) : null}
-        </AnimatePresence>,
-        document.body,
-      );
+        </motion.div>
+      </DialogContent>
+    </Dialog>
+  );
 };
 
 // ============================================

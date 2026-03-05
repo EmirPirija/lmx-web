@@ -796,7 +796,7 @@ const MyAds = () => {
       }
     } catch (error) {
       const statusCode = Number(error?.response?.status || 0);
-      if (statusCode === 401) {
+      if (statusCode === 401 || statusCode === 419) {
         if (page === 1) {
           setMyItems([]);
           setCurrentPage(1);
@@ -805,7 +805,7 @@ const MyAds = () => {
         }
         return;
       }
-      console.error(error);
+
       const fallbackError = getApiErrorMessage(
         error?.response?.data,
         error?.message || "Ne možemo učitati oglase. Pokušaj ponovo.",

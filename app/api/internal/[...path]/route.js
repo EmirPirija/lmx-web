@@ -59,7 +59,10 @@ const proxy = async (request, paramsLike) => {
       },
       {
         status: 500,
-        headers: { "x-request-id": requestId },
+        headers: {
+          "x-request-id": requestId,
+          "x-correlation-id": requestId,
+        },
       },
     );
   }
@@ -75,7 +78,10 @@ const proxy = async (request, paramsLike) => {
       },
       {
         status: 400,
-        headers: { "x-request-id": requestId },
+        headers: {
+          "x-request-id": requestId,
+          "x-correlation-id": requestId,
+        },
       },
     );
   }
@@ -116,6 +122,7 @@ const proxy = async (request, paramsLike) => {
       responseHeaders.set("content-type", upstreamContentType);
     }
     responseHeaders.set("x-request-id", requestId);
+    responseHeaders.set("x-correlation-id", requestId);
 
     return new NextResponse(upstreamBody, {
       status: upstreamResponse.status,
@@ -134,7 +141,10 @@ const proxy = async (request, paramsLike) => {
       },
       {
         status: isTimeout ? 504 : 502,
-        headers: { "x-request-id": requestId },
+        headers: {
+          "x-request-id": requestId,
+          "x-correlation-id": requestId,
+        },
       },
     );
   } finally {
@@ -166,11 +176,14 @@ export async function HEAD(request, context) {
   return proxy(request, context?.params);
 }
 
-export async function OPTIONS() {
+export async function OPTIONS(request) {
+  const requestId = request?.headers?.get("x-request-id") || createRequestId();
   return new NextResponse(null, {
     status: 204,
     headers: {
       Allow: ALLOW_HEADER,
+      "x-request-id": requestId,
+      "x-correlation-id": requestId,
     },
   });
 }

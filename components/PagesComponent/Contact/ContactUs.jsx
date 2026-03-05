@@ -24,6 +24,7 @@ import { Loader2 } from "@/components/Common/UnifiedIconPack";
 import Layout from "@/components/Layout/Layout";
 import BreadCrumb from "@/components/BreadCrumb/BreadCrumb";
 import parse from "html-react-parser";
+import { sanitizeHtml } from "@/utils/sanitizeHtml";
 
 const FALLBACK_CONTACT_HTML = `
   <p>Imate pitanje, prijedlog ili trebate pomoć? Naš tim je tu za vas.</p>
@@ -335,7 +336,7 @@ const ContactUs = () => {
             </h2>
             <div className="space-y-6">
               <div className="max-w-full prose lg:prose-lg prose-invert">
-                {parse(contactUs || FALLBACK_CONTACT_HTML)}
+                {parse(sanitizeHtml(contactUs || FALLBACK_CONTACT_HTML))}
               </div>
 
               {settings?.company_address && (

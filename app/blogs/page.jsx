@@ -1,46 +1,21 @@
 import StructuredData from "@/components/Layout/StructuredData";
 import Blogs from "@/components/PagesComponent/Blogs/Blogs";
 import { SEO_REVALIDATE_SECONDS } from "@/lib/constants";
+import {
+  fetchBackendJson,
+  fetchSeoPageMetadata,
+  shouldSkipSeo,
+} from "@/lib/server/seo-metadata";
 
 export const dynamic = "force-dynamic";
 
 export const generateMetadata = async ({ searchParams }) => {
-  try {
-    if (process.env.NEXT_PUBLIC_SEO === "false") return;
-    const params = await searchParams;
-    const langCode = params?.lang || "en";
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}${process.env.NEXT_PUBLIC_END_POINT}seo-settings?page=blogs`,
-      {
-        headers: {
-          "Content-Language": langCode || "en",
-        },
-        next: {
-          revalidate: SEO_REVALIDATE_SECONDS,
-        },
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error("Failed to fetch blogs metadata");
-    }
-    const data = await response.json();
-    const blogs = data?.data[0];
-    return {
-      title: blogs?.translated_title || process.env.NEXT_PUBLIC_META_TITLE,
-      description:
-        blogs?.translated_description ||
-        process.env.NEXT_PUBLIC_META_DESCRIPTION,
-      openGraph: {
-        images: blogs?.image ? [blogs?.image] : [],
-      },
-      keywords:
-        blogs?.translated_keywords || process.env.NEXT_PUBLIC_META_kEYWORDS,
-    };
-  } catch (error) {
-    console.error("Error fetching MetaData:", error);
-    return null;
-  }
+  const params = await searchParams;
+  return fetchSeoPageMetadata({
+    page: "blogs",
+    langCode: params?.lang || "en",
+    revalidate: SEO_REVALIDATE_SECONDS,
+  });
 };
 
 const stripHtml = (html) => {
@@ -56,29 +31,15 @@ const formatDate = (dateString) => {
 
 const fetchBlogItems = async (langCode, tag) => {
   try {
-    if (process.env.NEXT_PUBLIC_SEO === "false") return;
-    let url = `${process.env.NEXT_PUBLIC_API_URL}${process.env.NEXT_PUBLIC_END_POINT}blogs`;
-
-    if (tag) {
-      url += `?tag=${encodeURIComponent(tag)}`;
-    }
-
-    const response = await fetch(url, {
-      headers: {
-        "Content-Language": langCode || "en",
-      },
-      next: {
-        revalidate: SEO_REVALIDATE_SECONDS,
-      },
+    if (shouldSkipSeo()) return [];
+    const data = await fetchBackendJson({
+      path: "blogs",
+      query: tag ? { tag } : {},
+      langCode: langCode || "en",
+      revalidate: SEO_REVALIDATE_SECONDS,
     });
-
-    if (!response.ok) {
-      throw new Error("Failed to fetch blogs json-ld data");
-    }
-    const data = await response.json();
     return data?.data?.data || [];
-  } catch (error) {
-    console.error("Error fetching Blog Items Data:", error);
+  } catch {
     return [];
   }
 };

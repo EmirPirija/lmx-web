@@ -4,6 +4,7 @@ import { X, ChevronDown, Check, Trash2, Settings, Layers } from "@/components/Co
 import { useSearchParams } from "next/navigation";
 import { useState, useEffect, useMemo } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 // --- INTERNA KOMPONENTA: SKELETON LOADER ---
 const FilterSkeleton = () => (
@@ -163,14 +164,17 @@ const ExtraDetailsPopup = ({ onClose, customFields, isLoading = false }) => {
   );
 
   return (
-    <div 
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm transition-all duration-300" 
-      onClick={onClose}
+    <Dialog
+      open
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) onClose?.();
+      }}
     >
-      <div 
-        className="bg-white rounded-t-3xl sm:rounded-2xl w-full sm:max-w-2xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden animate-in slide-in-from-bottom-10 fade-in duration-300" 
-        onClick={(e) => e.stopPropagation()}
+      <DialogContent
+        showCloseButton={false}
+        className="!z-[40120] !w-full !max-w-2xl !max-h-[85dvh] !overflow-hidden !rounded-t-3xl sm:!rounded-2xl !p-0"
       >
+        <div className="bg-white flex flex-col h-full">
         <div className="px-6 py-4 border-b flex items-center justify-between bg-white/95 backdrop-blur sticky top-0 z-20">
           <div>
             <h2 className="text-xl font-bold text-gray-900">Filteri i detalji</h2>
@@ -247,8 +251,9 @@ const ExtraDetailsPopup = ({ onClose, customFields, isLoading = false }) => {
             Prikaži rezultate
           </button>
         </div>
-      </div>
-    </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 

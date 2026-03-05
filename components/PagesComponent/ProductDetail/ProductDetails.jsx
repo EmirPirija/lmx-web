@@ -51,6 +51,7 @@ import OpenInAppDrawer from "@/components/Common/OpenInAppDrawer";
 import AdStatisticsSection from "@/components/PagesComponent/MyAds/AdStatisticsSection";
 import GiveReview from "@/components/PagesComponent/Chat/GiveReview";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Drawer, DrawerContent } from "@/components/ui/drawer";
 import { Skeleton } from "@/components/ui/skeleton";
 
 // Redux
@@ -1090,80 +1091,67 @@ const ProductDetails = ({ slug }) => {
       {/* --- MODALS & DRAWERS --- */}
 
       {/* Statistika Modal */}
-      {showStatsModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in"
-            onClick={() => setShowStatsModal(false)}
-          />
-          <div className="relative w-full max-w-4xl bg-white dark:bg-slate-900 rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 max-h-[90vh] flex flex-col">
-            <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900">
-              <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+      <Dialog open={showStatsModal} onOpenChange={setShowStatsModal}>
+        <DialogContent
+          showCloseButton={false}
+          className="!z-[40130] !w-full !max-w-4xl !max-h-[90dvh] !overflow-hidden !rounded-2xl !p-0"
+        >
+          <div className="flex max-h-[90dvh] flex-col bg-white dark:bg-slate-900">
+            <div className="flex items-center justify-between border-b border-slate-100 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+              <h3 className="flex items-center gap-2 text-xl font-bold text-slate-800 dark:text-slate-100">
                 <IoStatsChart className="text-blue-500" /> Statistika
               </h3>
               <button
                 onClick={() => setShowStatsModal(false)}
-                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full text-slate-500 dark:text-slate-400"
+                className="rounded-full p-2 text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
               >
                 <MdClose size={24} />
               </button>
             </div>
-            <div className="overflow-y-auto p-6 flex-1 bg-white dark:bg-slate-900">
+            <div className="flex-1 overflow-y-auto bg-white p-6 dark:bg-slate-900">
               <AdStatisticsSection itemId={productDetails.id} />
             </div>
           </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
 
       {/* Mobile Status Drawer */}
       {isMyListing && (
-        <>
-          <div
-            className={cn(
-              "fixed inset-0 bg-black/60 z-[100] transition-opacity",
-              showStatusDrawer
-                ? "opacity-100 pointer-events-auto"
-                : "opacity-0 pointer-events-none",
-            )}
-            onClick={() => setShowStatusDrawer(false)}
-          />
-          <div
-            className={cn(
-              "fixed bottom-0 left-0 right-0 z-[101] bg-white dark:bg-slate-900 rounded-t-3xl transition-transform duration-300 flex flex-col max-h-[85vh]",
-              showStatusDrawer ? "translate-y-0" : "translate-y-full",
-            )}
-          >
-            <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-slate-800">
-              <h3 className="font-bold text-lg text-slate-800 dark:text-white">
-                Upravljanje oglasom
-              </h3>
-              <button
-                onClick={() => setShowStatusDrawer(false)}
-                className="p-2 bg-slate-100 dark:bg-slate-800 rounded-full text-slate-600 dark:text-slate-300"
-              >
-                <MdClose />
-              </button>
+        <Drawer open={showStatusDrawer} onOpenChange={setShowStatusDrawer}>
+          <DrawerContent className="!z-[40125] !max-h-[85dvh] !rounded-t-3xl !p-0">
+            <div className="flex max-h-[85dvh] flex-col bg-white dark:bg-slate-900">
+              <div className="flex items-center justify-between border-b border-slate-100 p-5 dark:border-slate-800">
+                <h3 className="text-lg font-bold text-slate-800 dark:text-white">
+                  Upravljanje oglasom
+                </h3>
+                <button
+                  onClick={() => setShowStatusDrawer(false)}
+                  className="rounded-full bg-slate-100 p-2 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+                >
+                  <MdClose />
+                </button>
+              </div>
+              <div className="overflow-y-auto p-5 pb-8">
+                <AdsStatusChangeCards
+                  productDetails={productDetails}
+                  setProductDetails={setProductDetails}
+                  status={status}
+                  setStatus={setStatus}
+                />
+                {canManageFeaturedAd && (
+                  <div className="mt-6 border-t border-slate-100 pt-6 dark:border-slate-800">
+                    <FeaturedAdTriggerCard
+                      onOpen={openFeaturedModal}
+                      compact
+                      isFeatured={Boolean(productDetails?.is_feature)}
+                      featuredMeta={featuredMeta}
+                    />
+                  </div>
+                )}
+              </div>
             </div>
-            <div className="p-5 overflow-y-auto pb-8">
-              <AdsStatusChangeCards
-                productDetails={productDetails}
-                setProductDetails={setProductDetails}
-                status={status}
-                setStatus={setStatus}
-              />
-              {canManageFeaturedAd && (
-                <div className="mt-6 pt-6 border-t border-slate-100 dark:border-slate-800">
-                  <FeaturedAdTriggerCard
-                    onOpen={openFeaturedModal}
-                    compact
-                    isFeatured={Boolean(productDetails?.is_feature)}
-                    featuredMeta={featuredMeta}
-                  />
-                </div>
-              )}
-            </div>
-          </div>
-        </>
+          </DrawerContent>
+        </Drawer>
       )}
 
       {/* Featured Modal (triggered from MyAdsListingDetailCard) */}

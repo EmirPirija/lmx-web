@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useSelector } from "react-redux";
 import { toast } from "@/utils/toastBs";
 import { cn } from "@/lib/utils";
+import { isSellerVerified } from "@/lib/seller-verification";
 import CustomLink from "@/components/Common/CustomLink";
 import { userSignUpData } from "@/redux/reducer/authSlice";
 import {
@@ -42,12 +43,7 @@ const MobileSectionSelectorCard = ({ className = "" }) => {
   const navigationSections = useMemo(
     () =>
       getProfileNavigationSections({
-        isVerified: Boolean(
-          userData?.is_verified === true ||
-          userData?.verified === true ||
-          Number(userData?.is_verified) === 1 ||
-          Number(userData?.verified) === 1,
-        ),
+        isVerified: isSellerVerified(userData),
         activeAds: Number(userData?.active_ads || userData?.total_ads || 0),
         unreadNotifications: Number(userData?.unread_notifications || 0),
         unreadMessages: Number(userData?.unread_messages || 0),

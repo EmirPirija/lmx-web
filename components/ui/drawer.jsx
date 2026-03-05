@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { Drawer as DrawerPrimitive } from "vaul";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 
 import { cn } from "@/lib/utils";
 import { overlayMotion, sideSheetMotion } from "@/components/ui/ui-motion";
@@ -46,24 +46,61 @@ const DrawerClose = DrawerPrimitive.Close;
 
 const DrawerOverlay = React.forwardRef(({ className, ...props }, ref) => (
   <DrawerPrimitive.Overlay ref={ref} asChild {...props}>
+    <ReducedMotionOverlay className={className} />
+  </DrawerPrimitive.Overlay>
+));
+DrawerOverlay.displayName = DrawerPrimitive.Overlay.displayName;
+
+const ReducedMotionOverlay = ({ className }) => {
+  const prefersReducedMotion = useReducedMotion();
+  const motionConfig = prefersReducedMotion
+    ? {
+        initial: { opacity: 1 },
+        animate: { opacity: 1 },
+        exit: { opacity: 1 },
+        transition: { duration: 0 },
+      }
+    : overlayMotion;
+
+  return (
     <motion.div
-      {...overlayMotion}
+      {...motionConfig}
       className={cn(
         "lmx-layer-overlay fixed inset-0 !z-[40000]",
         className,
       )}
     />
-  </DrawerPrimitive.Overlay>
-));
-DrawerOverlay.displayName = DrawerPrimitive.Overlay.displayName;
+  );
+};
 
 const DrawerContent = React.forwardRef(
   ({ className, children, ...props }, ref) => (
     <DrawerPortal>
       <DrawerOverlay />
+      <ReducedMotionContent ref={ref} className={className} {...props}>
+        {children}
+      </ReducedMotionContent>
+    </DrawerPortal>
+  ),
+);
+DrawerContent.displayName = "DrawerContent";
+
+const ReducedMotionContent = React.forwardRef(
+  ({ className, children, ...props }, ref) => {
+    const prefersReducedMotion = useReducedMotion();
+    const motionConfig = prefersReducedMotion
+      ? {
+          initial: { opacity: 1, y: 0 },
+          animate: { opacity: 1, y: 0 },
+          exit: { opacity: 1, y: 0 },
+          transition: { duration: 0 },
+        }
+      : sideSheetMotion.bottom;
+
+    return (
       <DrawerPrimitive.Content ref={ref} asChild {...props}>
         <motion.div
-          {...sideSheetMotion.bottom}
+          {...motionConfig}
           data-lmx-modal-content="drawer"
           className={cn(
             "fixed inset-x-0 bottom-0 !z-[40010] mt-24 flex h-auto flex-col rounded-t-3xl lmx-layer-surface-drawer",
@@ -75,10 +112,10 @@ const DrawerContent = React.forwardRef(
           {children}
         </motion.div>
       </DrawerPrimitive.Content>
-    </DrawerPortal>
-  ),
+    );
+  },
 );
-DrawerContent.displayName = "DrawerContent";
+ReducedMotionContent.displayName = "ReducedMotionContent";
 
 const DrawerHeader = ({ className, ...props }) => (
   <div

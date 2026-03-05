@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo } from "react";
 import { motion } from "framer-motion";
-import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 import { useAdaptiveMobileDock } from "@/components/Layout/AdaptiveMobileDock";
 
@@ -40,11 +39,6 @@ const StickyActionButtons = ({
 }) => {
   const dock = useAdaptiveMobileDock();
   const dockId = useId();
-  const [isClient, setIsClient] = useState(false);
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
 
   const mobileButtonsContent = useMemo(
     () => (
@@ -159,10 +153,6 @@ const StickyActionButtons = ({
     return null;
   }
 
-  if (!isClient) {
-    return null;
-  }
-
   const desktopNode = (
     <motion.div
       initial={{ y: 20, opacity: 0 }}
@@ -189,7 +179,7 @@ const StickyActionButtons = ({
     </motion.div>
   );
 
-  return createPortal(desktopNode, document.body);
+  return desktopNode;
 };
 
 export default StickyActionButtons;

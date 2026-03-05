@@ -6,7 +6,7 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "../ui/dialog";
+} from "@/components/ui/dialog";
 import { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import {

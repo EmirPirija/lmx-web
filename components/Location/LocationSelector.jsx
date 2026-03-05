@@ -7,7 +7,7 @@ import {
   MdOutlineKeyboardArrowRight,
   X,
 } from "@/components/Common/UnifiedIconPack";
-import { DialogHeader, DialogTitle } from "../ui/dialog";
+import { DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { getLocationApi } from "@/utils/api";
 import {

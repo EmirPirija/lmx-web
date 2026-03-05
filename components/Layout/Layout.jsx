@@ -10,6 +10,7 @@ import CustomImage from "../Common/CustomImage";
 import ScrollToTopButton from "./ScrollToTopButton";
 import { AdaptiveMobileDockProvider } from "./AdaptiveMobileDock";
 import LiveTrafficTracker from "./LiveTrafficTracker";
+import FrontendObservabilityBridge from "./FrontendObservabilityBridge";
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 
@@ -79,6 +80,7 @@ export default function Layout({ children }) {
     <PushNotificationLayout>
       <AdaptiveMobileDockProvider>
         <LiveTrafficTracker />
+        <FrontendObservabilityBridge />
         <div
           className={`flex flex-col min-h-screen ${
             isHomepageRoute ? "lmx-home-container-scope" : "lmx-fullwidth-container-scope"
@@ -89,9 +91,15 @@ export default function Layout({ children }) {
           }}
         >
           <Header />
-          <div className="flex-1 bg-[#f0f3f9] dark:bg-slate-900 pb-8">
+          <main
+            id="main-content"
+            role="main"
+            tabIndex={-1}
+            data-lmx-focus-fallback="true"
+            className="flex-1 bg-[#f0f3f9] dark:bg-slate-900 pb-8"
+          >
             {children}
-          </div>
+          </main>
           <ScrollToTopButton />
           <Footer />
         </div>

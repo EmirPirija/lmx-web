@@ -6,8 +6,18 @@ const MAINTENANCE_PUBLIC_PATHS = new Set([
   '/data-deletion',
 ]);
 
+const createRequestId = () => {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return `req_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+};
+
 export function middleware(req) {
   const isMaintenanceMode = process.env.MAINTENANCE_MODE === 'true';
+  const requestId = req.headers.get("x-request-id") || createRequestId();
+  const requestHeaders = new Headers(req.headers);
+  requestHeaders.set("x-request-id", requestId);
   const normalizedPath =
     req.nextUrl.pathname === '/'
       ? '/'
@@ -56,12 +66,24 @@ export function middleware(req) {
       </html>`,
       {
         status: 503,
-        headers: { 'content-type': 'text/html' }
+        headers: {
+          'content-type': 'text/html',
+          'cache-control': 'no-store',
+          'x-request-id': requestId,
+          'x-correlation-id': requestId,
+        }
       }
     );
   }
 
-  return NextResponse.next();
+  const response = NextResponse.next({
+    request: {
+      headers: requestHeaders,
+    },
+  });
+  response.headers.set("x-request-id", requestId);
+  response.headers.set("x-correlation-id", requestId);
+  return response;
 }
 
 export const config = {

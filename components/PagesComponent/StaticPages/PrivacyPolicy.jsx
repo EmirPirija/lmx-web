@@ -6,6 +6,7 @@ import { settingsData } from "@/redux/reducer/settingSlice";
 import { t } from "@/utils";
 import parse from "html-react-parser";
 import { useSelector } from "react-redux";
+import { sanitizeHtml } from "@/utils/sanitizeHtml";
 
 const PrivacyPolicy = () => {
   const settings = useSelector(settingsData);
@@ -16,7 +17,7 @@ const PrivacyPolicy = () => {
       <BreadCrumb title2={"Politiku privatnosti"} />
       <div className="container">
         <div className="max-w-full py-7 prose lg:prose-lg">
-          {parse(privacy || "")}
+          {parse(sanitizeHtml(privacy || ""))}
           <p>
             Informacije o zahtjevu i postupku brisanja naloga možeš pronaći na
             stranici <a href="/data-deletion">{"Brisanje podataka"}</a>.

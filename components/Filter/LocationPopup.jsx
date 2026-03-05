@@ -4,6 +4,7 @@ import { X, Search, MapPin, ChevronRight, Check, Loader2, Globe, CornerDownRight
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useSearchParams, usePathname } from "next/navigation";
 import { useNavigate } from "../Common/useNavigate"; 
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 // --- MOCK PODACI: POČETNE ZEMLJE ---
 const INITIAL_COUNTRIES = [
@@ -123,8 +124,17 @@ const LocationPopup = ({ onClose, extraDetails = {}, country, state, city, area 
   }, [area, city, state, country, currentLocationSlug]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm transition-all duration-300" onClick={onClose}>
-      <div className="bg-white rounded-t-3xl sm:rounded-2xl w-full sm:max-w-xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden animate-in slide-in-from-bottom-10 fade-in duration-300" onClick={(e) => e.stopPropagation()}>
+    <Dialog
+      open
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) onClose?.();
+      }}
+    >
+      <DialogContent
+        showCloseButton={false}
+        className="!z-[40120] !w-full !max-w-xl !max-h-[85dvh] !overflow-hidden !rounded-t-3xl sm:!rounded-2xl !p-0"
+      >
+      <div className="bg-white w-full h-full flex flex-col">
         
         {/* HEADER */}
         <div className="px-6 py-5 border-b border-gray-100 bg-white/95 backdrop-blur sticky top-0 z-20 space-y-4">
@@ -295,7 +305,8 @@ const LocationPopup = ({ onClose, extraDetails = {}, country, state, city, area 
           </div>
         </div>
       </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 

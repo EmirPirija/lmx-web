@@ -41,6 +41,7 @@ import Checkauth from "@/HOC/Checkauth";
 import CustomLink from "@/components/Common/CustomLink";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { motion, AnimatePresence } from "framer-motion";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { CurrentLanguageData } from "@/redux/reducer/languageSlice";
 import {
   getDefaultLanguageCode,
@@ -3113,93 +3114,96 @@ const AdsListing = () => {
           </div>
         </div>
 
-        <AnimatePresence>
-          {showPublishFx && (
+        <Dialog
+          open={showPublishFx}
+          onOpenChange={(nextOpen) => {
+            if (nextOpen) return;
+            // Publish progress dialog closes only when publish flow resolves.
+          }}
+        >
+          <DialogContent
+            showCloseButton={false}
+            fallbackTitle={currentPublishStage.title}
+            fallbackDescription={currentPublishStage.subtitle}
+            className="w-[min(92vw,460px)] border-white/20 bg-slate-950/92 text-white shadow-[0_24px_90px_-35px_rgba(0,0,0,0.8)] backdrop-blur-xl"
+            onInteractOutside={(event) => event.preventDefault()}
+            onEscapeKeyDown={(event) => event.preventDefault()}
+            onPointerDownOutside={(event) => event.preventDefault()}
+          >
+            <div className="pointer-events-none absolute -left-24 -top-24 h-72 w-72 rounded-full bg-primary/35 blur-3xl" />
+            <div className="pointer-events-none absolute -bottom-28 -right-20 h-72 w-72 rounded-full bg-cyan-400/35 blur-3xl" />
+            <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-white/10 blur-2xl" />
+
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[130] flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur-md"
+              initial={{ opacity: 0, y: 20, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ duration: 0.25 }}
+              className="relative flex flex-col items-center text-center"
             >
-              <div className="pointer-events-none absolute -left-24 -top-24 h-72 w-72 rounded-full bg-primary/35 blur-3xl" />
-              <div className="pointer-events-none absolute -bottom-28 -right-20 h-72 w-72 rounded-full bg-cyan-400/35 blur-3xl" />
-
               <motion.div
-                initial={{ opacity: 0, y: 20, scale: 0.96 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 12, scale: 0.98 }}
-                transition={{ duration: 0.25 }}
-                className="relative w-full max-w-md overflow-hidden rounded-3xl border border-white/20 bg-white/10 p-6 text-white shadow-[0_24px_90px_-35px_rgba(0,0,0,0.8)] backdrop-blur-xl sm:p-7"
+                animate={{ rotate: 360 }}
+                transition={{
+                  duration: 2.1,
+                  repeat: Infinity,
+                  ease: "linear",
+                }}
+                className="relative mb-5 h-24 w-24 rounded-full bg-[conic-gradient(from_180deg,#1d4ed8,#06b6d4,#ec4899,#1d4ed8)] p-[3px]"
               >
-                <div className="absolute -right-10 -top-10 h-28 w-28 rounded-full bg-white/10 blur-2xl" />
-
-                <div className="relative flex flex-col items-center text-center">
-                  <motion.div
-                    animate={{ rotate: 360 }}
-                    transition={{
-                      duration: 2.1,
-                      repeat: Infinity,
-                      ease: "linear",
-                    }}
-                    className="relative mb-5 h-24 w-24 rounded-full bg-[conic-gradient(from_180deg,#1d4ed8,#06b6d4,#ec4899,#1d4ed8)] p-[3px]"
-                  >
-                    <div className="flex h-full w-full items-center justify-center rounded-full bg-slate-950/80">
-                      <Loader2 className="h-8 w-8 animate-spin text-white" />
-                    </div>
-                  </motion.div>
-
-                  <div className="mb-3 inline-flex items-center gap-1 rounded-full border border-white/25 bg-white/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em]">
-                    <Sparkles className="h-3.5 w-3.5" />
-                    Objava u toku
-                  </div>
-
-                  <h3 className="text-xl font-semibold sm:text-2xl">
-                    {currentPublishStage.title}
-                  </h3>
-                  <p className="mt-2 text-sm text-white/80">
-                    {currentPublishStage.subtitle}
-                  </p>
-
-                  <div className="mt-6 w-full">
-                    <div className="h-2 w-full overflow-hidden rounded-full bg-white/15">
-                      <motion.div
-                        className="h-full rounded-full bg-[#0ab6af]"
-                        animate={{ width: `${publishProgressPct}%` }}
-                        transition={{ duration: 0.35, ease: "easeOut" }}
-                      />
-                    </div>
-
-                    <div className="mt-4 flex flex-col gap-2 text-left">
-                      {PUBLISH_STAGES.map((stage, idx) => {
-                        const isDone = idx < publishStageIndex;
-                        const isCurrent = idx === publishStageIndex;
-                        return (
-                          <div
-                            key={stage.title}
-                            className={`flex items-center gap-2 rounded-xl px-3 py-2 text-sm transition-all ${
-                              isCurrent
-                                ? "bg-white/20 text-white"
-                                : isDone
-                                  ? "bg-emerald-400/20 text-emerald-100"
-                                  : "bg-white/5 text-white/70"
-                            }`}
-                          >
-                            {isDone ? (
-                              <CheckCircle2 className="h-4 w-4 shrink-0" />
-                            ) : (
-                              <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-full bg-white/70" />
-                            )}
-                            <span>{stage.title}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
+                <div className="flex h-full w-full items-center justify-center rounded-full bg-slate-950/80">
+                  <Loader2 className="h-8 w-8 animate-spin text-white" />
                 </div>
               </motion.div>
+
+              <div className="mb-3 inline-flex items-center gap-1 rounded-full border border-white/25 bg-white/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em]">
+                <Sparkles className="h-3.5 w-3.5" />
+                Objava u toku
+              </div>
+
+              <h3 className="text-xl font-semibold sm:text-2xl">
+                {currentPublishStage.title}
+              </h3>
+              <p className="mt-2 text-sm text-white/80">
+                {currentPublishStage.subtitle}
+              </p>
+
+              <div className="mt-6 w-full">
+                <div className="h-2 w-full overflow-hidden rounded-full bg-white/15">
+                  <motion.div
+                    className="h-full rounded-full bg-[#0ab6af]"
+                    animate={{ width: `${publishProgressPct}%` }}
+                    transition={{ duration: 0.35, ease: "easeOut" }}
+                  />
+                </div>
+
+                <div className="mt-4 flex flex-col gap-2 text-left">
+                  {PUBLISH_STAGES.map((stage, idx) => {
+                    const isDone = idx < publishStageIndex;
+                    const isCurrent = idx === publishStageIndex;
+                    return (
+                      <div
+                        key={stage.title}
+                        className={`flex items-center gap-2 rounded-xl px-3 py-2 text-sm transition-all ${
+                          isCurrent
+                            ? "bg-white/20 text-white"
+                            : isDone
+                              ? "bg-emerald-400/20 text-emerald-100"
+                              : "bg-white/5 text-white/70"
+                        }`}
+                      >
+                        {isDone ? (
+                          <CheckCircle2 className="h-4 w-4 shrink-0" />
+                        ) : (
+                          <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-full bg-white/70" />
+                        )}
+                        <span>{stage.title}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             </motion.div>
-          )}
-        </AnimatePresence>
+          </DialogContent>
+        </Dialog>
 
         <AdSuccessModal
           openSuccessModal={openSuccessModal}

@@ -267,7 +267,7 @@ const HomeMobileMenu = ({
   return (
     <>
       <div
-        className={`lg:hidden fixed inset-x-0 bottom-0 z-[108] border-t 
+        className={`lg:hidden fixed bottom-0 left-0 right-0 z-[108] border-t 
         bg-background shadow-[0_-4px_16px_rgba(0,0,0,0.12)]
         transition-transform duration-300 ease-out
         ${isHidden ? "translate-y-full" : "translate-y-0"}`}

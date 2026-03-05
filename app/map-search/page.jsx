@@ -1,7 +1,9 @@
-// app/map-search/page.jsx
-// Next.js 13+ App Router
+import dynamic from "next/dynamic";
+import PageLoadingShell from "@/components/Common/PageLoadingShell";
 
-import MapSearchPage from "@/components/MapSearchPage";
+const MapSearchPage = dynamic(() => import("@/components/MapSearchPage"), {
+  loading: () => <PageLoadingShell title="Učitavanje map pretrage" />,
+});
 
 export const metadata = {
   title: "Pretraga na mapi | Oglasi",
@@ -12,45 +14,3 @@ export const metadata = {
 export default function MapSearchPageRoute() {
   return <MapSearchPage />;
 }
-
-
-// ============================================
-// ALTERNATIVE: Pages Router (app/pages/map-search.jsx)
-// ============================================
-
-/*
-import MapSearchPage from "@/components/MapSearchPage";
-import Head from "next/head";
-
-export default function MapSearch() {
-  return (
-    <>
-      <Head>
-        <title>Pretraga na mapi | Oglasi</title>
-        <meta 
-          name="description" 
-          content="Pronađite oglase na interaktivnoj mapi" 
-        />
-      </Head>
-      <MapSearchPage />
-    </>
-  );
-}
-*/
-
-
-// ============================================
-// LAYOUT sa sidebar-om (optional)
-// ============================================
-
-/*
-// app/map-search/layout.jsx
-
-export default function MapSearchLayout({ children }) {
-  return (
-    <div className="min-h-screen bg-slate-50">
-      {children}
-    </div>
-  );
-}
-*/

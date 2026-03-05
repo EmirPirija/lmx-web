@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { toast } from "@/utils/toastBs";
 import {
@@ -23,6 +23,7 @@ import { useItemTracking } from "@/hooks/useItemTracking";
 import UserAvatarMedia from "@/components/Common/UserAvatar";
 import { cn } from "@/lib/utils";
 import { resolveSellerPublicQuestionsEngine } from "@/lib/seller-settings-engine";
+import { isSellerVerified } from "@/lib/seller-verification";
 import { formatDistanceToNow } from "date-fns";
 import { bs } from "date-fns/locale";
 
@@ -38,10 +39,16 @@ const QuestionItem = ({ question, isSeller, currentUserId, onAnswer, onLike, onD
   const [answerText, setAnswerText] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
+  const menuRef = useRef(null);
 
   const isMyQuestion = question.user_id === currentUserId;
   const hasAnswer = !!question.answer;
   const isLiked = question.is_liked;
+  const questionUserVerified = isSellerVerified(
+    question?.user,
+    question?.user?.seller,
+    question?.user?.verification,
+  );
 
   const handleSubmitAnswer = async () => {
     if (!answerText.trim()) return toast.error("Unesite odgovor");
@@ -49,6 +56,20 @@ const QuestionItem = ({ question, isSeller, currentUserId, onAnswer, onLike, onD
     try { await onAnswer(question.id, answerText); setIsAnswering(false); setAnswerText(""); }
     finally { setIsSubmitting(false); }
   };
+
+  useEffect(() => {
+    if (!showMenu) return undefined;
+
+    const handleOutsideClick = (event) => {
+      if (menuRef.current?.contains(event.target)) return;
+      setShowMenu(false);
+    };
+
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+    };
+  }, [showMenu]);
 
   return (
     <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 overflow-hidden hover:border-slate-200 dark:hover:border-slate-700 transition-colors">
@@ -69,7 +90,7 @@ const QuestionItem = ({ question, isSeller, currentUserId, onAnswer, onLike, onD
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="font-semibold text-slate-800 dark:text-slate-100 text-sm">{question.user?.name || "Korisnik"}</span>
-              {question.user?.is_verified === 1 && <MdVerified className="text-blue-500 text-sm" />}
+              {questionUserVerified ? <MdVerified className="text-blue-500 text-sm" /> : null}
               <span className="text-xs text-slate-400 dark:text-slate-500">{formatTimeAgo(question.created_at)}</span>
               {isMyQuestion && <span className="text-xs bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded-full font-medium">Tvoje pitanje</span>}
             </div>
@@ -108,16 +129,13 @@ const QuestionItem = ({ question, isSeller, currentUserId, onAnswer, onLike, onD
                   <MdQuestionAnswer className="text-base" /> <span>Odgovori</span>
                 </button>
               )}
-              <div className="relative ml-auto">
+              <div className="relative ml-auto" ref={menuRef}>
                 <button onClick={() => setShowMenu(!showMenu)} className="p-1 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"><MdMoreVert /></button>
                 {showMenu && (
-                  <>
-                    <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)} />
-                    <div className="absolute right-0 top-full mt-1 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-100 dark:border-slate-700 py-1 z-20 min-w-[140px]">
-                      {isMyQuestion && <button onClick={() => { onDelete(question.id); setShowMenu(false); }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"><MdDelete /> <span>Obriši</span></button>}
-                      {!isMyQuestion && <button onClick={() => { onReport(question.id); setShowMenu(false); }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"><MdFlag /> <span>Prijavi</span></button>}
-                    </div>
-                  </>
+                  <div className="absolute right-0 top-full mt-1 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-100 dark:border-slate-700 py-1 z-20 min-w-[140px]">
+                    {isMyQuestion && <button onClick={() => { onDelete(question.id); setShowMenu(false); }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"><MdDelete /> <span>Obriši</span></button>}
+                    {!isMyQuestion && <button onClick={() => { onReport(question.id); setShowMenu(false); }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"><MdFlag /> <span>Prijavi</span></button>}
+                  </div>
                 )}
               </div>
             </div>

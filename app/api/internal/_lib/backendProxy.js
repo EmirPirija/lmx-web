@@ -54,6 +54,7 @@ const jsonResponse = (body, status, requestId) =>
     status,
     headers: {
       "x-request-id": requestId,
+      "x-correlation-id": requestId,
     },
   });
 

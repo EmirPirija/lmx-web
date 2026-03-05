@@ -7,7 +7,7 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "../ui/dialog";
+} from "@/components/ui/dialog";
 import { useSelector } from "react-redux";
 import {
   createUserWithEmailAndPassword,

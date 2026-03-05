@@ -133,17 +133,46 @@ const captureActiveElementForRestore = () => {
   focusRestoreStack.push(null);
 };
 
+const resolveFallbackFocusTarget = () => {
+  if (typeof document === "undefined") return null;
+
+  const selectors = [
+    "[data-lmx-focus-fallback='true']",
+    "[data-lmx-focus-fallback]",
+    "#main-content",
+    "main",
+    "[role='main']",
+    "#__next",
+  ];
+
+  for (const selector of selectors) {
+    const node = document.querySelector(selector);
+    if (node instanceof HTMLElement && node.isConnected) {
+      if (node.tabIndex < 0) {
+        node.setAttribute("tabindex", "-1");
+      }
+      return node;
+    }
+  }
+
+  return null;
+};
+
 const restoreCapturedFocus = () => {
   if (typeof document === "undefined") return;
   const target = focusRestoreStack.pop();
-  if (!(target instanceof HTMLElement) || !target.isConnected) return;
+  const nextTarget =
+    target instanceof HTMLElement && target.isConnected
+      ? target
+      : resolveFallbackFocusTarget();
+  if (!(nextTarget instanceof HTMLElement) || !nextTarget.isConnected) return;
 
   window.requestAnimationFrame(() => {
-    if (!target.isConnected) return;
+    if (!nextTarget.isConnected) return;
     try {
-      target.focus({ preventScroll: true });
+      nextTarget.focus({ preventScroll: true });
     } catch {
-      target.focus();
+      nextTarget.focus();
     }
   });
 };
