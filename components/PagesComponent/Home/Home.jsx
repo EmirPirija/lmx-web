@@ -33,6 +33,23 @@ const extractItemsFromGetItemsResponse = (responseData) => {
   return [];
 };
 
+const HOME_FEATURED_MIN_LOCATION_RESULTS = 8;
+
+const mergeUniqueItemsById = (primary = [], secondary = []) => {
+  const merged = new Map();
+  const append = (entry) => {
+    const id = Number(entry?.id);
+    if (!Number.isFinite(id) || id <= 0) return;
+    if (!merged.has(id)) {
+      merged.set(id, entry);
+    }
+  };
+
+  (primary || []).forEach(append);
+  (secondary || []).forEach(append);
+  return Array.from(merged.values());
+};
+
 const Home = () => {
   const KmRange = useSelector(getKilometerRange);
   const cityData = useSelector(getCityData);
@@ -64,6 +81,7 @@ const Home = () => {
       setIsFeaturedLoading(true);
       try {
         const params = buildHomeLocationParams({ cityData, KmRange });
+        const hasLocationScope = Object.keys(params).length > 0;
         const [featuredResponse, featuredItemsResponse] = await Promise.all([
           FeaturedSectionApi.getFeaturedSections({
             ...params,
@@ -83,9 +101,38 @@ const Home = () => {
         ]);
 
         const featuredSections = featuredResponse?.data?.data || [];
-        const featuredItems = extractItemsFromGetItemsResponse(featuredItemsResponse?.data).filter((item) =>
-          isHomeFeaturedItem(item, { strict: true })
-        );
+        const scopedFeaturedItems = extractItemsFromGetItemsResponse(
+          featuredItemsResponse?.data,
+        ).filter((item) => isHomeFeaturedItem(item, { strict: true }));
+
+        let featuredItems = scopedFeaturedItems;
+
+        if (
+          hasLocationScope &&
+          scopedFeaturedItems.length < HOME_FEATURED_MIN_LOCATION_RESULTS
+        ) {
+          try {
+            const globalFeaturedItemsResponse = await allItemApi.getItems({
+              current_page: "home",
+              is_feature: 1,
+              placement: "home",
+              positions: "home",
+              page: 1,
+              limit: 120,
+              no_cache: 1,
+            });
+            const globalFeaturedItems = extractItemsFromGetItemsResponse(
+              globalFeaturedItemsResponse?.data,
+            ).filter((item) => isHomeFeaturedItem(item, { strict: true }));
+
+            featuredItems = mergeUniqueItemsById(
+              scopedFeaturedItems,
+              globalFeaturedItems,
+            );
+          } catch {
+            featuredItems = scopedFeaturedItems;
+          }
+        }
 
         const featuredItemsById = new Map(
           featuredItems

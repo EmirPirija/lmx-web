@@ -34,6 +34,23 @@ const formatLocationAlertMessage = (message = "") => {
   return raw;
 };
 
+const HOME_ALL_ITEMS_MIN_LOCATION_RESULTS = 6;
+
+const mergeUniqueItemsById = (primary = [], secondary = []) => {
+  const merged = new Map();
+  const append = (entry) => {
+    const id = Number(entry?.id);
+    if (!Number.isFinite(id) || id <= 0) return;
+    if (!merged.has(id)) {
+      merged.set(id, entry);
+    }
+  };
+
+  (primary || []).forEach(append);
+  (secondary || []).forEach(append);
+  return Array.from(merged.values());
+};
+
 const AllItems = ({ cityData, KmRange }) => {
   const dispatch = useDispatch();
   const CurrentLanguage = useSelector(CurrentLanguageData);
@@ -52,6 +69,8 @@ const AllItems = ({ cityData, KmRange }) => {
       setIsLoading(true);
     }
     try {
+      const locationParams = buildHomeLocationParams({ cityData, KmRange });
+      const hasLocationScope = Object.keys(locationParams).length > 0;
       const params = {
         page,
         current_page: "home",
@@ -62,7 +81,7 @@ const AllItems = ({ cityData, KmRange }) => {
         no_cache: 1,
       };
 
-      Object.assign(params, buildHomeLocationParams({ cityData, KmRange }));
+      Object.assign(params, locationParams);
 
       const response = await allItemApi.getItems(params);
       if (response.data?.error === true) {
@@ -84,9 +103,35 @@ const AllItems = ({ cityData, KmRange }) => {
 
       if (response?.data?.data?.data?.length > 0) {
         const data = response?.data?.data?.data;
-        const featuredOnly = Array.isArray(data)
+        let featuredOnly = Array.isArray(data)
           ? data.filter((entry) => isHomeFeaturedItem(entry, { strict: true }))
           : [];
+
+        if (
+          page === 1 &&
+          hasLocationScope &&
+          featuredOnly.length < HOME_ALL_ITEMS_MIN_LOCATION_RESULTS
+        ) {
+          try {
+            const globalResponse = await allItemApi.getItems({
+              page: 1,
+              current_page: "home",
+              is_feature: 1,
+              placement: "home",
+              positions: "home",
+              limit: 20,
+              no_cache: 1,
+            });
+            const globalData = globalResponse?.data?.data?.data;
+            const globalFeaturedOnly = Array.isArray(globalData)
+              ? globalData.filter((entry) => isHomeFeaturedItem(entry, { strict: true }))
+              : [];
+            featuredOnly = mergeUniqueItemsById(featuredOnly, globalFeaturedOnly);
+          } catch {
+            // Keep location-scoped data if global top-up fails.
+          }
+        }
+
         const pageItems =
           page === 1 && isHomeDemoFillEnabled
             ? ensureHomeAllItemsDemoFill(featuredOnly)
