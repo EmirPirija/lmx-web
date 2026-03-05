@@ -11,6 +11,10 @@ import { getAuth } from "firebase/auth";
 import { toast } from "@/utils/toastBs";
 import { createStickyNote } from ".";
 import { getFcmToken } from "@/redux/reducer/settingSlice";
+import {
+  isPushNotificationsDevEnabledSetting,
+  isPushNotificationsEnabledSetting,
+} from "@/lib/backendControls";
 
 const isFirebaseDebugEnabled = process.env.NODE_ENV !== "production";
 const firebaseDebugLog = (...args) => {
@@ -41,34 +45,19 @@ const shouldSilenceMessagingError = (errorLike) => {
 
 const SERVICE_WORKER_BASE_PATH = "/firebase-messaging-sw.js";
 
-const isTruthyFlag = (value) => {
-  const normalized = String(value ?? "")
-    .trim()
-    .toLowerCase();
-  return normalized === "1" || normalized === "true";
-};
-
 const shouldEnablePushForCurrentOrigin = () => {
   if (typeof window === "undefined") return false;
   if (!window.isSecureContext) return false;
 
+  if (!isPushNotificationsEnabledSetting()) {
+    return false;
+  }
+
   const host = String(window.location?.hostname || "").toLowerCase();
   const isLocalHost =
     host === "localhost" || host === "127.0.0.1" || host === "::1";
-  const isDev = process.env.NODE_ENV !== "production";
 
-  if (isLocalHost && !isTruthyFlag(process.env.NEXT_PUBLIC_ENABLE_PUSH_NOTIFICATIONS_DEV)) {
-    return false;
-  }
-
-  const globalFlag = String(process.env.NEXT_PUBLIC_ENABLE_PUSH_NOTIFICATIONS ?? "")
-    .trim()
-    .toLowerCase();
-  if (globalFlag === "0" || globalFlag === "false") {
-    return false;
-  }
-
-  if (isDev && globalFlag && !isTruthyFlag(globalFlag)) {
+  if (isLocalHost && !isPushNotificationsDevEnabledSetting()) {
     return false;
   }
 

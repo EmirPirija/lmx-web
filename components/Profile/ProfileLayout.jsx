@@ -30,8 +30,8 @@ import { resolveAvatarUrl } from "@/utils/avatar";
 import { toast } from "@/utils/toastBs";
 import { SOCIAL_POSTING_TEMP_UNAVAILABLE } from "@/utils/socialAvailability";
 import {
-  PROMO_BENEFITS,
-  PROMO_HEADLINE,
+  getPromoBenefits,
+  getPromoHeadline,
   isPromoFreeAccessEnabled,
 } from "@/lib/promoMode";
 import {
@@ -621,10 +621,10 @@ const ProfileSidebar = ({
                 Promotivni Free Access
               </h5>
               <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">
-                {PROMO_HEADLINE}
+                {getPromoHeadline()}
               </p>
               <div className="mt-2 flex flex-wrap gap-1.5">
-                {PROMO_BENEFITS.map((benefit) => (
+                {getPromoBenefits().map((benefit) => (
                   <span
                     key={benefit}
                     className="rounded-full border border-emerald-300/80 bg-white/90 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 dark:border-emerald-500/35 dark:bg-slate-900 dark:text-emerald-200"

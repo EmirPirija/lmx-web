@@ -16,6 +16,7 @@ import CustomImage from "@/components/Common/CustomImage";
 import { userSignUpData } from "@/redux/reducer/authSlice";
 import { cn } from "@/lib/utils";
 import { resolveMembership } from "@/lib/membership";
+import { resolveListingCampaignBadge } from "@/lib/listingCampaignBadges";
 import { resolveRealEstateDisplayPricing } from "@/utils/realEstatePricing";
 import { formatRelativeTimeBs } from "@/utils/timeBosnian";
 
@@ -424,7 +425,7 @@ const readExchangePossible = (item = {}) => {
   return false;
 };
 
-const OverlayPill = ({ icon: Icon, className, children }) => (
+const OverlayPill = ({ icon: Icon, className, style, children }) => (
   <div
     className={cn(
       "inline-flex items-center gap-1.5 rounded-full border px-2 py-1 text-[11px] font-semibold",
@@ -432,6 +433,7 @@ const OverlayPill = ({ icon: Icon, className, children }) => (
       "dark:border-slate-700 dark:bg-slate-900/85 dark:text-slate-200",
       className,
     )}
+    style={style}
   >
     {Icon ? <Icon className="h-3.5 w-3.5" /> : null}
     {children}
@@ -461,6 +463,15 @@ const ProductHorizontalCard = ({ item, onClick, trackingParams }) => {
     item?.seller,
     item?.seller_settings,
   ).isShop;
+  const campaignBadge = useMemo(() => resolveListingCampaignBadge(item), [item]);
+  const campaignBadgeStyle = useMemo(() => {
+    if (!campaignBadge || !campaignBadge.bgColor) return undefined;
+    return {
+      backgroundColor: campaignBadge.bgColor,
+      borderColor: campaignBadge.bgColor,
+      color: campaignBadge.textColor || "#FFFFFF",
+    };
+  }, [campaignBadge]);
   const hasVideo = useMemo(() => {
     const candidates = [
       item?.video_link,
@@ -707,6 +718,14 @@ const ProductHorizontalCard = ({ item, onClick, trackingParams }) => {
                     className="border-blue-200 bg-blue-100/95 text-blue-700 dark:border-blue-700/60 dark:bg-blue-900/35 dark:text-blue-300"
                   >
                     Rezervisano
+                  </OverlayPill>
+                ) : null}
+                {campaignBadge ? (
+                  <OverlayPill
+                    className="border-fuchsia-300 bg-fuchsia-100/95 text-fuchsia-800 dark:border-fuchsia-700/60 dark:bg-fuchsia-900/45 dark:text-fuchsia-100"
+                    style={campaignBadgeStyle}
+                  >
+                    {campaignBadge.label}
                   </OverlayPill>
                 ) : null}
               </div>

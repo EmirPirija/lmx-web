@@ -6,8 +6,13 @@ import { useDispatch, useSelector } from "react-redux";
 import { setNotification } from "@/redux/reducer/globalStateSlice";
 import { useNavigate } from "../Common/useNavigate";
 import { getIsLoggedIn, userSignUpData } from "@/redux/reducer/authSlice";
+import { settingsData } from "@/redux/reducer/settingSlice";
 import useRealtimeUserEvents from "@/hooks/useRealtimeUserEvents";
 import { toast } from "@/utils/toastBs";
+import {
+  isPushNotificationsDevEnabledSetting,
+  isPushNotificationsEnabledSetting,
+} from "@/lib/backendControls";
 
 const CHAT_LIKE_TYPES = new Set([
   "chat",
@@ -54,37 +59,24 @@ const PushNotificationLayout = ({ children }) => {
   const { navigate } = useNavigate();
   const isLoggedIn = useSelector(getIsLoggedIn);
   const currentUser = useSelector(userSignUpData);
+  const systemSettings = useSelector(settingsData);
   const unsubscribeRef = useRef(null);
   const eventTimestampsRef = useRef(new Map());
   const shouldEnablePushNotifications = useMemo(() => {
     if (typeof window === "undefined") return false;
     if (!isLoggedIn) return false;
     if (!window.isSecureContext) return false;
+    if (!isPushNotificationsEnabledSetting(systemSettings)) return false;
 
     const host = String(window.location?.hostname || "").toLowerCase();
     const isLocalHost =
       host === "localhost" || host === "127.0.0.1" || host === "::1";
-    if (isLocalHost) return false;
-
-    const isDev = process.env.NODE_ENV !== "production";
-    const devFeatureFlag = String(
-      process.env.NEXT_PUBLIC_ENABLE_PUSH_NOTIFICATIONS_DEV ?? "",
-    )
-      .trim()
-      .toLowerCase();
-    if (isDev && devFeatureFlag !== "1" && devFeatureFlag !== "true") {
+    if (isLocalHost && !isPushNotificationsDevEnabledSetting(systemSettings)) {
       return false;
     }
 
-    const featureFlag = String(
-      process.env.NEXT_PUBLIC_ENABLE_PUSH_NOTIFICATIONS ?? "",
-    )
-      .trim()
-      .toLowerCase();
-    if (featureFlag === "0" || featureFlag === "false") return false;
-
     return true;
-  }, [isLoggedIn]);
+  }, [isLoggedIn, systemSettings]);
 
   const getCurrentUserId = useCallback(() => {
     return Number(

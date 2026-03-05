@@ -25,7 +25,12 @@ import {
 } from "@/redux/reducer/membershipSlice";
 import { extractApiData, resolveMembership, resolveMembershipActivity } from "@/lib/membership";
 import { cn } from "@/lib/utils";
-import { PROMO_BENEFITS, PROMO_HEADLINE, PROMO_SUBHEAD, isPromoFreeAccessEnabled } from "@/lib/promoMode";
+import {
+  getPromoBenefits,
+  getPromoHeadline,
+  getPromoSubhead,
+  isPromoFreeAccessEnabled,
+} from "@/lib/promoMode";
 
 const TIER_THEME = {
   free: {
@@ -197,10 +202,10 @@ const MembershipManagePage = () => {
 
                   {promoEnabled ? (
                     <div className="mt-3 rounded-xl border border-white/20 bg-white/10 px-4 py-3 backdrop-blur-sm">
-                      <p className="text-sm font-semibold">{PROMO_HEADLINE}</p>
-                      <p className="mt-1 text-xs text-white/85">{PROMO_SUBHEAD}</p>
+                      <p className="text-sm font-semibold">{getPromoHeadline()}</p>
+                      <p className="mt-1 text-xs text-white/85">{getPromoSubhead()}</p>
                       <div className="mt-2 flex flex-wrap gap-1.5">
-                        {PROMO_BENEFITS.map((benefit) => (
+                        {getPromoBenefits().map((benefit) => (
                           <span
                             key={benefit}
                             className="rounded-full border border-white/30 bg-white/10 px-2 py-0.5 text-[10px] font-semibold text-white"

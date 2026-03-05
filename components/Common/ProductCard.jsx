@@ -14,6 +14,7 @@ import {
   ChevronRight,
 } from "@/components/Common/UnifiedIconPack";
 import { resolveMembership } from "@/lib/membership";
+import { resolveListingCampaignBadge } from "@/lib/listingCampaignBadges";
 
 import { cn } from "@/lib/utils";
 
@@ -524,6 +525,16 @@ const ProductCard = ({ item, isLoading, onClick, trackingParams }) => {
     () => getPrimaryStatusBadgeMeta(conditionLabel, statusMeta),
     [conditionLabel, statusMeta],
   );
+  const campaignBadge = useMemo(() => resolveListingCampaignBadge(item), [item]);
+  const campaignBadgeStyle = useMemo(() => {
+    if (!campaignBadge) return undefined;
+    if (!campaignBadge.bgColor) return undefined;
+    return {
+      backgroundColor: campaignBadge.bgColor,
+      borderColor: campaignBadge.bgColor,
+      color: campaignBadge.textColor || "#FFFFFF",
+    };
+  }, [campaignBadge]);
   const isShopSeller = resolveMembership(
     item,
     item?.membership,
@@ -810,6 +821,20 @@ const ProductCard = ({ item, isLoading, onClick, trackingParams }) => {
                   aria-label="Istaknuti oglas"
                 >
                   Izdvojeno
+                </span>
+              ) : null}
+              {campaignBadge ? (
+                <span
+                  className={cn(
+                    STATUS_CHIP_BASE_CLASS,
+                    "border-fuchsia-300 bg-fuchsia-100 text-fuchsia-800",
+                    "dark:border-fuchsia-600/70 dark:bg-fuchsia-900/40 dark:text-fuchsia-100",
+                  )}
+                  style={campaignBadgeStyle}
+                  title={`Sezonska oznaka: ${campaignBadge.label}`}
+                  aria-label={`Sezonska oznaka: ${campaignBadge.label}`}
+                >
+                  {campaignBadge.label}
                 </span>
               ) : null}
             </div>

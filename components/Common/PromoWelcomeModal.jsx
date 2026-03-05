@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { ShieldCheck } from "@/components/Common/UnifiedIconPack";
 import {
-  PROMO_HEADLINE,
-  PROMO_SUBHEAD,
+  getPromoHeadline,
+  getPromoSubhead,
   PROMO_WELCOME_DISMISS_KEY,
   isPromoFreeAccessEnabled,
 } from "@/lib/promoMode";
@@ -64,8 +64,8 @@ export default function PromoWelcomeModal() {
 
         <div className="space-y-4 px-6 py-5">
           <div className="rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-3 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-800/70 dark:text-slate-200">
-            <p className="font-semibold text-slate-900 dark:text-slate-100">{PROMO_HEADLINE}</p>
-            <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">{PROMO_SUBHEAD}</p>
+            <p className="font-semibold text-slate-900 dark:text-slate-100">{getPromoHeadline()}</p>
+            <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">{getPromoSubhead()}</p>
           </div>
 
           <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 dark:border-slate-700 dark:bg-slate-900">

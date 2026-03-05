@@ -27,16 +27,13 @@ import { motion } from "framer-motion";
 
 import { itemStatisticsApi, gamificationApi } from "@/utils/api";
 import { cn } from "@/lib/utils";
+import { isSellerOverviewEnabledSetting } from "@/lib/backendControls";
 
 const PERIODS = [
   { value: 7, label: "7 dana" },
   { value: 30, label: "30 dana" },
   { value: 90, label: "90 dana" },
 ];
-
-const SELLER_OVERVIEW_ENABLED =
-  String(process.env.NEXT_PUBLIC_SELLER_OVERVIEW_ENABLED || "").toLowerCase() === "true" ||
-  String(process.env.NEXT_PUBLIC_SELLER_OVERVIEW_ENABLED || "") === "1";
 
 const formatInt = (value) => {
   const num = Number(value || 0);
@@ -123,6 +120,7 @@ const ActionBadge = ({ priority }) => {
 };
 
 export default function SellerAnalyticsOverview() {
+  const sellerOverviewEnabled = isSellerOverviewEnabledSetting();
   const [period, setPeriod] = useState(30);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -205,9 +203,9 @@ export default function SellerAnalyticsOverview() {
   }, [period]);
 
   useEffect(() => {
-    if (!SELLER_OVERVIEW_ENABLED) return;
+    if (!sellerOverviewEnabled) return;
     fetchOverview();
-  }, [fetchOverview]);
+  }, [fetchOverview, sellerOverviewEnabled]);
 
   const summary = data?.summary || {};
   const trends = data?.trends || {};
@@ -337,7 +335,7 @@ export default function SellerAnalyticsOverview() {
     };
   }, [gamificationData, slaData?.avg_response_minutes, summary.contacts, summary.favorites, summary.messages, summary.shares, summary.views]);
 
-  if (!SELLER_OVERVIEW_ENABLED) {
+  if (!sellerOverviewEnabled) {
     return null;
   }
 

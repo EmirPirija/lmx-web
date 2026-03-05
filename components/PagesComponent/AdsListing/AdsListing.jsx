@@ -562,6 +562,7 @@ const AdsListing = () => {
       minimum_order_quantity: "1",
       stock_alert_threshold: "3",
       seller_product_code: "",
+      campaign_badge_key: "",
       scarcity_enabled: false,
     },
   });
@@ -1242,6 +1243,7 @@ const AdsListing = () => {
         minimum_order_quantity: "1",
         stock_alert_threshold: "3",
         seller_product_code: "",
+        campaign_badge_key: "",
         scarcity_enabled: false,
       },
     });
@@ -1679,6 +1681,9 @@ const AdsListing = () => {
       seller_product_code: is_real_estate
         ? ""
         : String(getSharedDetailValue("seller_product_code", "") || "").trim(),
+      campaign_badge_key: String(
+        getSharedDetailValue("campaign_badge_key", "") || "",
+      ).trim(),
       scarcity_enabled: is_real_estate
         ? false
         : parseBooleanSetting(
@@ -1930,6 +1935,7 @@ const AdsListing = () => {
         minimum_order_quantity: "1",
         stock_alert_threshold: "3",
         seller_product_code: "",
+        campaign_badge_key: "",
         scarcity_enabled: false,
       },
     });

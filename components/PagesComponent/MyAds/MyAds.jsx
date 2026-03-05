@@ -36,6 +36,7 @@ import { getIsLoggedIn } from "@/redux/reducer/authSlice";
 import { useNavigate } from "@/components/Common/useNavigate";
 import { cn } from "@/lib/utils";
 import { isPromoFreeAccessEnabled } from "@/lib/promoMode";
+import { isSellerOverviewEnabledSetting } from "@/lib/backendControls";
 import {
   LivePhotoFill as MgLivePhotoFill,
   EyeCloseFill as MgEyeCloseFill,
@@ -359,10 +360,6 @@ function BulkActionsBar({
 
 const RENEW_DUE_STATUS = "renew_due";
 const POSITION_RENEW_COOLDOWN_DAYS = 15;
-const SELLER_OVERVIEW_ENABLED =
-  String(process.env.NEXT_PUBLIC_SELLER_OVERVIEW_ENABLED || "").toLowerCase() === "true" ||
-  String(process.env.NEXT_PUBLIC_SELLER_OVERVIEW_ENABLED || "") === "1";
-
 const parseDateSafe = (value) => {
   if (!value) return null;
   if (value instanceof Date && !Number.isNaN(value.getTime())) return value;
@@ -492,6 +489,7 @@ const MyAds = () => {
   const isLoggedIn = useSelector(getIsLoggedIn);
   const isFreeAdListing =
     useSelector(getIsFreAdListing) || isPromoFreeAccessEnabled();
+  const sellerOverviewEnabled = isSellerOverviewEnabledSetting();
 
   const sortValue = searchParams.get("sort") || "new-to-old";
   const rawStatus = searchParams.get("status") || "approved";
@@ -1312,7 +1310,7 @@ const MyAds = () => {
 
   return (
     <div className={cn("space-y-6", bulkMode && "pb-36 sm:pb-6")}>
-      {SELLER_OVERVIEW_ENABLED ? <SellerAnalyticsOverview /> : null}
+      {sellerOverviewEnabled ? <SellerAnalyticsOverview /> : null}
 
       {/* Filter Bar */}
       <div className="space-y-3">

@@ -3,7 +3,12 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { SOCIAL_POSTING_TEMP_UNAVAILABLE } from "@/utils/socialAvailability";
-import { PROMO_BENEFITS, PROMO_HEADLINE, PROMO_SUBHEAD, isPromoFreeAccessEnabled } from "@/lib/promoMode";
+import {
+  getPromoBenefits,
+  getPromoHeadline,
+  getPromoSubhead,
+  isPromoFreeAccessEnabled,
+} from "@/lib/promoMode";
 import {
   CheckCircle2,
   Globe,
@@ -79,10 +84,10 @@ export default function PlansShowcase({ mode = "pricing" }) {
             </p>
             {promoEnabled ? (
               <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800 dark:border-emerald-500/35 dark:bg-emerald-500/10 dark:text-emerald-200">
-                <p className="font-semibold">{PROMO_HEADLINE}</p>
-                <p className="mt-1">{PROMO_SUBHEAD}</p>
+                <p className="font-semibold">{getPromoHeadline()}</p>
+                <p className="mt-1">{getPromoSubhead()}</p>
                 <div className="mt-2 flex flex-wrap gap-1.5">
-                  {PROMO_BENEFITS.map((benefit) => (
+                  {getPromoBenefits().map((benefit) => (
                     <span
                       key={benefit}
                       className="rounded-full border border-emerald-300/80 bg-white px-2 py-0.5 text-[10px] font-semibold text-emerald-700 dark:border-emerald-500/35 dark:bg-slate-900 dark:text-emerald-200"

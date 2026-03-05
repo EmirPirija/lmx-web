@@ -5,7 +5,7 @@ import { Check, Crown, Store } from "@/components/Common/UnifiedIconPack";
 import { formatPriceAbbreviated } from "@/utils";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { PROMO_BENEFITS, isPromoFreeAccessEnabled } from "@/lib/promoMode";
+import { getPromoBenefits, isPromoFreeAccessEnabled } from "@/lib/promoMode";
 import {
   getRealMembershipBenefits,
   resolveMembershipTierSlug,
@@ -149,7 +149,7 @@ const MembershipTierSelector = ({ tiers = [], selectedTier, onSelectTier }) => {
                       Besplatno do daljnjeg
                     </p>
                     <div className="flex flex-wrap gap-1.5">
-                      {PROMO_BENEFITS.map((benefit) => (
+                      {getPromoBenefits().map((benefit) => (
                         <span
                           key={`${tier?.id}-${benefit}`}
                           className="rounded-full border border-white/40 bg-white/15 px-2 py-0.5 text-[10px] font-semibold text-white/90"

@@ -4,7 +4,6 @@ import Footer from "../Footer/Footer";
 import PushNotificationLayout from "./PushNotificationLayout";
 import Loading from "@/app/loading";
 import UnderMaintenance from "../../public/assets/something_went_wrong.svg";
-import { t } from "@/utils";
 import { useClientLayoutLogic } from "./useClientLayoutLogic";
 import CustomImage from "../Common/CustomImage";
 import ScrollToTopButton from "./ScrollToTopButton";
@@ -12,13 +11,20 @@ import { AdaptiveMobileDockProvider } from "./AdaptiveMobileDock";
 import LiveTrafficTracker from "./LiveTrafficTracker";
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
+import { useSelector } from "react-redux";
+import { settingsData } from "@/redux/reducer/settingSlice";
+import { getMaintenanceMessageSetting } from "@/lib/backendControls";
 
 
 export default function Layout({ children }) {
   const { isLoading, isMaintenanceMode, isRedirectToLanding } =
     useClientLayoutLogic();
   const pathname = usePathname();
+  const systemSettings = useSelector(settingsData);
   const isHomepageRoute = pathname === "/";
+  const maintenanceMessage =
+    getMaintenanceMessageSetting(systemSettings) ||
+    "Stranica je na održavanju i privremeno nedostupna.";
 
   useEffect(() => {
     if (typeof window === "undefined" || typeof document === "undefined") return undefined;
@@ -70,7 +76,7 @@ export default function Layout({ children }) {
           height={255}
           width={255}
         />
-        <p className="text-center max-w-[40%]">{"Stranica je na održavanju i privremeno nedostupna."}</p>
+        <p className="text-center max-w-[40%]">{maintenanceMessage}</p>
       </div>
     );
   }

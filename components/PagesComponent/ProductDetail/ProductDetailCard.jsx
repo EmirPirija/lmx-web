@@ -15,6 +15,7 @@ import {
   MdTrendingUp,
   MdHistory,
   MdInfoOutline,
+  Tag,
 } from "@/components/Common/UnifiedIconPack";
 import { IoClose } from "@/components/Common/UnifiedIconPack";
 import { toast } from "@/utils/toastBs";
@@ -32,6 +33,7 @@ import ShareDropdown from "@/components/Common/ShareDropdown";
 import { createPortal } from "react-dom";
 import { getScarcityCopy, getScarcityState } from "@/utils/scarcity";
 import { resolveRealEstateDisplayPricing } from "@/utils/realEstatePricing";
+import { resolveListingCampaignBadge } from "@/lib/listingCampaignBadges";
 
 // ============================================
 // HELPER FUNKCIJE
@@ -1360,6 +1362,18 @@ const ProductDetailCard = ({
     productDetails?.reservation_status === "reserved";
   const isSoldOut = productDetails?.status === "sold out";
   const isFeatured = productDetails?.is_feature === 1;
+  const campaignBadge = useMemo(
+    () => resolveListingCampaignBadge(productDetails),
+    [productDetails],
+  );
+  const campaignBadgeStyle = useMemo(() => {
+    if (!campaignBadge?.bgColor) return undefined;
+    return {
+      backgroundColor: campaignBadge.bgColor,
+      borderColor: campaignBadge.bgColor,
+      color: campaignBadge.textColor || "#FFFFFF",
+    };
+  }, [campaignBadge]);
 
   // Cijene i Akcije
   const isOnSale =
@@ -1725,6 +1739,15 @@ const ProductDetailCard = ({
                 <MdStar className="text-sm" /> Istaknuto
               </span>
             )}
+            {campaignBadge ? (
+              <span
+                className="inline-flex items-center gap-1.5 rounded-lg border border-fuchsia-200 bg-fuchsia-100 px-3 py-1 text-xs font-bold uppercase tracking-wider text-fuchsia-800 dark:border-fuchsia-700/60 dark:bg-fuchsia-900/35 dark:text-fuchsia-100"
+                style={campaignBadgeStyle}
+              >
+                <Tag className="text-sm" />
+                {campaignBadge.label}
+              </span>
+            ) : null}
             {showScarcityUi && (
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-amber-100 text-amber-800 text-xs font-bold uppercase tracking-wider border border-amber-200 dark:bg-amber-900/30 dark:text-amber-200 dark:border-amber-700/60">
                 <MdInfoOutline className="text-sm" /> Do isteka zaliha

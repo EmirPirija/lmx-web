@@ -1365,6 +1365,7 @@ export const addItemApi = {
     minimum_order_quantity,
     stock_alert_threshold,
     seller_product_code,
+    campaign_badge_key,
     scarcity_enabled,
     show_only_to_premium,
     add_video_to_story,
@@ -1590,6 +1591,9 @@ export const addItemApi = {
         String(seller_product_code).trim(),
       );
     }
+    if (campaign_badge_key !== undefined && campaign_badge_key !== null) {
+      formData.append("campaign_badge_key", String(campaign_badge_key).trim());
+    }
     if (scarcity_enabled !== undefined && scarcity_enabled !== null) {
       const scarcityEnabled01 = scarcity_enabled ? 1 : 0;
       formData.append("scarcity_enabled", scarcityEnabled01);
@@ -1707,6 +1711,7 @@ export const editItemApi = {
     minimum_order_quantity,
     stock_alert_threshold,
     scarcity_enabled,
+    campaign_badge_key,
     instagram_source_url,
 
     // ✅ TEMP IDS (dodaj i u edit!)
@@ -1910,6 +1915,9 @@ export const editItemApi = {
         "seller_product_code",
         String(seller_product_code).trim(),
       );
+    }
+    if (campaign_badge_key !== undefined && campaign_badge_key !== null) {
+      formData.append("campaign_badge_key", String(campaign_badge_key).trim());
     }
     if (scarcity_enabled !== undefined && scarcity_enabled !== null) {
       const scarcityEnabled01 = scarcity_enabled ? 1 : 0;

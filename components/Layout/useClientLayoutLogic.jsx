@@ -13,8 +13,9 @@ import {
 import { getIsVisitedLandingPage } from "@/redux/reducer/globalStateSlice";
 import { getCurrentLangCode, getIsRtl } from "@/redux/reducer/languageSlice";
 import {
-  getHasFetchedSystemSettings,
-  setHasFetchedSystemSettings,
+  getSystemSettingsRefreshTtlMs,
+  markSystemSettingsFetched,
+  shouldRefetchSystemSettings,
 } from "@/utils/getFetcherStatus";
 import { useNavigate } from "../Common/useNavigate";
 import useGetCategories from "./useGetCategories";
@@ -32,15 +33,30 @@ export function useClientLayoutLogic() {
   const { getCategories } = useGetCategories();
 
   useEffect(() => {
-    const getSystemSettings = async () => {
-      if (getHasFetchedSystemSettings()) {
-        setIsLoading(false);
+    let isMounted = true;
+
+    const getSystemSettings = async ({
+      showLoader = false,
+      force = false,
+    } = {}) => {
+      if (!force && !shouldRefetchSystemSettings()) {
+        if (showLoader && isMounted) {
+          setIsLoading(false);
+        }
         return;
       }
+
+      if (showLoader && isMounted) {
+        setIsLoading(true);
+      }
+
       try {
         // Get settings from API
         const response = await settingsApi.getSettings();
         const data = response?.data;
+
+        if (!isMounted) return;
+
         dispatch(settingsSucess({ data }));
 
         // Set kilometer range from settings API
@@ -67,7 +83,8 @@ export function useClientLayoutLogic() {
           }
         }
 
-        setHasFetchedSystemSettings(true);
+        markSystemSettingsFetched();
+
         // Check if landing page is enabled and redirect to landing page if not visited
         const showLandingPage = Number(data?.data?.show_landing_page) === 1;
         if (showLandingPage && !isVisitedLandingPage) {
@@ -78,15 +95,27 @@ export function useClientLayoutLogic() {
       } catch (error) {
         console.error("Error fetching settings:", error);
       } finally {
-        setIsLoading(false);
+        if (showLoader && isMounted) {
+          setIsLoading(false);
+        }
       }
     };
 
-    getSystemSettings();
+    getSystemSettings({ showLoader: true });
+
+    const refreshIntervalMs = Math.max(getSystemSettingsRefreshTtlMs(), 30_000);
+    const refreshTimer = window.setInterval(() => {
+      getSystemSettings();
+    }, refreshIntervalMs);
 
     const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
     if (isSafari) dispatch(setIsBrowserSupported(false));
-  }, [currentLangCode]);
+
+    return () => {
+      isMounted = false;
+      window.clearInterval(refreshTimer);
+    };
+  }, [appliedRange, currentLangCode, dispatch, isVisitedLandingPage, navigate]);
 
   // Set direction of the document
   useEffect(() => {

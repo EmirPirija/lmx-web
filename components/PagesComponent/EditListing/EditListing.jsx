@@ -1941,6 +1941,9 @@ const EditListing = ({ id }) => {
       seller_product_code: is_real_estate
         ? ""
         : String(getSharedDetailValue("seller_product_code", "") || "").trim(),
+      campaign_badge_key: String(
+        getSharedDetailValue("campaign_badge_key", "") || "",
+      ).trim(),
       scarcity_enabled: is_real_estate
         ? false
         : parseBooleanSetting(

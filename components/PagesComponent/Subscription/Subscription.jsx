@@ -26,7 +26,12 @@ import BreadCrumb from "@/components/BreadCrumb/BreadCrumb";
 import AdListingPublicPlanCardSkeleton from "@/components/Skeletons/AdListingPublicPlanCardSkeleton";
 import { getIsFreAdListing } from "@/redux/reducer/settingSlice";
 import { useNavigate } from "@/components/Common/useNavigate";
-import { PROMO_BENEFITS, PROMO_HEADLINE, PROMO_SUBHEAD, isPromoFreeAccessEnabled } from "@/lib/promoMode";
+import {
+  getPromoBenefits,
+  getPromoHeadline,
+  getPromoSubhead,
+  isPromoFreeAccessEnabled,
+} from "@/lib/promoMode";
 
 const Subscription = () => {
   const isRTL = useSelector(getIsRtl);
@@ -144,10 +149,10 @@ const Subscription = () => {
       <div className="container">
         {promoEnabled ? (
           <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50/80 p-4 text-sm text-emerald-800 dark:border-emerald-500/35 dark:bg-emerald-500/10 dark:text-emerald-200">
-            <p className="font-semibold">{PROMO_HEADLINE}</p>
-            <p className="mt-1 text-xs">{PROMO_SUBHEAD}</p>
+            <p className="font-semibold">{getPromoHeadline()}</p>
+            <p className="mt-1 text-xs">{getPromoSubhead()}</p>
             <div className="mt-2 flex flex-wrap gap-1.5">
-              {PROMO_BENEFITS.map((benefit) => (
+              {getPromoBenefits().map((benefit) => (
                 <span
                   key={benefit}
                   className="rounded-full border border-emerald-300/80 bg-white/90 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 dark:border-emerald-500/35 dark:bg-slate-900 dark:text-emerald-200"

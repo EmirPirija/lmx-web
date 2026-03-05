@@ -16,7 +16,7 @@ import {
   Search,
   Layers,
 } from "@/components/Common/UnifiedIconPack";
-import { PROMO_BENEFITS, PROMO_HEADLINE, PROMO_SUBHEAD } from "@/lib/promoMode";
+import { getPromoBenefits, getPromoHeadline, getPromoSubhead } from "@/lib/promoMode";
 
 const benefitItems = [
   {
@@ -151,13 +151,13 @@ const PlatformBenefitsStrip = () => {
                             <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-emerald-700 dark:text-emerald-300">
                               Promotivna ponuda
                             </p>
-                            <p className="mt-1 text-sm font-bold text-slate-900 dark:text-slate-100">{PROMO_HEADLINE}</p>
-                            <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">{PROMO_SUBHEAD}</p>
+                            <p className="mt-1 text-sm font-bold text-slate-900 dark:text-slate-100">{getPromoHeadline()}</p>
+                            <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">{getPromoSubhead()}</p>
                           </div>
                           <ShieldCheck className="h-5 w-5 shrink-0 text-emerald-600 dark:text-emerald-300" />
                         </div>
                         <div className="mt-3 flex flex-wrap gap-2">
-                          {PROMO_BENEFITS.map((benefit) => (
+                          {getPromoBenefits().map((benefit) => (
                             <span
                               key={benefit}
                               className="rounded-full border border-emerald-300/80 bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 dark:border-emerald-500/35 dark:bg-slate-900 dark:text-emerald-200"

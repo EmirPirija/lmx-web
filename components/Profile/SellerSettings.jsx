@@ -89,9 +89,9 @@ import {
   SELLER_CARD_PREFERENCES_DEFAULTS,
 } from "@/lib/seller-settings-engine";
 import {
-  PROMO_BENEFITS,
-  PROMO_HEADLINE,
-  PROMO_SUBHEAD,
+  getPromoBenefits,
+  getPromoHeadline,
+  getPromoSubhead,
   isPromoFreeAccessEnabled,
 } from "@/lib/promoMode";
 import {
@@ -2470,13 +2470,13 @@ const SellerSettings = () => {
 
               <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 px-3 py-3 dark:border-emerald-500/30 dark:bg-emerald-500/10">
                 <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-200">
-                  {PROMO_HEADLINE}
+                  {getPromoHeadline()}
                 </p>
                 <p className="mt-1 text-xs text-emerald-700/90 dark:text-emerald-200/90">
-                  {PROMO_SUBHEAD}
+                  {getPromoSubhead()}
                 </p>
                 <div className="mt-2 flex flex-wrap gap-1.5">
-                  {PROMO_BENEFITS.map((benefit) => (
+                  {getPromoBenefits().map((benefit) => (
                     <span
                       key={benefit}
                       className="rounded-full border border-emerald-300/70 bg-white/80 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 dark:border-emerald-500/40 dark:bg-slate-900/60 dark:text-emerald-200"

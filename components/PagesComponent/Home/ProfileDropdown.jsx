@@ -21,9 +21,9 @@ import MembershipBadge from "@/components/Common/MembershipBadge";
 import UserAvatarMedia from "@/components/Common/UserAvatar";
 import { useAdaptiveMobileDock } from "@/components/Layout/AdaptiveMobileDock";
 import {
-  PROMO_BENEFITS,
-  PROMO_HEADLINE,
-  PROMO_SUBHEAD,
+  getPromoBenefits,
+  getPromoHeadline,
+  getPromoSubhead,
   isPromoFreeAccessEnabled,
 } from "@/lib/promoMode";
 
@@ -871,13 +871,13 @@ const ProfileDropdown = ({
                   Promotivni Free Access
                 </h5>
                 <p className="mt-0.5 text-xs text-slate-600 dark:text-slate-300">
-                  {PROMO_HEADLINE}
+                  {getPromoHeadline()}
                 </p>
                 <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
-                  {PROMO_SUBHEAD}
+                  {getPromoSubhead()}
                 </p>
                 <div className="mt-1.5 flex flex-wrap gap-1">
-                  {PROMO_BENEFITS.map((benefit) => (
+                  {getPromoBenefits().map((benefit) => (
                     <span
                       key={benefit}
                       className="rounded-full border border-emerald-300/80 bg-emerald-50/90 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 dark:border-emerald-500/35 dark:bg-emerald-500/15 dark:text-emerald-200"

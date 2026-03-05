@@ -22,6 +22,7 @@ import {
 } from "@/components/Common/UnifiedIconPack";
 import {
   getCurrencyPosition,
+  settingsData,
   getCurrencySymbol,
 } from "@/redux/reducer/settingSlice";
 import { generateSlug } from "@/utils";
@@ -35,6 +36,7 @@ import { setUserMembership } from "@/redux/reducer/membershipSlice";
 import { membershipApi } from "@/utils/api";
 import { extractApiData, resolveMembership } from "@/lib/membership";
 import { isPromoFreeAccessEnabled } from "@/lib/promoMode";
+import { getListingCampaignBadgeConfig } from "@/lib/listingCampaignBadges";
 import StickyActionButtons from "@/components/Common/StickyActionButtons";
 import PlanGateLabel from "@/components/Common/PlanGateLabel";
 import CustomLink from "@/components/Common/CustomLink";
@@ -325,6 +327,7 @@ const ComponentTwo = ({
   const dispatch = useDispatch();
   const currencyPosition = useSelector(getCurrencyPosition);
   const currencySymbol = useSelector(getCurrencySymbol);
+  const systemSettings = useSelector(settingsData);
   const currentUser = useSelector(userSignUpData);
   const cachedMembership = useSelector(
     (state) => state?.Membership?.userMembership?.data,
@@ -344,6 +347,13 @@ const ComponentTwo = ({
   );
   const isShopMember = Boolean(membership?.isShop);
   const hasShopAccess = isShopMember || isPromoFreeAccessEnabled();
+  const campaignBadgeConfig = useMemo(
+    () => getListingCampaignBadgeConfig(systemSettings),
+    [systemSettings],
+  );
+  const campaignBadgeOptions = campaignBadgeConfig.options;
+  const campaignBadgeSelectionEnabled =
+    campaignBadgeConfig.enabled && campaignBadgeOptions.length > 0;
 
   const placeholderLabel =
     currencyPosition === "right" ? `${currencySymbol}` : `${currencySymbol}`;
@@ -366,6 +376,7 @@ const ComponentTwo = ({
         "minimum_order_quantity",
         "stock_alert_threshold",
         "seller_product_code",
+        "campaign_badge_key",
         "scarcity_enabled",
       ]),
     [],
@@ -1199,6 +1210,44 @@ const ComponentTwo = ({
                   Šifra je za internu evidenciju prodavača i neće biti javno
                   istaknuta kupcima.
                 </p>
+              </div>
+
+              <div className="mt-3 flex flex-col gap-2">
+                <Label
+                  htmlFor="campaign_badge_key"
+                  className="text-base font-semibold text-gray-800"
+                >
+                  Sezonska oznaka oglasa (opcionalno)
+                </Label>
+                <select
+                  name="campaign_badge_key"
+                  id="campaign_badge_key"
+                  value={current.campaign_badge_key || ""}
+                  onChange={handleField("campaign_badge_key")}
+                  disabled={!campaignBadgeSelectionEnabled}
+                  className="h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-800 transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                >
+                  <option value="">Bez oznake</option>
+                  {campaignBadgeOptions.map((option) => (
+                    <option key={option.key} value={option.key}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+                {!campaignBadgeConfig.enabled ? (
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Admin trenutno nije uključio sezonske oznake.
+                  </p>
+                ) : campaignBadgeOptions.length === 0 ? (
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Nema konfigurisanih sezonskih oznaka u admin panelu.
+                  </p>
+                ) : (
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Ako izaberete oznaku, biće prikazana na kartici i detaljima
+                    oglasa.
+                  </p>
+                )}
                 <p className="text-xs text-slate-500 dark:text-slate-400">
                   LMX je posredni oglasni servis: plaćanje, dostava i
                   reklamacije su dogovor između prodavača i kupca.

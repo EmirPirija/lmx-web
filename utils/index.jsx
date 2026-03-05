@@ -1234,6 +1234,7 @@ export const getMainDetailsTranslations = (
             ? String(listingData.stock_alert_threshold)
             : "",
         seller_product_code: listingData?.seller_product_code || "",
+        campaign_badge_key: listingData?.campaign_badge_key || "",
         scarcity_enabled: parseBooleanSetting(
           listingData?.scarcity_enabled ??
             listingData?.is_scarcity_enabled ??
