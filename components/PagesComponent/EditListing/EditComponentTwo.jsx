@@ -1111,7 +1111,7 @@ const EditComponentTwo = ({
   const [requiredOpen, setRequiredOpen] = useState(true);
   const [optionalOpen, setOptionalOpen] = useState(false);
   const [termsOpen, setTermsOpen] = useState(false);
-  const [autoAdvanceSections, setAutoAdvanceSections] = useState(true);
+  const [autoAdvanceSections, setAutoAdvanceSections] = useState(false);
   const [attemptedNext, setAttemptedNext] = useState(false);
   const [highlightedFieldId, setHighlightedFieldId] = useState("");
   const requiredSectionRef = useRef(null);
@@ -1485,12 +1485,6 @@ const EditComponentTwo = ({
       setHighlightedFieldId((current) => (current === fieldId ? "" : current));
     }, 1700);
   }, []);
-
-  useEffect(() => {
-    if (!requiredFieldsCompleted && !autoAdvanceSections) {
-      setAutoAdvanceSections(true);
-    }
-  }, [requiredFieldsCompleted, autoAdvanceSections]);
 
   useEffect(() => {
     if (!autoAdvanceSections) return;

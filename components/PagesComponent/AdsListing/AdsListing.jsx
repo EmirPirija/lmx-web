@@ -1196,7 +1196,6 @@ const AdsListing = () => {
       } else {
         setExtraDetails({});
       }
-      setStep(2);
       setDisabledTab({
         categoryTab: true,
         detailTab: false,
