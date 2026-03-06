@@ -22,7 +22,7 @@ import {
   LMX_PHONE_INPUT_PROPS,
   resolveLmxPhoneDialCode,
 } from "@/components/Common/phoneInputTheme";
-import { buildPhoneE164, maskPhoneForDebug } from "./phoneAuthUtils";
+import { getCanonicalPhonePayload, maskPhoneForDebug } from "./phoneAuthUtils";
 import {
   isRecaptchaRecoverableError,
 } from "./recaptchaManager";
@@ -72,13 +72,17 @@ const LoginWithMobileForm = ({
     focusPhoneInput();
   };
 
-  const sendOtpWithTwillio = async (phoneE164) => {
+  const sendOtpWithTwillio = async ({
+    phoneE164,
+    countryCodeDigits,
+    localNumber,
+  }) => {
     try {
       const response = await getOtpApi.getOtp({
         number: phoneE164,
         intent: "login",
-        mobile: formattedNumber,
-        country_code: String(countryCode || "").replace(/\D/g, ""),
+        mobile: localNumber,
+        country_code: countryCodeDigits,
         region_code: String(loginStates?.regionCode || "").toUpperCase(),
       });
       if (response?.data?.error === false) {
@@ -162,24 +166,29 @@ const LoginWithMobileForm = ({
     }
   };
 
-  const sendOTP = async (phoneE164) => {
+  const sendOTP = async ({ phoneE164, countryCodeDigits, localNumber }) => {
     setLoginStates((prev) => ({
       ...prev,
       showLoader: true,
     }));
     if (otp_service_provider === "twilio") {
-      await sendOtpWithTwillio(phoneE164);
+      await sendOtpWithTwillio({
+        phoneE164,
+        countryCodeDigits,
+        localNumber,
+      });
     } else {
       await sendOtpWithFirebase(phoneE164);
     }
   };
 
-  const ensurePhoneCanLogin = async (phoneE164) => {
+  const ensurePhoneCanLogin = async (phoneE164, countryCodeDigits = "") => {
     try {
       const response = await authApi.resolveLoginIdentifier({
         identifier: phoneE164,
         identifier_type: "phone",
-        country_code: countryCode.replace(/\D/g, ""),
+        country_code:
+          countryCodeDigits || String(countryCode || "").replace(/\D/g, ""),
       });
       if (response?.data?.error === true) {
         const apiError = new Error(
@@ -204,13 +213,17 @@ const LoginWithMobileForm = ({
 
   const handleMobileSubmit = async (e) => {
     e.preventDefault();
-    const phoneE164 = buildPhoneE164(countryCode, formattedNumber);
+    const phonePayload = getCanonicalPhonePayload(countryCode, formattedNumber);
+    const phoneE164 = phonePayload.e164;
     if (isValidPhoneNumber(phoneE164)) {
       setLoginStates((prev) => ({
         ...prev,
         showLoader: true,
       }));
-      const canLogin = await ensurePhoneCanLogin(phoneE164);
+      const canLogin = await ensurePhoneCanLogin(
+        phoneE164,
+        phonePayload.countryCode,
+      );
       if (!canLogin) {
         setLoginStates((prev) => ({
           ...prev,
@@ -218,7 +231,11 @@ const LoginWithMobileForm = ({
         }));
         return;
       }
-      await sendOTP(phoneE164);
+      await sendOTP({
+        phoneE164,
+        countryCodeDigits: phonePayload.countryCode,
+        localNumber: phonePayload.local,
+      });
     } else {
       toast.error("Neispravan broj telefona");
     }

@@ -28,6 +28,24 @@ export const buildPhoneE164 = (countryCode = "", formattedNumber = "") => {
   return fallback;
 };
 
+export const getCanonicalPhonePayload = (countryCode = "", formattedNumber = "") => {
+  const normalizedCountryCode = sanitizeCountryCode(countryCode);
+  const countryDigits = sanitizeLocalDigits(normalizedCountryCode);
+  const fallbackLocal = sanitizeLocalDigits(formattedNumber);
+  const e164 = buildPhoneE164(normalizedCountryCode, fallbackLocal);
+  const e164Digits = sanitizeLocalDigits(e164);
+
+  const local = countryDigits && e164Digits.startsWith(countryDigits)
+    ? e164Digits.slice(countryDigits.length)
+    : fallbackLocal;
+
+  return {
+    e164,
+    countryCode: countryDigits,
+    local,
+  };
+};
+
 export const maskPhoneForDebug = (value = "") => {
   const digits = sanitizeLocalDigits(value);
   if (!digits) return "unknown";

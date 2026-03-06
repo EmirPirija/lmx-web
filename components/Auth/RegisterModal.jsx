@@ -66,7 +66,7 @@ import {
   LMX_PHONE_DEFAULT_COUNTRY,
   resolveLmxPhoneDialCode,
 } from "@/components/Common/phoneInputTheme";
-import { buildPhoneE164, maskPhoneForDebug } from "./phoneAuthUtils";
+import { getCanonicalPhonePayload, maskPhoneForDebug } from "./phoneAuthUtils";
 import {
   isLocationComplete,
   resolveLocationSelection,
@@ -627,13 +627,17 @@ const RegisterModal = ({ IsRegisterModalOpen, setIsRegisterModalOpen }) => {
     setCropY((prev) => clamp(prev, -cropMaxOffsetY, cropMaxOffsetY));
   }, [cropMaxOffsetY]);
 
-  const sendOtpWithTwillio = async (phoneE164) => {
+  const sendOtpWithTwillio = async ({
+    phoneE164,
+    localNumber,
+    countryCodeDigits,
+  }) => {
     try {
       const response = await getOtpApi.getOtp({
         number: phoneE164,
         intent: "register",
-        mobile: formattedNumber,
-        country_code: String(countryCode || "").replace(/\D/g, ""),
+        mobile: localNumber,
+        country_code: countryCodeDigits,
         region_code: String(regionCode || "").toUpperCase(),
       });
       if (response?.data?.error === false) {
@@ -712,10 +716,11 @@ const RegisterModal = ({ IsRegisterModalOpen, setIsRegisterModalOpen }) => {
       String(countryCode || "").trim() || DEFAULT_REGISTER_COUNTRY_CODE;
     const effectiveLocalNumber =
       String(formattedNumber || "").trim() || String(number || "").trim();
-    const phoneE164 = buildPhoneE164(
+    const phonePayload = getCanonicalPhonePayload(
       effectiveCountryCode,
       effectiveLocalNumber,
     );
+    const phoneE164 = phonePayload.e164;
 
     if (!isValidPhoneNumber(phoneE164)) {
       toast.error("Neispravan broj telefona");
@@ -729,7 +734,11 @@ const RegisterModal = ({ IsRegisterModalOpen, setIsRegisterModalOpen }) => {
     setIsBusy(true);
     try {
       if (otp_service_provider === "twilio") {
-        await sendOtpWithTwillio(phoneE164);
+        await sendOtpWithTwillio({
+          phoneE164,
+          localNumber: phonePayload.local,
+          countryCodeDigits: phonePayload.countryCode,
+        });
       } else {
         await sendOtpWithFirebase(phoneE164);
       }

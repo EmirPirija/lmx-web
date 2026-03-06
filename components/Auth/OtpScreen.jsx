@@ -16,7 +16,7 @@ import {
 import { Loader2 } from "@/components/Common/UnifiedIconPack";
 import { useEffect, useState } from "react";
 import { useNavigate } from "../Common/useNavigate";
-import { buildPhoneE164, maskPhoneForDebug } from "./phoneAuthUtils";
+import { getCanonicalPhonePayload, maskPhoneForDebug } from "./phoneAuthUtils";
 import {
   isRecaptchaRecoverableError,
 } from "./recaptchaManager";
@@ -67,6 +67,8 @@ const OtpScreen = ({
   const isDemoMode = useSelector(getIsDemoMode);
   const [otp, setOtp] = useState(isDemoMode ? "123456" : "");
   const otp_service_provider = useSelector(getOtpServiceProvider);
+  const resolvePhonePayload = () =>
+    getCanonicalPhonePayload(countryCode, formattedNumber);
 
   const submitPhoneSignupWithRetry = async (payload, maxAttempts = 2) => {
     let lastError = null;
@@ -101,13 +103,14 @@ const OtpScreen = ({
 
   const verifyOTPWithTwillio = async () => {
     try {
-      const PhoneNumber = buildPhoneE164(countryCode, formattedNumber);
+      const phonePayload = resolvePhonePayload();
+      const PhoneNumber = phonePayload.e164;
       const response = await verifyOtpApi.verifyOtp({
         number: PhoneNumber,
         otp: otp,
         intent: authIntent,
-        mobile: formattedNumber,
-        country_code: countryCode.replace(/\D/g, ""),
+        mobile: phonePayload.local,
+        country_code: phonePayload.countryCode,
         region_code: regionCode?.toUpperCase() || "",
       });
       if (response?.data?.error === false) {
@@ -151,7 +154,8 @@ const OtpScreen = ({
   };
 
   const verifyOTPWithFirebase = async () => {
-    const phoneE164 = buildPhoneE164(countryCode, formattedNumber);
+    const phonePayload = resolvePhonePayload();
+    const phoneE164 = phonePayload.e164;
     let confirmedUser = null;
 
     try {
@@ -160,10 +164,10 @@ const OtpScreen = ({
       const user = result.user;
       confirmedUser = user;
       const response = await submitPhoneSignupWithRetry({
-        mobile: formattedNumber,
+        mobile: phonePayload.local,
         firebase_id: user.uid, // Accessing UID directly from the user object
         fcm_id: fetchFCM ? fetchFCM : "",
-        country_code: countryCode.replace(/\D/g, ""),
+        country_code: phonePayload.countryCode,
         type: "phone",
         auth_intent: authIntent,
         region_code: regionCode?.toUpperCase() || "",
@@ -209,10 +213,10 @@ const OtpScreen = ({
       ) {
         try {
           const fallbackLoginResponse = await submitPhoneSignupWithRetry({
-            mobile: formattedNumber,
+            mobile: phonePayload.local,
             firebase_id: confirmedUser.uid,
             fcm_id: fetchFCM ? fetchFCM : "",
-            country_code: countryCode.replace(/\D/g, ""),
+            country_code: phonePayload.countryCode,
             type: "phone",
             auth_intent: "login",
             region_code: regionCode?.toUpperCase() || "",
@@ -291,12 +295,13 @@ const OtpScreen = ({
     }
   };
 
-  const ensurePhoneCanLogin = async (phoneE164) => {
+  const ensurePhoneCanLogin = async (phoneE164, countryCodeDigits = "") => {
     try {
       const response = await authApi.resolveLoginIdentifier({
         identifier: phoneE164,
         identifier_type: "phone",
-        country_code: countryCode.replace(/\D/g, ""),
+        country_code:
+          countryCodeDigits || String(countryCode || "").replace(/\D/g, ""),
       });
       if (response?.data?.error === true) {
         const apiError = new Error(
@@ -321,13 +326,17 @@ const OtpScreen = ({
     }
   };
 
-  const resendOtpWithTwillio = async (phoneE164) => {
+  const resendOtpWithTwillio = async ({
+    phoneE164,
+    localNumber,
+    countryCodeDigits,
+  }) => {
     try {
       const response = await getOtpApi.getOtp({
         number: phoneE164,
         intent: authIntent,
-        mobile: formattedNumber,
-        country_code: String(countryCode || "").replace(/\D/g, ""),
+        mobile: localNumber,
+        country_code: countryCodeDigits,
         region_code: String(regionCode || "").toUpperCase(),
       });
       if (response?.data?.error === false) {
@@ -401,16 +410,24 @@ const OtpScreen = ({
   const resendOtp = async (e) => {
     e.preventDefault();
     setResendOtpLoader(true);
-    const phoneE164 = buildPhoneE164(countryCode, formattedNumber);
+    const phonePayload = resolvePhonePayload();
+    const phoneE164 = phonePayload.e164;
     if (authIntent === "login") {
-      const canLogin = await ensurePhoneCanLogin(phoneE164);
+      const canLogin = await ensurePhoneCanLogin(
+        phoneE164,
+        phonePayload.countryCode,
+      );
       if (!canLogin) {
         setResendOtpLoader(false);
         return;
       }
     }
     if (otp_service_provider === "twilio") {
-      await resendOtpWithTwillio(phoneE164);
+      await resendOtpWithTwillio({
+        phoneE164,
+        localNumber: phonePayload.local,
+        countryCodeDigits: phonePayload.countryCode,
+      });
     } else {
       await resendOtpWithFirebase(phoneE164);
     }
