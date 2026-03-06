@@ -29,13 +29,20 @@ const isGatewayOrTimeoutError = (error) => {
   const status = Number(error?.response?.status || 0);
   const code = String(error?.code || "").toUpperCase();
   return (
+    status === 500 ||
     status === 502 ||
     status === 503 ||
     status === 504 ||
     code === "ECONNABORTED" ||
-    code === "ETIMEDOUT"
+    code === "ETIMEDOUT" ||
+    code === "ERR_NETWORK"
   );
 };
+
+const wait = (ms) =>
+  new Promise((resolve) => {
+    window.setTimeout(resolve, ms);
+  });
 
 const OtpScreen = ({
   generateRecaptcha,
@@ -60,6 +67,24 @@ const OtpScreen = ({
   const isDemoMode = useSelector(getIsDemoMode);
   const [otp, setOtp] = useState(isDemoMode ? "123456" : "");
   const otp_service_provider = useSelector(getOtpServiceProvider);
+
+  const submitPhoneSignupWithRetry = async (payload, maxAttempts = 2) => {
+    let lastError = null;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+      try {
+        return await userSignUpApi.userSignup(payload);
+      } catch (error) {
+        lastError = error;
+        if (!isGatewayOrTimeoutError(error) || attempt >= maxAttempts) {
+          throw error;
+        }
+        await wait(attempt * 350);
+      }
+    }
+
+    throw lastError || new Error("Backend auth sync failed");
+  };
 
   useEffect(() => {
     let intervalId;
@@ -134,7 +159,7 @@ const OtpScreen = ({
       // Access user information from the result
       const user = result.user;
       confirmedUser = user;
-      const response = await userSignUpApi.userSignup({
+      const response = await submitPhoneSignupWithRetry({
         mobile: formattedNumber,
         firebase_id: user.uid, // Accessing UID directly from the user object
         fcm_id: fetchFCM ? fetchFCM : "",
@@ -183,7 +208,7 @@ const OtpScreen = ({
         isPhoneAlreadyRegisteredError(error)
       ) {
         try {
-          const fallbackLoginResponse = await userSignUpApi.userSignup({
+          const fallbackLoginResponse = await submitPhoneSignupWithRetry({
             mobile: formattedNumber,
             firebase_id: confirmedUser.uid,
             fcm_id: fetchFCM ? fetchFCM : "",
