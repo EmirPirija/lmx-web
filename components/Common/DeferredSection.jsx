@@ -73,7 +73,7 @@ const DeferredSection = ({
     <div
       ref={hostRef}
       className={className}
-      style={minHeight ? { minHeight } : undefined}
+      style={!shouldRender && minHeight ? { minHeight } : undefined}
     >
       {shouldRender ? children : placeholder}
     </div>

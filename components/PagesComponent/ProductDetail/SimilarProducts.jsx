@@ -8,22 +8,25 @@ import {
 } from "@/components/ui/carousel";
 import { allItemApi } from "@/utils/api";
 import ProductCard from "@/components/Common/ProductCard";
+import ProductCardSkeleton from "@/components/Common/ProductCardSkeleton";
 import { useSelector } from "react-redux";
 import { getIsRtl } from "@/redux/reducer/languageSlice";
-import { t } from "@/utils";
 import { getCityData, getKilometerRange } from "@/redux/reducer/locationSlice";
 
 const SimilarProducts = ({ productDetails }) => {
   const [similarData, setSimilarData] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
   const isRTL = useSelector(getIsRtl);
   const location = useSelector(getCityData);
   const KmRange = useSelector(getKilometerRange);
 
   const fetchSimilarData = async (cateID) => {
     try {
+      setIsLoading(true);
       const response = await allItemApi.getItems({
         category_id: cateID,
-        limit: 16,
+        limit: 10,
+        compact: 1,
         ...(location?.lat &&
           location?.long && {
             latitude: location?.lat,
@@ -33,16 +36,21 @@ const SimilarProducts = ({ productDetails }) => {
       });
       const responseData = response?.data;
       if (responseData) {
-        const { data } = responseData;
-        const filteredData = data?.data.filter(
-          (item) => item.id !== productDetails?.id
-        );
+        const payload = responseData?.data;
+        const list = Array.isArray(payload?.data)
+          ? payload.data
+          : Array.isArray(payload)
+            ? payload
+            : [];
+        const filteredData = list.filter((item) => item.id !== productDetails?.id);
         setSimilarData(filteredData);
       } else {
         console.error("Invalid response:", response);
       }
     } catch (error) {
       console.error("Error:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
   useEffect(() => {
@@ -59,7 +67,7 @@ const SimilarProducts = ({ productDetails }) => {
     );
   }, []);
 
-  if (similarData && similarData.length === 0) {
+  if (!isLoading && similarData && similarData.length === 0) {
     return null;
   }
 
@@ -73,20 +81,29 @@ const SimilarProducts = ({ productDetails }) => {
         }}
       >
         <CarouselContent>
-          {similarData?.map((item) => (
-            <CarouselItem
-              key={item.id}
-              className="basis-[82%] sm:basis-1/2 md:basis-1/3 xl:basis-1/4"
-            >
-              <ProductCard
-                item={item}
-                handleLike={handleLikeAllData}
-                trackingParams={{ ref: "similar" }}
-              />
-            </CarouselItem>
-          ))}
+          {isLoading
+            ? Array.from({ length: 4 }).map((_, index) => (
+                <CarouselItem
+                  key={`similar-skeleton-${index}`}
+                  className="basis-[82%] sm:basis-1/2 md:basis-1/3 xl:basis-1/4"
+                >
+                  <ProductCardSkeleton />
+                </CarouselItem>
+              ))
+            : similarData?.map((item) => (
+                <CarouselItem
+                  key={item.id}
+                  className="basis-[82%] sm:basis-1/2 md:basis-1/3 xl:basis-1/4"
+                >
+                  <ProductCard
+                    item={item}
+                    handleLike={handleLikeAllData}
+                    trackingParams={{ ref: "similar" }}
+                  />
+                </CarouselItem>
+              ))}
         </CarouselContent>
-        {similarData?.length > 3 && (
+        {!isLoading && similarData?.length > 3 && (
           <>
             <CarouselPrevious className="hidden md:flex absolute top-1/2 ltr:left-2 rtl:right-2 rtl:scale-x-[-1] -translate-y-1/2 bg-primary text-white rounded-full" />
             <CarouselNext className="hidden md:flex absolute top-1/2 ltr:right-2 rtl:left-2 rtl:scale-x-[-1] -translate-y-1/2 bg-primary text-white rounded-full" />

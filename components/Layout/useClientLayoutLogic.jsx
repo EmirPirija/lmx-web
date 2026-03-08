@@ -1,11 +1,18 @@
 import { useCallback, useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { settingsApi } from "@/utils/api";
+import { runtimeApi, settingsApi } from "@/utils/api";
 import {
   settingsSucess,
   getIsMaintenanceMode,
   settingsData,
 } from "@/redux/reducer/settingSlice";
+import {
+  runtimeConfigData,
+  runtimeConfigEtag,
+  runtimeConfigFailed,
+  runtimeConfigNotModified,
+  runtimeConfigSuccess,
+} from "@/redux/reducer/runtimeConfigSlice";
 import {
   getKilometerRange,
   setKilometerRange,
@@ -14,8 +21,11 @@ import {
 import { getIsVisitedLandingPage } from "@/redux/reducer/globalStateSlice";
 import { getCurrentLangCode, getIsRtl } from "@/redux/reducer/languageSlice";
 import {
+  getRuntimeConfigRefreshTtlMs,
   getSystemSettingsRefreshTtlMs,
+  markRuntimeConfigFetched,
   markSystemSettingsFetched,
+  shouldRefetchRuntimeConfig,
   shouldRefetchSystemSettings,
 } from "@/utils/getFetcherStatus";
 import { useNavigate } from "../Common/useNavigate";
@@ -24,10 +34,17 @@ export function useClientLayoutLogic() {
   const dispatch = useDispatch();
   const { navigate } = useNavigate();
   const persistedSettings = useSelector(settingsData);
+  const persistedRuntimeConfig = useSelector(runtimeConfigData);
+  const persistedRuntimeEtag = useSelector(runtimeConfigEtag);
   const hasPersistedSettings = Boolean(
     persistedSettings &&
       typeof persistedSettings === "object" &&
       Object.keys(persistedSettings).length > 0,
+  );
+  const hasPersistedRuntimeConfig = Boolean(
+    persistedRuntimeConfig &&
+      typeof persistedRuntimeConfig === "object" &&
+      Object.keys(persistedRuntimeConfig).length > 0,
   );
   const [isLoading, setIsLoading] = useState(!hasPersistedSettings);
   const currentLangCode = useSelector(getCurrentLangCode);
@@ -114,16 +131,73 @@ export function useClientLayoutLogic() {
       }
     };
 
+    const getRuntimeConfig = async ({ force = false } = {}) => {
+      if (!force && !shouldRefetchRuntimeConfig()) {
+        return;
+      }
+
+      try {
+        const response = await runtimeApi.getRuntimeConfig({
+          etag: persistedRuntimeEtag,
+        });
+
+        if (!isMounted) return;
+
+        if (response?.status === 304) {
+          dispatch(
+            runtimeConfigNotModified({
+              fetchedAt: Date.now(),
+              etag: persistedRuntimeEtag,
+            }),
+          );
+          markRuntimeConfigFetched();
+          return;
+        }
+
+        const runtimeData = response?.data?.data || null;
+        const nextEtag =
+          response?.headers?.etag ||
+          response?.headers?.ETag ||
+          persistedRuntimeEtag ||
+          null;
+
+        dispatch(
+          runtimeConfigSuccess({
+            data: runtimeData,
+            etag: nextEtag,
+            fetchedAt: Date.now(),
+          }),
+        );
+        markRuntimeConfigFetched();
+      } catch (error) {
+        dispatch(
+          runtimeConfigFailed({
+            error: error?.message || "runtime_config_fetch_failed",
+            fetchedAt: Date.now(),
+          }),
+        );
+        console.error("Error fetching runtime config:", error);
+      }
+    };
+
     if (hasPersistedSettings) {
       applyUiBranding(persistedSettings);
       markSystemSettingsFetched();
     }
+    if (hasPersistedRuntimeConfig) {
+      markRuntimeConfigFetched();
+    }
 
     getSystemSettings({ showLoader: !hasPersistedSettings });
+    getRuntimeConfig({ force: !hasPersistedRuntimeConfig });
 
-    const refreshIntervalMs = Math.max(getSystemSettingsRefreshTtlMs(), 30_000);
+    const refreshIntervalMs = Math.max(
+      Math.min(getSystemSettingsRefreshTtlMs(), getRuntimeConfigRefreshTtlMs()),
+      30_000,
+    );
     const refreshTimer = window.setInterval(() => {
       getSystemSettings();
+      getRuntimeConfig();
     }, refreshIntervalMs);
 
     const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
@@ -138,10 +212,12 @@ export function useClientLayoutLogic() {
     currentLangCode,
     dispatch,
     hasPersistedSettings,
+    hasPersistedRuntimeConfig,
     isVisitedLandingPage,
     navigate,
     applyUiBranding,
     persistedSettings,
+    persistedRuntimeEtag,
   ]);
 
   // Set direction of the document

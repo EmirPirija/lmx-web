@@ -23,6 +23,59 @@ const DEFAULT_API_ENDPOINT_PATH = "/api";
 const DEFAULT_PROXY_ALERT_THRESHOLD = 8;
 const DEFAULT_PROXY_ALERT_WINDOW_MS = 120_000;
 const DEFAULT_PROXY_ALERT_COOLDOWN_MS = 120_000;
+const RUNTIME_RULES_BY_ENDPOINT = [
+  {
+    matcher: "add-item",
+    service: "listings",
+    adControl: "create_enabled",
+    message: "Objava oglasa je trenutno privremeno onemogućena.",
+  },
+  {
+    matcher: "update-item",
+    service: "listings",
+    adControl: "edit_enabled",
+    message: "Uređivanje oglasa je trenutno privremeno onemogućeno.",
+  },
+  {
+    matcher: "delete-item",
+    service: "listings",
+    adControl: "delete_enabled",
+    message: "Brisanje oglasa je trenutno privremeno onemogućeno.",
+  },
+  {
+    matcher: "update-item-status",
+    service: "listings",
+    adControl: "edit_enabled",
+    message: "Promjena statusa oglasa je trenutno privremeno onemogućena.",
+  },
+  {
+    matcher: "make-item-featured",
+    service: "listings",
+    adControl: "feature_enabled",
+    message: "Izdvajanje oglasa je trenutno privremeno onemogućeno.",
+  },
+  {
+    matcher: "renew-item",
+    service: "listings",
+    adControl: "renew_enabled",
+    message: "Obnova oglasa je trenutno privremeno onemogućena.",
+  },
+  {
+    matcher: "send-message",
+    service: "chat",
+    message: "Slanje poruka je trenutno privremeno onemogućeno.",
+  },
+  {
+    matcher: "item-offer",
+    service: "chat",
+    message: "Slanje ponuda je trenutno privremeno onemogućeno.",
+  },
+  {
+    matcher: "payment-intent",
+    service: "payments",
+    message: "Plaćanje je trenutno privremeno onemogućeno.",
+  },
+];
 
 const circuitBreakerState = new Map();
 const internalProxyIncidentState = {
@@ -221,6 +274,94 @@ const isNetworkLikeError = (error) => {
   );
 };
 
+const normalizeBooleanLike = (value) => {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") return value === 1;
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (["1", "true", "yes", "on", "enabled"].includes(normalized)) {
+      return true;
+    }
+    if (["0", "false", "no", "off", "disabled"].includes(normalized)) {
+      return false;
+    }
+  }
+  return null;
+};
+
+const getRuntimeConfigSnapshot = () =>
+  getAppStore()?.getState?.()?.RuntimeConfig?.data || null;
+
+const getRuntimeServiceState = (runtime, serviceKey) => {
+  const service = runtime?.services?.[serviceKey];
+  if (!service || typeof service !== "object") {
+    return { enabled: true, message: "" };
+  }
+
+  return {
+    enabled: normalizeBooleanLike(service.enabled) ?? true,
+    message: String(service.message || ""),
+  };
+};
+
+const getRuntimeAdControlEnabled = (runtime, controlKey) => {
+  const raw = runtime?.ad_controls?.[controlKey];
+  const parsed = normalizeBooleanLike(raw);
+  return parsed === null ? true : parsed;
+};
+
+const resolveRuntimeBlock = (config = {}) => {
+  const requestUrl = String(config?.url || "").toLowerCase();
+  if (!requestUrl || requestUrl.includes("runtime-config")) {
+    return null;
+  }
+
+  const runtime = getRuntimeConfigSnapshot();
+  if (!runtime || typeof runtime !== "object") {
+    return null;
+  }
+
+  const maintenanceEnabled =
+    normalizeBooleanLike(runtime?.maintenance?.enabled) ?? false;
+  if (maintenanceEnabled) {
+    return {
+      reason: "maintenance_mode",
+      message:
+        String(runtime?.maintenance?.message || "").trim() ||
+        "Sistem je trenutno u održavanju.",
+    };
+  }
+
+  const endpointRule = RUNTIME_RULES_BY_ENDPOINT.find((rule) =>
+    requestUrl.includes(rule.matcher),
+  );
+  if (!endpointRule) {
+    return null;
+  }
+
+  if (endpointRule.service) {
+    const serviceState = getRuntimeServiceState(runtime, endpointRule.service);
+    if (!serviceState.enabled) {
+      return {
+        reason: `service_disabled:${endpointRule.service}`,
+        message: serviceState.message || endpointRule.message,
+      };
+    }
+  }
+
+  if (endpointRule.adControl) {
+    const enabled = getRuntimeAdControlEnabled(runtime, endpointRule.adControl);
+    if (!enabled) {
+      return {
+        reason: `ad_control_disabled:${endpointRule.adControl}`,
+        message: endpointRule.message,
+      };
+    }
+  }
+
+  return null;
+};
+
 const shouldRetryRequest = (error) => {
   if (!error) return false;
   if (error?.isCircuitOpen) return false;
@@ -341,6 +482,31 @@ Api.interceptors.request.use(function (config) {
     };
     circuitError.normalized = normalizeApiError(circuitError);
     return Promise.reject(circuitError);
+  }
+
+  const runtimeBlock = resolveRuntimeBlock(config);
+  if (runtimeBlock) {
+    const blockError = new axios.AxiosError(
+      runtimeBlock.message,
+      "ERR_RUNTIME_CONTROL_BLOCK",
+      config,
+    );
+    blockError.response = {
+      status: 503,
+      data: {
+        error: true,
+        code: "RUNTIME_CONTROL_BLOCKED",
+        message: runtimeBlock.message,
+        reason: runtimeBlock.reason,
+        trace_id: requestId,
+      },
+      config,
+      headers: {
+        "x-request-id": requestId,
+      },
+    };
+    blockError.normalized = normalizeApiError(blockError);
+    return Promise.reject(blockError);
   }
 
   return config;

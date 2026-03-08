@@ -9,6 +9,7 @@ import {
 } from "@/utils/api/modules/auth";
 export { authApi, userSignUpApi, getOtpApi, verifyOtpApi };
 export const GET_SETTINGS = "get-system-settings";
+export const GET_RUNTIME_CONFIG = "runtime-config";
 export const GET_SEO_SETTINGS = "seo-settings";
 export const GET_SLIDER = "get-slider";
 export const GET_CATEGORIES = "get-categories";
@@ -123,6 +124,7 @@ export const SHOP_DOMAIN = "shop/domain";
 export const MANAGE_SAVED_USER = "manage-saved-user";
 export const CHECK_SAVED_USER = "check-saved-user";
 export const GET_SAVED_USERS = "get-saved-users";
+export const RUNTIME_ANNOUNCEMENT_READ = "runtime-announcements";
 
 // 1. SETTINGS API
 export const settingsApi = {
@@ -130,6 +132,23 @@ export const settingsApi = {
     return Api.get(GET_SETTINGS, {
       params: { type },
     });
+  },
+};
+
+export const runtimeApi = {
+  getRuntimeConfig: ({ etag } = {}) => {
+    const headers = {};
+    if (etag) {
+      headers["If-None-Match"] = etag;
+    }
+
+    return Api.get(GET_RUNTIME_CONFIG, {
+      headers,
+      validateStatus: (status) => (status >= 200 && status < 300) || status === 304,
+    });
+  },
+  markAnnouncementRead: (id) => {
+    return Api.post(`${RUNTIME_ANNOUNCEMENT_READ}/${id}/read`);
   },
 };
 
@@ -292,7 +311,11 @@ export const categoryApi = {
     tree_depth = 0,
     signal,
   } = {}) => {
-    const params = { page, per_page };
+    const normalizedPerPage = Math.min(
+      200,
+      Math.max(1, Number(per_page) || 50),
+    );
+    const params = { page, per_page: normalizedPerPage };
     if (category_id) params.category_id = category_id;
     if (slug) params.slug = slug;
     if (language_id) params.language_id = language_id;
@@ -306,7 +329,7 @@ export const categoryApi = {
       category_id,
       slug,
       page,
-      per_page,
+      per_page: normalizedPerPage,
       language_id,
       include_counts,
       tree_depth,

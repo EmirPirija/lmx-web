@@ -116,6 +116,13 @@ const formatBosnianCurrency = (value, maxFractionDigits = 0) =>
     maximumFractionDigits: maxFractionDigits,
   }).format(Number(value || 0))} KM`;
 
+const extractItemsFromResponse = (response) => {
+  const payload = response?.data?.data;
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.data)) return payload.data;
+  return [];
+};
+
 const MobileProfileDockSlot = ({
   isLoggedIn = false,
   onOpenLogin = () => {},
@@ -465,6 +472,36 @@ const SkeletonLoader = () => (
   </div>
 );
 
+const DeferredQuestionsPlaceholder = () => (
+  <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+    <div className="mb-4 flex items-center gap-3">
+      <Skeleton className="h-10 w-10 rounded-xl" />
+      <div className="space-y-2">
+        <Skeleton className="h-5 w-44 rounded-md" />
+        <Skeleton className="h-3.5 w-32 rounded-md" />
+      </div>
+    </div>
+    <div className="space-y-3">
+      <Skeleton className="h-20 w-full rounded-xl" />
+      <Skeleton className="h-20 w-full rounded-xl" />
+    </div>
+  </div>
+);
+
+const DeferredCarouselPlaceholder = ({ title = "Učitavanje oglasa..." }) => (
+  <section className="flex flex-col gap-5">
+    <div>
+      <Skeleton className="h-7 w-72 rounded-md" />
+      <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{title}</p>
+    </div>
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      {Array.from({ length: 4 }).map((_, index) => (
+        <Skeleton key={`deferred-card-skeleton-${index}`} className="h-64 w-full rounded-2xl" />
+      ))}
+    </div>
+  </section>
+);
+
 const FeaturedAdTriggerCard = ({
   onOpen,
   compact = false,
@@ -587,7 +624,7 @@ const ProductDetails = ({ slug }) => {
   } = useEngagementTracking(itemId);
 
   // 1. Fetch Logic
-  const fetchProductDetails = async () => {
+  const fetchProductDetails = async (signal) => {
     const fetchToken = latestProductFetchRef.current + 1;
     latestProductFetchRef.current = fetchToken;
     try {
@@ -596,16 +633,18 @@ const ProductDetails = ({ slug }) => {
       setDirectVideo(null);
       setGalleryImages([]);
 
-      // Use path-based check for API call since we don't have product data yet
-      const apiCall = isMyListingPath
-        ? getMyItemsApi.getMyItems
-        : allItemApi.getItems;
-      const res = await apiCall({ slug });
-      let product = res?.data?.data?.data?.[0];
+      const res = isMyListingPath
+        ? await getMyItemsApi.getMyItems({ slug, limit: 1, signal })
+        : await allItemApi.getItems({ slug, limit: 1 }, { signal });
+      let product = extractItemsFromResponse(res)?.[0];
 
       if (!product && !isMyListingPath) {
-        const soldRes = await allItemApi.getItems({ slug, status: "sold out" });
-        product = soldRes?.data?.data?.data?.[0];
+        const soldRes = await allItemApi.getItems({
+          slug,
+          status: "sold out",
+          limit: 1,
+        }, { signal });
+        product = extractItemsFromResponse(soldRes)?.[0];
       }
 
       if (!product) throw new Error("Oglas nije pronađen");
@@ -656,6 +695,9 @@ const ProductDetails = ({ slug }) => {
         );
       }
     } catch (error) {
+      if (signal?.aborted || error?.name === "CanceledError") {
+        return;
+      }
       console.error(error);
     } finally {
       if (latestProductFetchRef.current === fetchToken) {
@@ -769,7 +811,11 @@ const ProductDetails = ({ slug }) => {
       setProductDetails(null);
       return;
     }
-    fetchProductDetails();
+    const controller = new AbortController();
+    fetchProductDetails(controller.signal);
+    return () => {
+      controller.abort();
+    };
   }, [slug, CurrentLanguage?.id, isMyListingPath, authToken]);
 
   useEffect(() => {
@@ -1027,9 +1073,10 @@ const ProductDetails = ({ slug }) => {
 
             {/* 6. PITANJA */}
             <DeferredSection
-              rootMargin="440px 0px"
-              minHeight={280}
-              idleTimeoutMs={1400}
+              rootMargin="240px 0px"
+              minHeight={220}
+              idleTimeoutMs={450}
+              placeholder={<DeferredQuestionsPlaceholder />}
               className="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-400"
             >
               <ProductQuestions
@@ -1124,9 +1171,12 @@ const ProductDetails = ({ slug }) => {
         {/* OSTALI OGLASI ISTOG PRODAVAČA */}
         {!isMyListing && (
           <DeferredSection
-            rootMargin="900px 0px"
-            minHeight={240}
-            idleTimeoutMs={1800}
+            rootMargin="300px 0px"
+            minHeight={220}
+            idleTimeoutMs={650}
+            placeholder={
+              <DeferredCarouselPlaceholder title="Učitavamo ostale oglase ovog prodavača..." />
+            }
             className="mt-12 lg:mt-16 animate-in fade-in slide-in-from-bottom-8 duration-700"
           >
             <SellerOtherAds
@@ -1139,9 +1189,12 @@ const ProductDetails = ({ slug }) => {
         {/* SLIČNI OGLASI */}
         {!isMyListing && (
           <DeferredSection
-            rootMargin="1100px 0px"
-            minHeight={240}
-            idleTimeoutMs={2400}
+            rootMargin="360px 0px"
+            minHeight={220}
+            idleTimeoutMs={800}
+            placeholder={
+              <DeferredCarouselPlaceholder title="Pripremamo povezane oglase..." />
+            }
             className="mt-10 lg:mt-16 animate-in fade-in slide-in-from-bottom-8 duration-700"
           >
             <SimilarProducts

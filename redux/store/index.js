@@ -11,6 +11,7 @@ import authReducer from '../reducer/authSlice'
 import gamificationReducer from '../reducer/gamificationSlice'
 import membershipReducer from '../reducer/membershipSlice'
 import compareReducer from '../reducer/compareSlice';
+import runtimeConfigReducer from "../reducer/runtimeConfigSlice";
 import { setAppStore } from "./storeRef";
 
 
@@ -42,7 +43,8 @@ const rootReducer = combineReducers({
   GlobalState: globalStateReducer,
   Gamification: gamificationReducer,
   Membership: membershipReducer,
-  Compare: compareReducer
+  Compare: compareReducer,
+  RuntimeConfig: runtimeConfigReducer,
 });
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);

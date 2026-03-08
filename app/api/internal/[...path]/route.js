@@ -11,6 +11,7 @@ const CACHEABLE_GET_PATH_PREFIXES = [
   "get-slider",
   "get-featured-section",
   "get-system-settings",
+  "runtime-config",
   "get-map-items",
   "seo-settings",
   "faq",
@@ -28,6 +29,7 @@ const CACHE_PROFILE_BY_PREFIX = [
   { prefix: "get-categories", maxAge: 180, stale: 360 },
   { prefix: "get-featured-section", maxAge: 45, stale: 120 },
   { prefix: "get-slider", maxAge: 180, stale: 360 },
+  { prefix: "runtime-config", maxAge: 25, stale: 60 },
   { prefix: "seo-settings", maxAge: 300, stale: 600 },
   { prefix: "faq", maxAge: 300, stale: 600 },
   { prefix: "blogs", maxAge: 120, stale: 300 },
@@ -76,6 +78,9 @@ const getForwardHeaders = (
 
   const languageHeader = request.headers.get("content-language");
   if (languageHeader) headers.set("Content-Language", languageHeader);
+
+  const ifNoneMatch = request.headers.get("if-none-match");
+  if (ifNoneMatch) headers.set("If-None-Match", ifNoneMatch);
 
   if (hasBody) {
     const contentType = request.headers.get("content-type");

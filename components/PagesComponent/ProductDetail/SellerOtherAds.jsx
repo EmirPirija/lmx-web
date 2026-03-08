@@ -17,7 +17,7 @@ import {
 import { getIsRtl } from "@/redux/reducer/languageSlice";
 
 const MAX_ITEMS = 10;
-const FETCH_LIMIT = 24;
+const FETCH_LIMIT = MAX_ITEMS + 1;
 const carouselItemClassName =
   "pl-2 sm:pl-3 basis-[82%] sm:basis-1/2 md:basis-1/3 xl:basis-1/4 2xl:basis-1/4";
 
@@ -50,11 +50,16 @@ const SellerOtherAds = ({ productDetails, onItemClick }) => {
           user_id: sellerId,
           page: 1,
           limit: FETCH_LIMIT,
+          compact: 1,
           sort_by: "new-to-old",
         });
 
         const payload = res?.data?.data;
-        const rawList = Array.isArray(payload?.data) ? payload.data : [];
+        const rawList = Array.isArray(payload?.data)
+          ? payload.data
+          : Array.isArray(payload)
+            ? payload
+            : [];
         const filtered = rawList.filter(
           (item) => String(item?.id) !== String(currentItemId)
         );

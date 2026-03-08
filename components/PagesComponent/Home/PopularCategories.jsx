@@ -65,7 +65,7 @@ const PopularCategories = () => {
     setIsAllCategoriesLoading(true);
     setAllCategoriesError("");
     try {
-      const perPage = 500;
+      const perPage = 200;
       const firstPageResponse = await categoryApi.getCategory({
         page: 1,
         per_page: perPage,

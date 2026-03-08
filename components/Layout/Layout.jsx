@@ -14,6 +14,8 @@ import { useEffect } from "react";
 import { useSelector } from "react-redux";
 import { settingsData } from "@/redux/reducer/settingSlice";
 import { getMaintenanceMessageSetting } from "@/lib/backendControls";
+import { runtimeMaintenanceState } from "@/redux/reducer/runtimeConfigSlice";
+import RuntimeAnnouncementBar from "./RuntimeAnnouncementBar";
 
 
 export default function Layout({ children }) {
@@ -21,8 +23,11 @@ export default function Layout({ children }) {
     useClientLayoutLogic();
   const pathname = usePathname();
   const systemSettings = useSelector(settingsData);
+  const runtimeMaintenance = useSelector(runtimeMaintenanceState);
   const isHomepageRoute = pathname === "/";
+  const runtimeMaintenanceEnabled = Boolean(runtimeMaintenance?.enabled);
   const maintenanceMessage =
+    runtimeMaintenance?.message ||
     getMaintenanceMessageSetting(systemSettings) ||
     "Stranica je na održavanju i privremeno nedostupna.";
 
@@ -67,7 +72,7 @@ export default function Layout({ children }) {
     return null;
   }
 
-  if (isMaintenanceMode) {
+  if (runtimeMaintenanceEnabled || isMaintenanceMode) {
     return (
       <div className="flex flex-col items-center justify-center h-screen gap-2">
         <CustomImage
@@ -95,6 +100,7 @@ export default function Layout({ children }) {
           }}
         >
           <Header />
+          <RuntimeAnnouncementBar />
           <div className="flex-1 bg-[#f0f3f9] dark:bg-slate-900 pb-8">
             {children}
           </div>
