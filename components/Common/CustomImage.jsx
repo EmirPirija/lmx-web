@@ -6,6 +6,38 @@ import { useEffect, useMemo, useState } from "react";
 import { useSelector } from "react-redux";
 import { normalizeLegacyImageUrl } from "@/utils/categoryImage";
 
+const DEFAULT_OPTIMIZED_REMOTE_HOSTS = [
+  "admin.lmx.ba",
+  "eclassify.thewrteam.in",
+  "lh3.googleusercontent.com",
+  "img.youtube.com",
+  "i.ytimg.com",
+];
+
+const ENV_OPTIMIZED_REMOTE_HOSTS = String(
+  process.env.NEXT_PUBLIC_IMAGE_OPTIMIZED_HOSTS || "",
+)
+  .split(",")
+  .map((entry) => entry.trim().toLowerCase())
+  .filter(Boolean);
+
+const OPTIMIZED_REMOTE_HOSTS = Array.from(
+  new Set([...DEFAULT_OPTIMIZED_REMOTE_HOSTS, ...ENV_OPTIMIZED_REMOTE_HOSTS]),
+);
+
+const shouldOptimizeRemoteSource = (value) => {
+  try {
+    const hostname = new URL(String(value || "")).hostname.toLowerCase();
+    if (!hostname) return false;
+    return OPTIMIZED_REMOTE_HOSTS.some(
+      (allowedHost) =>
+        hostname === allowedHost || hostname.endsWith(`.${allowedHost}`),
+    );
+  } catch {
+    return false;
+  }
+};
+
 const CustomImage = ({
   src,
   alt,
@@ -36,10 +68,11 @@ const CustomImage = ({
     setImgSrc(resolvedSrc);
   }, [resolvedSrc]);
 
-  const shouldBypassOptimization = useMemo(
-    () => /^https?:\/\//i.test(String(imgSrc || "")),
-    [imgSrc]
-  );
+  const shouldBypassOptimization = useMemo(() => {
+    const rawSrc = String(imgSrc || "").trim();
+    if (!/^https?:\/\//i.test(rawSrc)) return false;
+    return !shouldOptimizeRemoteSource(rawSrc);
+  }, [imgSrc]);
 
   const handleError = () => {
     if (imgSrc !== normalizedPlaceholder && normalizedPlaceholder) {

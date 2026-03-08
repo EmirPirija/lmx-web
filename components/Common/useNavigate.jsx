@@ -1,26 +1,49 @@
 "use client";
 import { getCurrentLangCode } from "@/redux/reducer/languageSlice";
 import { getDefaultLanguageCode } from "@/redux/reducer/settingSlice";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useSelector } from "react-redux";
 
 export const useNavigate = () => {
   const router = useRouter();
+  const pathname = usePathname();
   const currentLangCode = useSelector(getCurrentLangCode);
   const defaultLangCode = useSelector(getDefaultLanguageCode);
 
   const langCode = currentLangCode || defaultLangCode;
 
-  const navigate = (path, options = {}) => {
+  const appendLangParam = (path) => {
     if (path.includes("?")) {
-      // Path already has query parameters, add lang parameter
       const langParam = langCode ? `&lang=${langCode}` : "";
-      router.push(`${path}${langParam}`, options);
-    } else {
-      // Path has no query parameters, add lang parameter with ?
-      const langParam = langCode ? `?lang=${langCode}` : "";
-      router.push(`${path}${langParam}`, options);
+      return `${path}${langParam}`;
     }
+
+    const langParam = langCode ? `?lang=${langCode}` : "";
+    return `${path}${langParam}`;
+  };
+
+  const isSamePathnameNavigation = (targetPath) => {
+    if (typeof window === "undefined") return false;
+    try {
+      const targetUrl = new URL(targetPath, window.location.href);
+      return targetUrl.pathname === pathname;
+    } catch {
+      return false;
+    }
+  };
+
+  const navigate = (path, options = {}) => {
+    const targetPath = appendLangParam(path);
+    const mergedOptions = { ...(options || {}) };
+
+    if (
+      mergedOptions.scroll === undefined &&
+      isSamePathnameNavigation(targetPath)
+    ) {
+      mergedOptions.scroll = false;
+    }
+
+    router.push(targetPath, mergedOptions);
   };
 
   return { navigate };

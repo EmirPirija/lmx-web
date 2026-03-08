@@ -307,7 +307,10 @@ const ProductQuestions = ({
   };
 
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500 delay-400">
+    <div
+      data-public-questions-section
+      className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500 delay-400"
+    >
       <div className="border-b border-slate-100 dark:border-slate-800 bg-gradient-to-b from-slate-50/80 to-white dark:from-slate-800/60 dark:to-slate-900 px-4 sm:px-5 py-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-3 min-w-0">
@@ -341,6 +344,7 @@ const ProductQuestions = ({
 
             {!showAskForm && publicQuestionsEnabled && (
               <button
+                data-public-question-trigger
                 onClick={() => isLoggedIn ? setShowAskForm(true) : dispatch(setIsLoginOpen(true))}
                 className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-white text-sm font-semibold rounded-xl hover:bg-primary/90 transition-all shadow-sm"
               >
@@ -454,6 +458,7 @@ const ProductQuestions = ({
             {!showAskForm && publicQuestionsEnabled && (
               <button
                 type="button"
+                data-public-question-trigger
                 onClick={() => isLoggedIn ? setShowAskForm(true) : dispatch(setIsLoginOpen(true))}
                 className="mt-4 inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary/90 transition-colors"
               >

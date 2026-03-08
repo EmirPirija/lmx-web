@@ -1,6 +1,5 @@
 "use client";
 import { useEffect, useState } from "react";
-import AllItems from "./AllItems";
 import FeaturedSections from "./FeaturedSections";
 import { FeaturedSectionApi, allItemApi, sliderApi } from "@/utils/api";
 import { getCurrentLangCode } from "@/redux/reducer/languageSlice";
@@ -10,11 +9,8 @@ import OfferSliderSkeleton from "@/components/PagesComponent/Home/OfferSliderSke
 import FeaturedSectionsSkeleton from "./FeaturedSectionsSkeleton";
 import PopularCategories from "./PopularCategories";
 import dynamic from "next/dynamic";
-import HomeReels from "./HomeReels";
-
-import PlatformBenefitsStrip from "./PlatformBenefitsStrip";
+import DeferredSection from "@/components/Common/DeferredSection";
 import { isHomeFeaturedItem } from "@/utils/featuredPlacement";
-import LowInventoryItems from "./LowInventoryItems";
 import { buildHomeLocationKey, buildHomeLocationParams } from "./locationParams";
 import {
   ensureFeaturedSectionsDemoFill,
@@ -26,11 +22,44 @@ const OfferSlider = dynamic(() => import("./OfferSlider"), {
   loading: OfferSliderSkeleton,
 });
 
+const HomeReels = dynamic(() => import("./HomeReels"), {
+  loading: () => null,
+});
+
+const AllItems = dynamic(() => import("./AllItems"), {
+  loading: () => null,
+});
+
+const PlatformBenefitsStrip = dynamic(() => import("./PlatformBenefitsStrip"), {
+  loading: () => null,
+});
+
 const extractItemsFromGetItemsResponse = (responseData) => {
   const payload = responseData?.data;
   if (Array.isArray(payload)) return payload;
   if (Array.isArray(payload?.data)) return payload.data;
   return [];
+};
+
+const shouldHydrateFeaturedSectionItems = (sections = []) => {
+  return sections.some((section) => {
+    const isFeaturedAdsSection =
+      String(section?.filter || "").toLowerCase() === "featured_ads";
+    if (!isFeaturedAdsSection) return false;
+
+    const sectionItems = Array.isArray(section?.section_data)
+      ? section.section_data
+      : [];
+    if (!sectionItems.length) return false;
+
+    return sectionItems.some((entry) => {
+      const hasId = Number.isFinite(Number(entry?.id)) && Number(entry?.id) > 0;
+      const hasTitle = Boolean(entry?.translated_item?.name || entry?.name);
+      const hasSlug = Boolean(entry?.slug);
+      const hasImage = Boolean(entry?.image);
+      return !(hasId && hasTitle && hasSlug && hasImage);
+    });
+  });
 };
 
 const Home = () => {
@@ -60,18 +89,26 @@ const Home = () => {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+
     const fetchFeaturedSectionData = async () => {
       setIsFeaturedLoading(true);
       try {
         const params = buildHomeLocationParams({ cityData, KmRange });
-        const [featuredResponse, featuredItemsResponse] = await Promise.all([
-          FeaturedSectionApi.getFeaturedSections({
-            ...params,
-            current_page: "home",
-            placement: "home",
-            positions: "home",
-          }),
-          allItemApi.getItems({
+        const featuredResponse = await FeaturedSectionApi.getFeaturedSections({
+          ...params,
+          current_page: "home",
+          placement: "home",
+          positions: "home",
+        });
+
+        if (cancelled) return;
+
+        const featuredSections = featuredResponse?.data?.data || [];
+        let mergedFeaturedSections = featuredSections;
+
+        if (shouldHydrateFeaturedSectionItems(featuredSections)) {
+          const featuredItemsResponse = await allItemApi.getItems({
             ...params,
             current_page: "home",
             is_feature: 1,
@@ -79,56 +116,70 @@ const Home = () => {
             positions: "home",
             page: 1,
             limit: 120,
-          }),
-        ]);
+            compact: 1,
+          });
 
-        const featuredSections = featuredResponse?.data?.data || [];
-        const featuredItems = extractItemsFromGetItemsResponse(featuredItemsResponse?.data).filter((item) =>
-          isHomeFeaturedItem(item, { strict: true })
-        );
+          if (cancelled) return;
 
-        const featuredItemsById = new Map(
-          featuredItems
-            .map((item) => [Number(item?.id), item])
-            .filter(([id]) => Number.isFinite(id) && id > 0)
-        );
+          const featuredItems = extractItemsFromGetItemsResponse(
+            featuredItemsResponse?.data,
+          ).filter((item) => isHomeFeaturedItem(item, { strict: true }));
 
-        const mergedFeaturedSections = featuredSections.map((section) => {
-          const sectionItems = Array.isArray(section?.section_data) ? section.section_data : [];
-          const isFeaturedAdsSection = String(section?.filter || "").toLowerCase() === "featured_ads";
+          const featuredItemsById = new Map(
+            featuredItems
+              .map((item) => [Number(item?.id), item])
+              .filter(([id]) => Number.isFinite(id) && id > 0),
+          );
 
-          const hydratedItems = sectionItems
-            .map((sectionItem) => {
-              const enriched = featuredItemsById.get(Number(sectionItem?.id));
-              return enriched ? { ...sectionItem, ...enriched } : sectionItem;
-            })
-            .filter((entry) => {
-              if (!isFeaturedAdsSection) return true;
-              return featuredItemsById.has(Number(entry?.id));
-            });
+          mergedFeaturedSections = featuredSections.map((section) => {
+            const sectionItems = Array.isArray(section?.section_data)
+              ? section.section_data
+              : [];
+            const isFeaturedAdsSection =
+              String(section?.filter || "").toLowerCase() === "featured_ads";
 
-          return {
-            ...section,
-            section_data: hydratedItems,
-          };
-        });
+            const hydratedItems = sectionItems
+              .map((sectionItem) => {
+                const enriched = featuredItemsById.get(Number(sectionItem?.id));
+                return enriched ? { ...sectionItem, ...enriched } : sectionItem;
+              })
+              .filter((entry) => {
+                if (!isFeaturedAdsSection) return true;
+                return featuredItemsById.has(Number(entry?.id));
+              });
+
+            return {
+              ...section,
+              section_data: hydratedItems,
+            };
+          });
+        }
 
         const finalSections = isHomeDemoFillEnabled
           ? ensureFeaturedSectionsDemoFill(mergedFeaturedSections)
           : mergedFeaturedSections;
 
-        setFeaturedData(finalSections);
+        if (!cancelled) {
+          setFeaturedData(finalSections);
+        }
       } catch (error) {
         console.error("Error:", error);
-        if (isHomeDemoFillEnabled) {
+        if (!cancelled && isHomeDemoFillEnabled) {
           setFeaturedData(ensureFeaturedSectionsDemoFill([]));
         }
       } finally {
-        setIsFeaturedLoading(false);
+        if (!cancelled) {
+          setIsFeaturedLoading(false);
+        }
       }
     };
     fetchFeaturedSectionData();
+
+    return () => {
+      cancelled = true;
+    };
   }, [locationKey, KmRange, currentLanguageCode]);
+
   return (
     <>
       {IsSliderLoading ? (
@@ -141,7 +192,15 @@ const Home = () => {
       )}
 
       <PopularCategories />
-      <HomeReels />
+      <DeferredSection
+        className="mt-8"
+        rootMargin="560px 0px"
+        minHeight={120}
+        idleTimeoutMs={1400}
+      >
+        <HomeReels />
+      </DeferredSection>
+
       {IsFeaturedLoading ? (
         <FeaturedSectionsSkeleton />
       ) : (
@@ -151,9 +210,22 @@ const Home = () => {
           allEmpty={allEmpty}
         />
       )}
-      
-      <AllItems cityData={cityData} KmRange={KmRange} />
-      <PlatformBenefitsStrip />
+
+      <DeferredSection
+        rootMargin="900px 0px"
+        minHeight={380}
+        idleTimeoutMs={1800}
+      >
+        <AllItems cityData={cityData} KmRange={KmRange} />
+      </DeferredSection>
+
+      <DeferredSection
+        rootMargin="1100px 0px"
+        minHeight={100}
+        idleTimeoutMs={2600}
+      >
+        <PlatformBenefitsStrip />
+      </DeferredSection>
     </>
   );
 };

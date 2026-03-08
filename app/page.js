@@ -3,23 +3,45 @@ import StructuredData from "@/components/Layout/StructuredData";
 import Home from "@/components/PagesComponent/Home/Home";
 import { SEO_REVALIDATE_SECONDS } from "@/lib/constants";
 
+const fetchJsonWithTimeout = async (
+  url,
+  { headers = {}, revalidate = SEO_REVALIDATE_SECONDS, timeoutMs = 1800 } = {},
+) => {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(url, {
+      headers,
+      signal: controller.signal,
+      next: {
+        revalidate,
+      },
+    });
+    if (!response.ok) {
+      return null;
+    }
+    return response.json();
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+};
+
 export const generateMetadata = async ({ searchParams }) => {
   if (process.env.NEXT_PUBLIC_SEO === "false") return;
   const langCode = (await searchParams)?.lang;
 
   try {
-    const res = await fetch(
+    const data = await fetchJsonWithTimeout(
       `${process.env.NEXT_PUBLIC_API_URL}${process.env.NEXT_PUBLIC_END_POINT}seo-settings?page=home`,
       {
         headers: {
           "Content-Language": langCode || "en",
         },
-        next: {
-          revalidate: SEO_REVALIDATE_SECONDS,
-        },
       }
     );
-    const data = await res.json();
     const home = data?.data?.[0];
 
     return {
@@ -42,18 +64,14 @@ export const generateMetadata = async ({ searchParams }) => {
 const fetchCategories = async (langCode) => {
   if (process.env.NEXT_PUBLIC_SEO === "false") return [];
   try {
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}${process.env.NEXT_PUBLIC_END_POINT}get-categories?page=1`,
+    const data = await fetchJsonWithTimeout(
+      `${process.env.NEXT_PUBLIC_API_URL}${process.env.NEXT_PUBLIC_END_POINT}get-categories?page=1&per_page=24&include_counts=0&tree_depth=0`,
       {
         headers: {
           "Content-Language": langCode || "en",
         },
-        next: {
-          revalidate: SEO_REVALIDATE_SECONDS,
-        },
       }
     );
-    const data = await res.json();
     return data?.data?.data || [];
   } catch (error) {
     console.error("Error fetching Categories Data:", error);
@@ -64,18 +82,14 @@ const fetchCategories = async (langCode) => {
 const fetchProductItems = async (langCode) => {
   if (process.env.NEXT_PUBLIC_SEO === "false") return [];
   try {
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}${process.env.NEXT_PUBLIC_END_POINT}get-item?page=1`,
+    const data = await fetchJsonWithTimeout(
+      `${process.env.NEXT_PUBLIC_API_URL}${process.env.NEXT_PUBLIC_END_POINT}get-item?page=1&limit=6&compact=1`,
       {
         headers: {
           "Content-Language": langCode || "en",
         },
-        next: {
-          revalidate: SEO_REVALIDATE_SECONDS,
-        },
       }
     );
-    const data = await res.json();
     return data?.data?.data || [];
   } catch (error) {
     console.error("Error fetching Product Items Data:", error);
@@ -83,55 +97,16 @@ const fetchProductItems = async (langCode) => {
   }
 };
 
-const fetchFeaturedSections = async (langCode) => {
-  if (process.env.NEXT_PUBLIC_SEO === "false") return [];
-  try {
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}${process.env.NEXT_PUBLIC_END_POINT}get-featured-section`,
-      {
-        headers: {
-          "Content-Language": langCode || "en",
-        },
-        next: {
-          revalidate: SEO_REVALIDATE_SECONDS,
-        },
-      }
-    );
-
-    const data = await res.json();
-    return data?.data || [];
-  } catch (error) {
-    console.error("Error fetching Featured sections Data:", error);
-    return [];
-  }
-};
-
 export default async function HomePage({ searchParams }) {
   const langCode = (await searchParams)?.lang;
-  const [categoriesData, productItemsData, featuredSectionsData] =
-    await Promise.all([
-      fetchCategories(langCode),
-      fetchProductItems(langCode),
-      fetchFeaturedSections(langCode),
-    ]);
+  const [categoriesData, productItemsData] = await Promise.all([
+    fetchCategories(langCode),
+    fetchProductItems(langCode),
+  ]);
 
   let jsonLd = null;
 
   if (process.env.NEXT_PUBLIC_SEO !== "false") {
-    const existingSlugs = new Set(
-      productItemsData.map((product) => product.slug)
-    );
-
-    let featuredItems = [];
-    featuredSectionsData.forEach((section) => {
-      section.section_data.slice(0, 4).forEach((item) => {
-        if (!existingSlugs.has(item.slug)) {
-          featuredItems.push(item);
-          existingSlugs.add(item.slug); // Mark this item as included
-        }
-      });
-    });
-
     jsonLd = {
       "@context": "https://schema.org",
       "@type": "ItemList",
@@ -164,27 +139,6 @@ export default async function HomePage({ searchParams }) {
               },
             }),
             countryOfOrigin: product?.translated_item?.country,
-          },
-        })),
-        ...featuredItems.map((item, index) => ({
-          "@type": "ListItem",
-          position: categoriesData.length + productItemsData.length + index + 1, // Ensure unique positions
-          item: {
-            "@type": "Product", // Assuming items from featured sections are products
-            name: item?.translated_item?.name,
-            productID: item?.id,
-            description: item?.translated_item?.description,
-            image: item?.image,
-            url: `${process.env.NEXT_PUBLIC_WEB_URL}/ad-details/${item?.slug}`,
-            category: item?.category?.translated_name,
-            ...(item?.price && {
-              offers: {
-                "@type": "Offer",
-                price: item?.price,
-                priceCurrency: "USD",
-              },
-            }),
-            countryOfOrigin: item?.translated_item?.country,
           },
         })),
       ],

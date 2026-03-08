@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { settingsApi } from "@/utils/api";
 import {
   settingsSucess,
   getIsMaintenanceMode,
+  settingsData,
 } from "@/redux/reducer/settingSlice";
 import {
   getKilometerRange,
@@ -18,19 +19,47 @@ import {
   shouldRefetchSystemSettings,
 } from "@/utils/getFetcherStatus";
 import { useNavigate } from "../Common/useNavigate";
-import useGetCategories from "./useGetCategories";
 
 export function useClientLayoutLogic() {
   const dispatch = useDispatch();
   const { navigate } = useNavigate();
-  const [isLoading, setIsLoading] = useState(true);
+  const persistedSettings = useSelector(settingsData);
+  const hasPersistedSettings = Boolean(
+    persistedSettings &&
+      typeof persistedSettings === "object" &&
+      Object.keys(persistedSettings).length > 0,
+  );
+  const [isLoading, setIsLoading] = useState(!hasPersistedSettings);
   const currentLangCode = useSelector(getCurrentLangCode);
   const isMaintenanceMode = useSelector(getIsMaintenanceMode);
   const isRtl = useSelector(getIsRtl);
   const appliedRange = useSelector(getKilometerRange);
   const isVisitedLandingPage = useSelector(getIsVisitedLandingPage);
   const [isRedirectToLanding, setIsRedirectToLanding] = useState(false);
-  const { getCategories } = useGetCategories();
+
+  useEffect(() => {
+    if (!hasPersistedSettings) return;
+    setIsLoading(false);
+  }, [hasPersistedSettings]);
+
+  const applyUiBranding = useCallback((settingsPayload) => {
+    if (typeof document === "undefined") return;
+    const nextPrimary = settingsPayload?.web_theme_color;
+    if (nextPrimary) {
+      document.documentElement.style.setProperty("--primary", nextPrimary);
+    }
+
+    const faviconHref = settingsPayload?.favicon_icon;
+    if (!faviconHref) return;
+    const favicon =
+      document.querySelector('link[rel="icon"]') ||
+      document.createElement("link");
+    favicon.rel = "icon";
+    favicon.href = faviconHref;
+    if (!document.querySelector('link[rel="icon"]')) {
+      document.head.appendChild(favicon);
+    }
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -65,23 +94,7 @@ export function useClientLayoutLogic() {
         if (appliedRange < min) dispatch(setKilometerRange(min));
         else if (appliedRange > max) dispatch(setKilometerRange(max));
 
-        // Set primary color from settings API
-        document.documentElement.style.setProperty(
-          "--primary",
-          data?.data?.web_theme_color
-        );
-
-        // Set favicon from settings API
-        if (data?.data?.favicon_icon) {
-          const favicon =
-            document.querySelector('link[rel="icon"]') ||
-            document.createElement("link");
-          favicon.rel = "icon";
-          favicon.href = data.data.favicon_icon;
-          if (!document.querySelector('link[rel="icon"]')) {
-            document.head.appendChild(favicon);
-          }
-        }
+        applyUiBranding(data?.data);
 
         markSystemSettingsFetched();
 
@@ -101,7 +114,12 @@ export function useClientLayoutLogic() {
       }
     };
 
-    getSystemSettings({ showLoader: true });
+    if (hasPersistedSettings) {
+      applyUiBranding(persistedSettings);
+      markSystemSettingsFetched();
+    }
+
+    getSystemSettings({ showLoader: !hasPersistedSettings });
 
     const refreshIntervalMs = Math.max(getSystemSettingsRefreshTtlMs(), 30_000);
     const refreshTimer = window.setInterval(() => {
@@ -115,16 +133,21 @@ export function useClientLayoutLogic() {
       isMounted = false;
       window.clearInterval(refreshTimer);
     };
-  }, [appliedRange, currentLangCode, dispatch, isVisitedLandingPage, navigate]);
+  }, [
+    appliedRange,
+    currentLangCode,
+    dispatch,
+    hasPersistedSettings,
+    isVisitedLandingPage,
+    navigate,
+    applyUiBranding,
+    persistedSettings,
+  ]);
 
   // Set direction of the document
   useEffect(() => {
     document.documentElement.dir = isRtl ? "rtl" : "ltr";
   }, [isRtl]);
-
-  useEffect(() => {
-    getCategories(1);
-  }, [currentLangCode]);
 
   return {
     isLoading,

@@ -8,6 +8,7 @@ const BACKGROUND_LOCK_SELECTORS = ["#__next", ".lmx-app-surface"];
 const focusRestoreStack = [];
 
 let scrollLockOffsetY = 0;
+let scrollLockPathname = "";
 let bodyStyleSnapshot = null;
 let htmlStyleSnapshot = null;
 
@@ -58,6 +59,7 @@ const lockDocumentScroll = () => {
   }
 
   scrollLockOffsetY = window.scrollY || window.pageYOffset || 0;
+  scrollLockPathname = window.location?.pathname || "";
   bodyStyleSnapshot = {
     position: body.style.position,
     top: body.style.top,
@@ -65,9 +67,11 @@ const lockDocumentScroll = () => {
     right: body.style.right,
     width: body.style.width,
     overflowY: body.style.overflowY,
+    scrollBehavior: body.style.scrollBehavior,
     overscrollBehaviorY: body.style.overscrollBehaviorY,
   };
   htmlStyleSnapshot = {
+    scrollBehavior: documentElement.style.scrollBehavior,
     overscrollBehaviorY: documentElement.style.overscrollBehaviorY,
   };
 
@@ -77,7 +81,9 @@ const lockDocumentScroll = () => {
   body.style.right = "0";
   body.style.width = "100%";
   body.style.overflowY = "scroll";
+  body.style.scrollBehavior = "auto";
   body.style.overscrollBehaviorY = "none";
+  documentElement.style.scrollBehavior = "auto";
   documentElement.style.overscrollBehaviorY = "none";
 };
 
@@ -88,6 +94,8 @@ const unlockDocumentScroll = () => {
   if (!(body instanceof HTMLElement) || !(documentElement instanceof HTMLElement)) {
     return;
   }
+  const nextBodyScrollBehavior = bodyStyleSnapshot?.scrollBehavior ?? "";
+  const nextHtmlScrollBehavior = htmlStyleSnapshot?.scrollBehavior ?? "";
 
   if (bodyStyleSnapshot) {
     body.style.position = bodyStyleSnapshot.position;
@@ -112,15 +120,23 @@ const unlockDocumentScroll = () => {
   } else {
     documentElement.style.overscrollBehaviorY = "";
   }
+  body.style.scrollBehavior = "auto";
+  documentElement.style.scrollBehavior = "auto";
 
   const restoreY = scrollLockOffsetY;
+  const shouldRestoreScroll =
+    !scrollLockPathname ||
+    (window.location?.pathname || "") === scrollLockPathname;
   bodyStyleSnapshot = null;
   htmlStyleSnapshot = null;
   scrollLockOffsetY = 0;
+  scrollLockPathname = "";
 
-  window.requestAnimationFrame(() => {
+  if (shouldRestoreScroll) {
     window.scrollTo({ top: restoreY, left: 0, behavior: "auto" });
-  });
+  }
+  body.style.scrollBehavior = nextBodyScrollBehavior;
+  documentElement.style.scrollBehavior = nextHtmlScrollBehavior;
 };
 
 const captureActiveElementForRestore = () => {
@@ -138,14 +154,11 @@ const restoreCapturedFocus = () => {
   const target = focusRestoreStack.pop();
   if (!(target instanceof HTMLElement) || !target.isConnected) return;
 
-  window.requestAnimationFrame(() => {
-    if (!target.isConnected) return;
-    try {
-      target.focus({ preventScroll: true });
-    } catch {
-      target.focus();
-    }
-  });
+  try {
+    target.focus({ preventScroll: true });
+  } catch {
+    // Older browsers without preventScroll should not force scroll jumps on close.
+  }
 };
 
 const lockBackgroundForModal = () => {

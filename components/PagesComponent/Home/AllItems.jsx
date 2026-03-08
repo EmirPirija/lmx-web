@@ -59,7 +59,7 @@ const AllItems = ({ cityData, KmRange }) => {
         placement: "home",
         positions: "home",
         limit: 20,
-        no_cache: 1,
+        compact: 1,
       };
 
       Object.assign(params, buildHomeLocationParams({ cityData, KmRange }));
@@ -184,7 +184,13 @@ const AllItems = ({ cityData, KmRange }) => {
         </div>
       )}
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-1 sm:gap-1 mt-6">
+      <div
+        className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-1 sm:gap-1 mt-6"
+        style={{
+          contentVisibility: "auto",
+          containIntrinsicSize: "900px",
+        }}
+      >
         {isLoading ? (
           <AllItemsSkeleton />
         ) : AllItem && AllItem.length > 0 ? (

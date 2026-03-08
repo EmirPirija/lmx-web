@@ -216,9 +216,10 @@ const HomeReels = () => {
     try {
       const res = await allItemApi.getItems({
         status: "approved",
-        limit: 50,
+        limit: 30,
         page: 1,
         sort_by: "new-to-old",
+        compact: 1,
       });
       if (res?.data?.error === true)
         throw new Error(res?.data?.message || "API error");

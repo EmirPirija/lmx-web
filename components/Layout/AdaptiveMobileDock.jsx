@@ -710,7 +710,7 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
                           >
                             <motion.div
                               layoutId="adaptive-dock-nav-shell"
-                              className="relative overflow-hidden rounded-t-2xl border border-b-0 border-x-0 border-slate-200 bg-white p-2 shadow-[0_20px_50px_-28px_rgba(15,23,42,0.45)] dark:border-slate-700 dark:bg-slate-900"
+                              className="relative overflow-hidden rounded-none border border-b-0 border-x-0 border-slate-200 bg-white p-2 shadow-[0_20px_50px_-28px_rgba(15,23,42,0.45)] dark:border-slate-700 dark:bg-slate-900"
                             >
                               <motion.span
                                 aria-hidden="true"

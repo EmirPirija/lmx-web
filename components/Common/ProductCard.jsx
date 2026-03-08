@@ -503,20 +503,24 @@ const ProductCard = ({ item, isLoading, onClick, trackingParams }) => {
   const isDemoItem = Boolean(item?.is_demo_item || item?.is_seeded_home_item);
 
   const isJobCategory = Number(item?.category?.is_job_category) === 1;
+  const translated_item = item?.translated_item;
   const realEstatePricing = useMemo(
     () => resolveRealEstateDisplayPricing(item),
     [item],
   );
   const showRealEstatePerM2 = !isJobCategory && realEstatePricing?.showPerM2;
-  const translated_item = item?.translated_item;
-  const publishedAgo = formatRelativeTimeBs(
-    item?.published_at || item?.created_at || translated_item?.created_at,
-    { capitalize: true, nowLabel: "Upravo sada" },
+  const publishedAgo = useMemo(
+    () =>
+      formatRelativeTimeBs(
+        item?.published_at || item?.created_at || translated_item?.created_at,
+        { capitalize: true, nowLabel: "Upravo sada" },
+      ),
+    [item?.published_at, item?.created_at, translated_item?.created_at],
   );
 
-  const keyAttributes = getKeyAttributes(item);
-  const conditionLabel = getConditionLabel(item);
-  const availableNow = readAvailableNow(item);
+  const keyAttributes = useMemo(() => getKeyAttributes(item), [item]);
+  const conditionLabel = useMemo(() => getConditionLabel(item), [item]);
+  const availableNow = useMemo(() => readAvailableNow(item), [item]);
   const statusMeta = useMemo(
     () => getListingStatusMeta(item, availableNow),
     [item, availableNow],
@@ -535,14 +539,18 @@ const ProductCard = ({ item, isLoading, onClick, trackingParams }) => {
       color: campaignBadge.textColor || "#FFFFFF",
     };
   }, [campaignBadge]);
-  const isShopSeller = resolveMembership(
-    item,
-    item?.membership,
-    item?.user,
-    item?.user?.membership,
-    item?.seller,
-    item?.seller_settings,
-  ).isShop;
+  const isShopSeller = useMemo(
+    () =>
+      resolveMembership(
+        item,
+        item?.membership,
+        item?.user,
+        item?.user?.membership,
+        item?.seller,
+        item?.seller_settings,
+      ).isShop,
+    [item],
+  );
 
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isHovered, setIsHovered] = useState(false);

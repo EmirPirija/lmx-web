@@ -20,6 +20,7 @@ import {
   MdClose,
   MdPhone,
   MdChat,
+  MdQuestionAnswer,
   MdEdit,
   MdDelete,
   MdRocketLaunch,
@@ -109,6 +110,12 @@ const resolvePriceOnRequestState = (item = {}) => {
   return Number(item?.price) === 0;
 };
 
+const formatBosnianCurrency = (value, maxFractionDigits = 0) =>
+  `${new Intl.NumberFormat("bs-BA", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: maxFractionDigits,
+  }).format(Number(value || 0))} KM`;
+
 const MobileProfileDockSlot = ({
   isLoggedIn = false,
   onOpenLogin = () => {},
@@ -182,6 +189,7 @@ const MobileStickyBar = ({
   isMyListing,
   productDetails,
   hide,
+  onPublicQuestionClick,
   onPhoneClick,
   onChatClick,
   onDeleteClick,
@@ -197,6 +205,27 @@ const MobileStickyBar = ({
   if (!productDetails) return null;
   const realEstatePricing = resolveRealEstateDisplayPricing(productDetails);
   const priceOnRequest = resolvePriceOnRequestState(productDetails);
+  const currentPriceNumber = Number(productDetails?.price);
+  const oldPriceNumber = Number(
+    productDetails?.old_price ?? productDetails?.translated_item?.old_price,
+  );
+  const isOnSaleFlag =
+    toBooleanFlag(productDetails?.is_on_sale) ??
+    toBooleanFlag(productDetails?.translated_item?.is_on_sale);
+  const hasDiscountedPrice =
+    !priceOnRequest &&
+    Number.isFinite(currentPriceNumber) &&
+    Number.isFinite(oldPriceNumber) &&
+    currentPriceNumber > 0 &&
+    oldPriceNumber > currentPriceNumber &&
+    isOnSaleFlag !== false;
+  const showSaleBadge = !priceOnRequest && (hasDiscountedPrice || isOnSaleFlag === true);
+  const displayPrice = priceOnRequest
+    ? "Na upit"
+    : formatBosnianCurrency(currentPriceNumber);
+  const oldDisplayPrice = hasDiscountedPrice
+    ? formatBosnianCurrency(oldPriceNumber)
+    : null;
   const showRealEstatePerM2 = !isMyListing && realEstatePricing?.showPerM2;
   const formattedPerM2 = showRealEstatePerM2
     ? `${new Intl.NumberFormat("bs-BA", {
@@ -247,14 +276,13 @@ const MobileStickyBar = ({
   return (
     <div
       className={cn(
-        "fixed bottom-0 left-0 right-0 z-[110] px-4 pt-2 pb-[max(0.85rem,env(safe-area-inset-bottom))] transition-all duration-300 ease-out lg:hidden",
+        "fixed bottom-0 left-0 right-0 z-[110] p-0 transition-all duration-300 ease-out lg:hidden",
         hide
           ? "translate-y-full opacity-0 pointer-events-none"
           : "translate-y-0 opacity-100",
       )}
     >
-      <div className="container">
-        <div className="rounded-2xl border border-slate-200 bg-white px-3 py-2.5 shadow-[0_18px_36px_-28px_rgba(15,23,42,0.6)] dark:border-slate-700 dark:bg-slate-900">
+      <div className="w-full border-t border-slate-200 bg-white px-3 pt-2.5 pb-[max(0.85rem,env(safe-area-inset-bottom))] shadow-[0_-18px_36px_-28px_rgba(15,23,42,0.6)] dark:border-slate-700 dark:bg-slate-900">
           {isMyListing ? (
             <div className="space-y-2.5">
               <div className="flex items-center gap-2 px-1">
@@ -324,13 +352,26 @@ const MobileStickyBar = ({
                       <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
                         Cijena
                       </p>
-                      <p className="truncate text-xl font-black text-primary">
-                        {priceOnRequest
-                          ? "Na upit"
-                          : `${new Intl.NumberFormat("bs-BA", {
-                              minimumFractionDigits: 0,
-                            }).format(Number(productDetails?.price || 0))} KM`}
-                      </p>
+                      <div className="mt-0.5 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                        {oldDisplayPrice ? (
+                          <span className="text-[13px] font-semibold text-slate-400 line-through dark:text-slate-500">
+                            {oldDisplayPrice}
+                          </span>
+                        ) : null}
+                        <p
+                          className={cn(
+                            "text-xl font-black break-words",
+                            showSaleBadge ? "text-rose-600 dark:text-rose-300" : "text-primary",
+                          )}
+                        >
+                          {displayPrice}
+                        </p>
+                        {showSaleBadge ? (
+                          <span className="inline-flex items-center rounded-md bg-rose-100 px-2 py-0.5 text-[11px] font-bold uppercase tracking-[0.02em] text-rose-700 dark:bg-rose-950/40 dark:text-rose-300">
+                            AKCIJA
+                          </span>
+                        ) : null}
+                      </div>
                       {formattedPerM2 ? (
                         <p className="truncate text-[11px] font-semibold text-slate-600 dark:text-slate-300">
                           {formattedPerM2}
@@ -359,31 +400,40 @@ const MobileStickyBar = ({
                 />
               </div>
 
-              <div className="grid grid-cols-[44px_minmax(0,1fr)] gap-2">
+              <div className="flex items-center gap-2">
                 <button
-                  onClick={onPhoneClick}
-                  disabled={disableContactActions}
-                  className="flex h-11 w-11 items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50/90 text-emerald-600 transition-all duration-200 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 dark:border-emerald-900/40 dark:bg-emerald-950/30 dark:text-emerald-300"
-                  aria-label="Pozovi prodavača"
+                  onClick={onPublicQuestionClick}
+                  className="inline-flex h-11 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-sky-200 bg-sky-50/90 px-3 text-sm font-semibold text-sky-700 transition-all duration-200 active:scale-95 dark:border-sky-900/40 dark:bg-sky-950/30 dark:text-sky-300"
+                  aria-label="Postavi javno pitanje"
+                  title="Javno pitanje"
                 >
-                  <MdPhone size={20} />
+                  <MdQuestionAnswer size={18} />
+                  <span>Javno pitanje</span>
                 </button>
 
                 <button
                   onClick={onChatClick}
                   disabled={disableContactActions}
-                  className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-white shadow-[0_10px_24px_-18px_rgba(13,148,136,0.9)] transition-all duration-200 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex h-11 min-w-0 flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-white shadow-[0_10px_24px_-18px_rgba(13,148,136,0.9)] transition-all duration-200 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <MdChat size={18} />
                   <span>Poruka</span>
                 </button>
+
+                <button
+                  onClick={onPhoneClick}
+                  disabled={disableContactActions}
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50/90 text-emerald-600 transition-all duration-200 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 dark:border-emerald-900/40 dark:bg-emerald-950/30 dark:text-emerald-300"
+                  aria-label="Pozovi prodavača"
+                >
+                  <MdPhone size={20} />
+                </button>
               </div>
             </div>
           )}
-        </div>
       </div>
       {!isMyListing && disableContactActions ? (
-        <p className="container mt-1 text-center text-[11px] text-rose-600 dark:text-rose-300">
+        <p className="mt-1 px-3 text-center text-[11px] text-rose-600 dark:text-rose-300">
           {contactBlockedMessage ||
             "Oglas je rasprodan i kontakt je privremeno onemogućen."}
         </p>
@@ -1136,7 +1186,7 @@ const ProductDetails = ({ slug }) => {
           />
           <div
             className={cn(
-              "fixed bottom-0 left-0 right-0 z-[101] bg-white dark:bg-slate-900 rounded-t-3xl transition-transform duration-300 flex flex-col max-h-[85vh]",
+              "fixed bottom-0 left-0 right-0 z-[101] border-t border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900 rounded-none transition-transform duration-300 flex flex-col max-h-[85vh]",
               showStatusDrawer ? "translate-y-0" : "translate-y-full",
             )}
           >
@@ -1247,19 +1297,40 @@ const ProductDetails = ({ slug }) => {
         isMyListing={isMyListing}
         productDetails={productDetails}
         hide={hideBottomBar}
-        onPhoneClick={() => {
-          trackPhoneReveal();
+        onPublicQuestionClick={() => {
+          const askButton = document.querySelector(
+            "[data-public-question-trigger]",
+          );
+          if (askButton instanceof HTMLButtonElement && !askButton.disabled) {
+            askButton.click();
+            return;
+          }
+
           document
-            .querySelector("[data-seller-card]")
-            ?.scrollIntoView({ behavior: "smooth" });
+            .querySelector("[data-public-questions-section]")
+            ?.scrollIntoView({ behavior: "smooth", block: "center" });
+        }}
+        onPhoneClick={() => {
+          const contactButton = document.querySelector(
+            "[data-seller-contact-button]",
+          );
+          if (contactButton instanceof HTMLButtonElement && !contactButton.disabled) {
+            contactButton.click();
+            return;
+          }
+
+          const chatButton = document.querySelector("[data-seller-chat-button]");
+          if (chatButton instanceof HTMLButtonElement && !chatButton.disabled) {
+            trackMessage();
+            chatButton.click();
+          }
         }}
         onChatClick={() => {
-          trackMessage();
-          document.querySelector("[data-chat-button]")
-            ? document.querySelector("[data-chat-button]").click()
-            : document
-                .querySelector("[data-seller-card]")
-                ?.scrollIntoView({ behavior: "smooth" });
+          const chatButton = document.querySelector("[data-seller-chat-button]");
+          if (chatButton instanceof HTMLButtonElement && !chatButton.disabled) {
+            trackMessage();
+            chatButton.click();
+          }
         }}
         onDeleteClick={() => setIsDeleteOpen(true)}
         onStatusClick={() => setShowStatusDrawer(true)}

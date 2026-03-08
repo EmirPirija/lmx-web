@@ -216,6 +216,7 @@ const Search = ({
   const {
     cateData,
     getCategories,
+    isCatLoading,
     isCatLoadMore,
     catLastPage,
     catCurrentPage,
@@ -391,6 +392,11 @@ const Search = ({
       console.error("Failed to update history preference:", e);
     }
   }, []);
+
+  useEffect(() => {
+    if (!open || cateData.length > 0 || isCatLoading || isCatLoadMore) return;
+    getCategories(1, { per_page: 18, tree_depth: 0, include_counts: true });
+  }, [open, cateData.length, isCatLoading, isCatLoadMore, getCategories]);
 
   useEffect(() => {
     if (open && inView && hasMoreCats && !isCatLoadMore) {

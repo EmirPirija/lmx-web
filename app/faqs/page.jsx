@@ -1,7 +1,6 @@
 import FaqsPage from "@/components/PagesComponent/Faq/FaqsPage";
 import { SEO_REVALIDATE_SECONDS } from "@/lib/constants";
 
-export const dynamic = "force-dynamic";
 
 export const generateMetadata = async ({ searchParams }) => {
   try {

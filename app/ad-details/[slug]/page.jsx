@@ -2,12 +2,12 @@ import StructuredData from "@/components/Layout/StructuredData";
 import ProductDetail from "@/components/PagesComponent/ProductDetail/ProductDetails";
 import { SEO_REVALIDATE_SECONDS } from "@/lib/constants";
 import { generateKeywords } from "@/utils/generateKeywords";
+import { cache } from "react";
 
-export const generateMetadata = async ({ params, searchParams }) => {
-  if (process.env.NEXT_PUBLIC_SEO === "false") return;
+const fetchItemBySlug = cache(async (slug, langCode) => {
+  if (process.env.NEXT_PUBLIC_SEO === "false") return null;
+
   try {
-    const { slug } = await params;
-    const langCode = (await searchParams)?.lang || "en";
     const res = await fetch(
       `${process.env.NEXT_PUBLIC_API_URL}${process.env.NEXT_PUBLIC_END_POINT}get-item?slug=${slug}`,
       {
@@ -21,7 +21,19 @@ export const generateMetadata = async ({ params, searchParams }) => {
     );
 
     const data = await res.json();
-    const item = data?.data?.data?.[0];
+    return data?.data?.data?.[0] || null;
+  } catch (error) {
+    console.error("Error fetching item data:", error);
+    return null;
+  }
+});
+
+export const generateMetadata = async ({ params, searchParams }) => {
+  if (process.env.NEXT_PUBLIC_SEO === "false") return;
+  try {
+    const { slug } = await params;
+    const langCode = (await searchParams)?.lang || "en";
+    const item = await fetchItemBySlug(slug, langCode);
     const title = item?.translated_item?.name;
     const description = item?.translated_item?.description;
     const keywords = generateKeywords(item?.translated_item?.description);
@@ -41,29 +53,7 @@ export const generateMetadata = async ({ params, searchParams }) => {
   }
 };
 
-const getItemData = async (slug, langCode) => {
-  if (process.env.NEXT_PUBLIC_SEO === "false") return;
-  try {
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}${process.env.NEXT_PUBLIC_END_POINT}get-item?slug=${slug}`,
-      {
-        headers: {
-          "Content-Language": langCode || "en",
-        },
-        next: {
-          revalidate: SEO_REVALIDATE_SECONDS,
-        },
-      }
-    );
-
-    const data = await res.json();
-    const item = data?.data?.data?.[0];
-    return item;
-  } catch (error) {
-    console.error("Error fetching item data:", error);
-    return null;
-  }
-};
+const getItemData = async (slug, langCode) => fetchItemBySlug(slug, langCode);
 
 const ProductDetailPage = async ({ params, searchParams }) => {
   const { slug } = await params;

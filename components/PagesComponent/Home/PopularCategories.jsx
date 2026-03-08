@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { RiArrowLeftLine, RiArrowRightLine } from "@/components/Common/UnifiedIconPack";
 import {
   Carousel,
@@ -43,7 +43,6 @@ const PopularCategories = () => {
   const [isAllCategoriesLoading, setIsAllCategoriesLoading] = useState(false);
   const [allCategoriesLoaded, setAllCategoriesLoaded] = useState(false);
   const [allCategoriesError, setAllCategoriesError] = useState("");
-  const allCategoriesPrefetchStartedRef = useRef(false);
   const isNextDisabled =
     isCatLoadMore ||
     ((!api || !api.canScrollNext()) && catCurrentPage >= catLastPage);
@@ -70,6 +69,8 @@ const PopularCategories = () => {
       const firstPageResponse = await categoryApi.getCategory({
         page: 1,
         per_page: perPage,
+        tree_depth: 0,
+        include_counts: false,
       });
       const firstPayload = firstPageResponse?.data?.data;
       const firstPageItems = Array.isArray(firstPayload?.data)
@@ -99,6 +100,8 @@ const PopularCategories = () => {
           categoryApi.getCategory({
             page: pageNumber,
             per_page: perPage,
+            tree_depth: 0,
+            include_counts: false,
           }),
         );
         const pageResults = await Promise.allSettled(pageRequests);
@@ -126,6 +129,8 @@ const PopularCategories = () => {
               categoryApi.getCategory({
                 page: failedPage,
                 per_page: perPage,
+                tree_depth: 0,
+                include_counts: false,
               }),
             ),
           );
@@ -221,32 +226,9 @@ const PopularCategories = () => {
   }, [api, isMobileViewport, isFilterModalOpen]);
 
   useEffect(() => {
-    if (!cateData?.length) return undefined;
-    if (allCategoriesLoaded || isAllCategoriesLoading) return undefined;
-    if (allCategoriesPrefetchStartedRef.current) return undefined;
-
-    allCategoriesPrefetchStartedRef.current = true;
-    let cancelled = false;
-
-    const runPrefetch = () => {
-      if (cancelled) return;
-      loadAllRootCategories();
-    };
-
-    if (typeof window !== "undefined" && "requestIdleCallback" in window) {
-      const idleId = window.requestIdleCallback(runPrefetch, { timeout: 500 });
-      return () => {
-        cancelled = true;
-        window.cancelIdleCallback?.(idleId);
-      };
-    }
-
-    const timeoutId = window.setTimeout(runPrefetch, 120);
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timeoutId);
-    };
-  }, [cateData, allCategoriesLoaded, isAllCategoriesLoading]);
+    if (cateData?.length > 0 || isCatLoading) return;
+    getCategories(1, { per_page: 18, tree_depth: 0, include_counts: true });
+  }, [cateData?.length, getCategories, isCatLoading]);
 
   const orderedAllCategories = useMemo(() => {
     if (!allCategories.length) return [];

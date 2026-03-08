@@ -5,7 +5,6 @@ import QuickAnswers from "@/components/PagesComponent/LandingPage/QuickAnswers";
 import WorkProcess from "@/components/PagesComponent/LandingPage/WorkProcess";
 import { SEO_REVALIDATE_SECONDS } from "@/lib/constants";
 
-export const dynamic = "force-dynamic";
 
 export const generateMetadata = async ({ searchParams }) => {
   try {

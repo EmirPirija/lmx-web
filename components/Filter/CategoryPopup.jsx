@@ -324,6 +324,8 @@ const CategoryPopup = ({ onClose, extraDetails }) => {
           category_id: parentId,
           page: 1,
           per_page: 120,
+          tree_depth: 0,
+          include_counts: true,
         });
         const loaded = response?.data?.data?.data || [];
         setSubcategoriesByParent((previous) => {

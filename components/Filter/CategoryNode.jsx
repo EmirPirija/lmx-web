@@ -42,6 +42,8 @@ const CategoryNode = ({ category, extraDetails }) => {
       const response = await categoryApi.getCategory({
         category_id: category.id,
         page,
+        tree_depth: 0,
+        include_counts: true,
       });
       const data = response.data.data.data;
       const hasMore =

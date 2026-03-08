@@ -54,9 +54,9 @@ const LowInventoryItems = ({ cityData, KmRange }) => {
           page: 1,
           limit: 120,
           sort_by: "new-to-old",
+          compact: 1,
           scarcity_enabled: 1,
           low_inventory_only: 1,
-          no_cache: true,
         });
 
         if (cancelled) return;

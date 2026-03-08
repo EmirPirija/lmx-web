@@ -1,7 +1,6 @@
 import DataDeletion from "@/components/PagesComponent/StaticPages/DataDeletion";
 import { SEO_REVALIDATE_SECONDS } from "@/lib/constants";
 
-export const dynamic = "force-dynamic";
 
 export const generateMetadata = async ({ searchParams }) => {
   try {

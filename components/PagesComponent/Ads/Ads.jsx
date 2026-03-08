@@ -7,7 +7,6 @@ import Filter from "../../Filter/Filter";
 import {
   allItemApi,
   FeaturedSectionApi,
-  categoryApi,
   getCustomFieldsApi,
   getLocationApi,
   getParentCategoriesApi,
@@ -80,19 +79,12 @@ const MapWithListingsMarkers = dynamic(
   },
 );
 
-const buildQuickNavigationCategories = (
-  items = [],
-  categorySlugById = new Map(),
-) => {
+const buildQuickNavigationCategories = (items = []) => {
   const categoryMap = new Map();
 
   (items || []).forEach((item) => {
     const category = item?.category || null;
-    const categoryId = Number(category?.id || item?.category_id);
-    const slugFromId = Number.isFinite(categoryId)
-      ? categorySlugById.get(categoryId)
-      : null;
-    const slug = category?.slug || item?.category_slug || slugFromId || null;
+    const slug = category?.slug || item?.category_slug || null;
     if (!slug) return;
 
     const key = String(slug).toLowerCase();
@@ -483,6 +475,7 @@ const Ads = () => {
   const filterTriggerBottomRef = useRef(0);
   const lastEmittedMobileHeaderRef = useRef(null);
   const latestItemsRequestRef = useRef(0);
+  const itemsAbortControllerRef = useRef(null);
   const [advertisements, setAdvertisements] = useState({
     data: [],
     currentPage: 1,
@@ -491,7 +484,6 @@ const Ads = () => {
     isLoadMore: false,
   });
   const [featuredTitle, setFeaturedTitle] = useState("");
-  const [categorySlugById, setCategorySlugById] = useState(() => new Map());
   const [searchQuickCategories, setSearchQuickCategories] = useState([]);
   const [isQuickCategoryLoading, setIsQuickCategoryLoading] = useState(false);
   const [mapSelectedAd, setMapSelectedAd] = useState(null);
@@ -747,16 +739,12 @@ const Ads = () => {
     if (!query) return [];
     if (isQuickCategoryLoading) return searchQuickCategories;
     if (searchQuickCategories.length > 0) return searchQuickCategories;
-    return buildQuickNavigationCategories(
-      advertisements?.data || [],
-      categorySlugById,
-    );
+    return buildQuickNavigationCategories(advertisements?.data || []);
   }, [
     query,
     isQuickCategoryLoading,
     searchQuickCategories,
     advertisements?.data,
-    categorySlugById,
   ]);
   const isToolbarActionSheetOpen = isSortSheetOpen || isViewSheetOpen;
   const selectedLocationLabel =
@@ -779,51 +767,6 @@ const Ads = () => {
       mobileDock.clearSuspended?.(suspendKey);
     };
   }, [mobileDock, isMobile, isMobileHeaderHidden, isToolbarActionSheetOpen]);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const mapCategoryTree = (nodes = [], map = new Map()) => {
-      (nodes || []).forEach((node) => {
-        const id = Number(node?.id);
-        const slug = node?.slug;
-        if (Number.isFinite(id) && slug) {
-          map.set(id, slug);
-        }
-        if (
-          Array.isArray(node?.subcategories) &&
-          node.subcategories.length > 0
-        ) {
-          mapCategoryTree(node.subcategories, map);
-        }
-      });
-      return map;
-    };
-
-    const loadCategorySlugMap = async () => {
-      try {
-        const response = await categoryApi.getCategory({
-          page: 1,
-          per_page: 100,
-        });
-        const roots = response?.data?.data?.data || [];
-        const slugMap = mapCategoryTree(roots, new Map());
-        if (!cancelled) {
-          setCategorySlugById(slugMap);
-        }
-      } catch (error) {
-        if (!cancelled) {
-          setCategorySlugById(new Map());
-        }
-      }
-    };
-
-    loadCategorySlugMap();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   useEffect(() => {
     const shouldHideBottomNav = Boolean(
@@ -1188,13 +1131,17 @@ const Ads = () => {
     setIsQuickCategoryLoading(false);
     const categories = buildQuickNavigationCategories(
       advertisements?.data || [],
-      categorySlugById,
     ).slice(0, 8);
     setSearchQuickCategories(categories);
-  }, [query, advertisements?.data, categorySlugById]);
+  }, [query, advertisements?.data]);
 
   const getSingleCatItem = async (page) => {
     const requestId = ++latestItemsRequestRef.current;
+    if (itemsAbortControllerRef.current) {
+      itemsAbortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    itemsAbortControllerRef.current = controller;
     try {
       const parameters = { page, limit: 12 };
       if (sortBy) parameters.sort_by = sortBy;
@@ -1249,7 +1196,9 @@ const Ads = () => {
           }))
         : setAdvertisements((prev) => ({ ...prev, isLoadMore: true }));
 
-      const res = await allItemApi.getItems(parameters);
+      const res = await allItemApi.getItems(parameters, {
+        signal: controller.signal,
+      });
       if (requestId !== latestItemsRequestRef.current) return;
       const data = res?.data;
 
@@ -1303,8 +1252,18 @@ const Ads = () => {
         }
       }
     } catch (error) {
+      if (
+        error?.code === "ERR_CANCELED" ||
+        error?.name === "CanceledError" ||
+        error?.message?.toLowerCase?.().includes("canceled")
+      ) {
+        return;
+      }
       console.log(error);
     } finally {
+      if (itemsAbortControllerRef.current === controller) {
+        itemsAbortControllerRef.current = null;
+      }
       if (requestId !== latestItemsRequestRef.current) return;
       setAdvertisements((prev) => ({
         ...prev,
@@ -1318,6 +1277,15 @@ const Ads = () => {
     setAdvertisements((prev) => ({ ...prev, isLoadMore: true }));
     await getSingleCatItem(advertisements.currentPage + 1);
   };
+
+  useEffect(() => {
+    return () => {
+      if (itemsAbortControllerRef.current) {
+        itemsAbortControllerRef.current.abort();
+        itemsAbortControllerRef.current = null;
+      }
+    };
+  }, []);
 
   const handleSortBy = (value) => {
     newSearchParams.set("sort_by", value);
@@ -1716,6 +1684,9 @@ const Ads = () => {
     </motion.div>
   );
 
+  const shouldUseCardMotion =
+    !isMobile && (advertisements?.data?.length || 0) <= 24;
+
   const renderedAdsContent = advertisements?.isLoading ? (
     Array.from({ length: 12 }).map((_, index) =>
       view === "list" ? (
@@ -1735,10 +1706,10 @@ const Ads = () => {
           className="col-span-full mb-4"
           key={item.id || index}
           variants={cardAnimation}
-          initial="hidden"
-          animate="visible"
-          custom={index}
-          layout
+          initial={shouldUseCardMotion ? "hidden" : false}
+          animate={shouldUseCardMotion ? "visible" : false}
+          custom={shouldUseCardMotion ? index : undefined}
+          layout={shouldUseCardMotion}
           data-search-item-id={item.id || ""}
           onMouseEnter={() => {
             if (!isRealEstateSearch) return;
@@ -1772,10 +1743,10 @@ const Ads = () => {
           className="col-span-1 mb-4"
           key={item.id || index}
           variants={cardAnimation}
-          initial="hidden"
-          animate="visible"
-          custom={index}
-          layout
+          initial={shouldUseCardMotion ? "hidden" : false}
+          animate={shouldUseCardMotion ? "visible" : false}
+          custom={shouldUseCardMotion ? index : undefined}
+          layout={shouldUseCardMotion}
           data-search-item-id={item.id || ""}
           onMouseEnter={() => {
             if (!isRealEstateSearch) return;
@@ -1820,7 +1791,6 @@ const Ads = () => {
             ? "lg:grid-cols-2 xl:grid-cols-3"
             : "lg:grid-cols-4 xl:grid-cols-5"
         }`;
-
   return (
     <Layout>
       <BreadCrumb />
@@ -2317,12 +2287,24 @@ const Ads = () => {
                 className={`${adsGridClasses} ${
                   isListMapOpen ? "lg:col-span-10" : "lg:col-span-full"
                 }`}
+                style={{
+                  contentVisibility: "auto",
+                  containIntrinsicSize: "1200px",
+                }}
               >
                 {renderedAdsContent}
               </div>
             </div>
           ) : (
-            <div className={adsGridClasses}>{renderedAdsContent}</div>
+            <div
+              className={adsGridClasses}
+              style={{
+                contentVisibility: "auto",
+                containIntrinsicSize: "1200px",
+              }}
+            >
+              {renderedAdsContent}
+            </div>
           )}
 
           {advertisements.data &&

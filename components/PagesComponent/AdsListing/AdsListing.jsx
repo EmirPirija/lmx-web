@@ -901,6 +901,8 @@ const AdsListing = () => {
           page,
           per_page: categoryId ? CHILD_PER_PAGE : ROOT_PER_PAGE,
           language_id: CurrentLanguage?.id,
+          tree_depth: 0,
+          include_counts: false,
           signal: controller.signal,
         });
 

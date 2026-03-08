@@ -26,7 +26,7 @@ const PopularCategoryCard = ({ item, onSelect, index = 0 }) => {
           width={72}
           height={72}
           className="h-full w-full object-cover scale-[0.56] transition-transform duration-200 ease-out group-hover:scale-[0.62] group-active:scale-[0.58]"
-          loading="eager"
+          loading={index < 4 ? "eager" : "lazy"}
         />
       </div>
 

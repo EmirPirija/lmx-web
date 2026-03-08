@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { memo, useMemo, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import {
   ChevronLeft,
@@ -452,17 +452,21 @@ const ProductHorizontalCard = ({ item, onClick, trackingParams }) => {
 
   const translatedItem = item?.translated_item;
   const isJobCategory = Number(item?.category?.is_job_category) === 1;
-  const keyAttributes = getKeyAttributes(item);
-  const conditionLabel = getConditionLabel(item);
-  const availableNow = readAvailableNow(item);
-  const isShopSeller = resolveMembership(
-    item,
-    item?.membership,
-    item?.user,
-    item?.user?.membership,
-    item?.seller,
-    item?.seller_settings,
-  ).isShop;
+  const keyAttributes = useMemo(() => getKeyAttributes(item), [item]);
+  const conditionLabel = useMemo(() => getConditionLabel(item), [item]);
+  const availableNow = useMemo(() => readAvailableNow(item), [item]);
+  const isShopSeller = useMemo(
+    () =>
+      resolveMembership(
+        item,
+        item?.membership,
+        item?.user,
+        item?.user?.membership,
+        item?.seller,
+        item?.seller_settings,
+      ).isShop,
+    [item],
+  );
   const campaignBadge = useMemo(() => resolveListingCampaignBadge(item), [item]);
   const campaignBadgeStyle = useMemo(() => {
     if (!campaignBadge || !campaignBadge.bgColor) return undefined;
@@ -491,7 +495,7 @@ const ProductHorizontalCard = ({ item, onClick, trackingParams }) => {
       return Boolean(value);
     });
   }, [item]);
-  const exchangePossible = readExchangePossible(item);
+  const exchangePossible = useMemo(() => readExchangePossible(item), [item]);
   const isReserved =
     item?.status === "reserved" || item?.reservation_status === "reserved";
 
@@ -944,4 +948,4 @@ const ProductHorizontalCard = ({ item, onClick, trackingParams }) => {
   );
 };
 
-export default ProductHorizontalCard;
+export default memo(ProductHorizontalCard);

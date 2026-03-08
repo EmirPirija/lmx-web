@@ -1414,6 +1414,7 @@ const ProductSellerDetailCard = ({
           <div className="flex items-center gap-2">
             <button
               type="button"
+              data-seller-chat-button
               onClick={handleChatClick}
               disabled={disableContactActions}
               className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-white text-white dark:text-slate-900 text-sm font-medium rounded-xl transition-colors disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-slate-900 dark:disabled:hover:bg-slate-100"
@@ -1441,6 +1442,7 @@ const ProductSellerDetailCard = ({
             {hasContactOptions && (
               <button
                 type="button"
+                data-seller-contact-button
                 onClick={handleContactClick}
                 disabled={disableContactActions}
                 className={cn(

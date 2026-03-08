@@ -532,6 +532,7 @@ const MyAds = () => {
   const [selectedPackageId, setSelectedPackageId] = useState("");
   const [isRenewingAd, setIsRenewingAd] = useState(false);
   const actionLocksRef = useRef(new Set());
+  const listRequestAbortRef = useRef(null);
 
   const tabs = useMemo(() => [
     { value: "approved", label: "Aktivni" },
@@ -557,6 +558,7 @@ const MyAds = () => {
       visibleItemIds.every((id) => bulkSelectedIds.includes(id)),
     [bulkMode, bulkSelectedIds, visibleItemIds]
   );
+  const shouldAnimateCards = MyItems.length > 0 && MyItems.length <= 24;
 
   const getPositionRenewHint = useCallback(
     (itemId) => {
@@ -622,19 +624,24 @@ const MyAds = () => {
   );
 
   const fetchRenewDueItems = useCallback(
-    async ({ sortBy = sortValue } = {}) => {
+    async ({ sortBy = sortValue, fullScan = false, signal } = {}) => {
       if (!isLoggedIn) return [];
 
       const approvedItems = [];
       let page = 1;
       let lastPage = 1;
       let safetyCounter = 0;
+      const maxPages = fullScan ? 100 : 3;
 
       do {
+        if (signal?.aborted) break;
         const res = await getMyItemsApi.getMyItems({
           status: "approved",
           page,
           sort_by: sortBy,
+          limit: 50,
+          compact: 1,
+          signal,
         });
         const payload = res?.data?.data;
         const rows = payload?.data || [];
@@ -643,7 +650,7 @@ const MyAds = () => {
         lastPage = Number(payload?.last_page || 1);
         page += 1;
         safetyCounter += 1;
-      } while (page <= lastPage && safetyCounter < 100);
+      } while (page <= lastPage && safetyCounter < maxPages);
 
       const now = new Date();
       return approvedItems.filter((item) => isAdEligibleForPositionRenew(item, now));
@@ -672,6 +679,8 @@ const MyAds = () => {
           status: t.value,
           page: 1,
           sort_by: "new-to-old",
+          limit: 1,
+          compact: 1,
         });
         return { status: t.value, count: res?.data?.data?.total || 0 };
       } catch {
@@ -723,8 +732,13 @@ const MyAds = () => {
     let idleId = null;
 
     const resolveRenewDueCount = async () => {
+      const controller = new AbortController();
       try {
-        const renewDueItems = await fetchRenewDueItems({ sortBy: "new-to-old" });
+        const renewDueItems = await fetchRenewDueItems({
+          sortBy: "new-to-old",
+          fullScan: false,
+          signal: controller.signal,
+        });
         if (cancelled) return;
         setStatusCounts((prev) => ({ ...prev, [RENEW_DUE_STATUS]: renewDueItems.length }));
       } catch {
@@ -734,6 +748,7 @@ const MyAds = () => {
         if (!cancelled) {
           setIsRenewDueCountResolved(true);
         }
+        controller.abort();
       }
     };
 
@@ -768,7 +783,14 @@ const MyAds = () => {
       return;
     }
 
+    let controller = null;
     try {
+      if (listRequestAbortRef.current) {
+        listRequestAbortRef.current.abort();
+      }
+      controller = new AbortController();
+      listRequestAbortRef.current = controller;
+
       page > 1 ? setIsLoadMore(true) : setIsLoading(true);
       if (page === 1) {
         setListError("");
@@ -777,7 +799,12 @@ const MyAds = () => {
       if (status === RENEW_DUE_STATUS) {
         if (page > 1) return;
 
-        const renewDueItems = await fetchRenewDueItems({ sortBy: sortValue });
+        const renewDueItems = await fetchRenewDueItems({
+          sortBy: sortValue,
+          fullScan: true,
+          signal: controller.signal,
+        });
+        if (controller.signal.aborted) return;
         setMyItems(renewDueItems);
         setCurrentPage(1);
         setLastPage(1);
@@ -789,7 +816,12 @@ const MyAds = () => {
       const params = { page, sort_by: sortValue };
       if (status !== "all") params.status = status;
 
-      const res = await getMyItemsApi.getMyItems(params);
+      const res = await getMyItemsApi.getMyItems({
+        ...params,
+        compact: 1,
+        signal: controller.signal,
+      });
+      if (controller.signal.aborted) return;
       const data = res?.data;
 
       if (data?.error === false) {
@@ -802,6 +834,9 @@ const MyAds = () => {
         setListError(getApiErrorMessage(data, "Ne možemo učitati oglase. Pokušaj ponovo."));
       }
     } catch (error) {
+      if (error?.code === "ERR_CANCELED" || error?.name === "CanceledError") {
+        return;
+      }
       const statusCode = Number(error?.response?.status || 0);
       if (statusCode === 401) {
         if (page === 1) {
@@ -823,7 +858,13 @@ const MyAds = () => {
         toast.error(fallbackError);
       }
     }
-    finally { setIsLoading(false); setIsLoadMore(false); }
+    finally {
+      if (listRequestAbortRef.current === controller) {
+        listRequestAbortRef.current = null;
+      }
+      setIsLoading(false);
+      setIsLoadMore(false);
+    }
   }, [isLoggedIn, sortValue, status, fetchRenewDueItems]);
 
   const refreshAfterMutation = useCallback(async () => {
@@ -851,6 +892,15 @@ const MyAds = () => {
     if (!isLoggedIn) return;
     getMyItemsData(1);
   }, [getMyItemsData, isLoggedIn]);
+
+  useEffect(() => {
+    return () => {
+      if (listRequestAbortRef.current) {
+        listRequestAbortRef.current.abort();
+        listRequestAbortRef.current = null;
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!bulkMode) {
@@ -1561,7 +1611,13 @@ const MyAds = () => {
       ) : null}
 
       {/* Ads Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 items-stretch gap-4 lg:gap-6">
+      <div
+        className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 items-stretch gap-4 lg:gap-6"
+        style={{
+          contentVisibility: "auto",
+          containIntrinsicSize: "1200px",
+        }}
+      >
         {isInitialLoading ? (
           <>
             <div className="col-span-full">
@@ -1595,27 +1651,43 @@ const MyAds = () => {
             />
           </div>
         ) : MyItems?.length > 0 ? (
-          MyItems.map((item, index) => (
-            <motion.div
-              key={item?.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.03 }}
-              className="h-full"
-            >
-              <AdsCard
-                data={item}
-                isApprovedSort={sortValue === "approved"}
-                isSelected={bulkMode ? bulkSelectedIds.includes(item?.id) : renewIds.includes(item?.id)}
-                isSelectable={bulkMode ? true : renewIds.length > 0 && item.status === "expired"}
-                onSelectionToggle={() =>
-                  bulkMode ? handleBulkSelection(item?.id) : handleAdSelection(item?.id)
-                }
-                onFeatureAction={(id, options) => handleFeatureAd(id || item?.id, options || {})}
-                onContextMenuAction={(action, id, buyerId) => handleContextMenuAction(action, id || item?.id, buyerId)}
-              />
-            </motion.div>
-          ))
+          shouldAnimateCards
+            ? MyItems.map((item, index) => (
+                <motion.div
+                  key={item?.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.03 }}
+                  className="h-full"
+                >
+                  <AdsCard
+                    data={item}
+                    isApprovedSort={sortValue === "approved"}
+                    isSelected={bulkMode ? bulkSelectedIds.includes(item?.id) : renewIds.includes(item?.id)}
+                    isSelectable={bulkMode ? true : renewIds.length > 0 && item.status === "expired"}
+                    onSelectionToggle={() =>
+                      bulkMode ? handleBulkSelection(item?.id) : handleAdSelection(item?.id)
+                    }
+                    onFeatureAction={(id, options) => handleFeatureAd(id || item?.id, options || {})}
+                    onContextMenuAction={(action, id, buyerId) => handleContextMenuAction(action, id || item?.id, buyerId)}
+                  />
+                </motion.div>
+              ))
+            : MyItems.map((item) => (
+                <div key={item?.id} className="h-full">
+                  <AdsCard
+                    data={item}
+                    isApprovedSort={sortValue === "approved"}
+                    isSelected={bulkMode ? bulkSelectedIds.includes(item?.id) : renewIds.includes(item?.id)}
+                    isSelectable={bulkMode ? true : renewIds.length > 0 && item.status === "expired"}
+                    onSelectionToggle={() =>
+                      bulkMode ? handleBulkSelection(item?.id) : handleAdSelection(item?.id)
+                    }
+                    onFeatureAction={(id, options) => handleFeatureAd(id || item?.id, options || {})}
+                    onContextMenuAction={(action, id, buyerId) => handleContextMenuAction(action, id || item?.id, buyerId)}
+                  />
+                </div>
+              ))
         ) : hasEmptyState ? (
           <div className="col-span-full">
             <motion.div

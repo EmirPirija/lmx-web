@@ -1,7 +1,6 @@
 import ContactUs from "@/components/PagesComponent/Contact/ContactUs";
 import { SEO_REVALIDATE_SECONDS } from "@/lib/constants";
 
-export const dynamic = "force-dynamic";
 
 
 export const generateMetadata = async ({ searchParams }) => {

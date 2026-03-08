@@ -144,10 +144,14 @@ const CATEGORY_REQUEST_TTL = 1000 * 60; // 1 min
 const CATEGORY_CACHE_MAX_SIZE = 100;
 const categoryResponseCache = new Map();
 const categoryInFlightRequests = new Map();
-const ITEMS_REQUEST_TTL = 1000 * 15; // 15s
+const ITEMS_REQUEST_TTL = 1000 * 45; // 45s
 const ITEMS_CACHE_MAX_SIZE = 120;
 const itemsResponseCache = new Map();
 const itemsInFlightRequests = new Map();
+const FEATURED_REQUEST_TTL = 1000 * 45; // 45s
+const FEATURED_CACHE_MAX_SIZE = 80;
+const featuredResponseCache = new Map();
+const featuredInFlightRequests = new Map();
 const LOCATION_REQUEST_TTL_SUCCESS_MS = 1000 * 60 * 5; // 5 min
 const LOCATION_REQUEST_TTL_ERROR_MS = 1000 * 30; // 30s
 const LOCATION_CACHE_MAX_SIZE = 150;
@@ -183,13 +187,32 @@ const setItemsCache = (key, response) => {
   }
 };
 
+const setFeaturedCache = (key, response) => {
+  featuredResponseCache.set(key, { response, timestamp: Date.now() });
+  if (featuredResponseCache.size > FEATURED_CACHE_MAX_SIZE) {
+    const oldestKey = featuredResponseCache.keys().next().value;
+    if (oldestKey) featuredResponseCache.delete(oldestKey);
+  }
+};
+
 const buildCategoryRequestKey = ({
   category_id,
+  slug,
   page = 1,
   per_page = 50,
   language_id,
+  include_counts = true,
+  tree_depth,
 } = {}) =>
-  `${language_id || "default"}:${category_id || "root"}:${page}:${per_page}`;
+  stableSerialize({
+    lang: language_id || "default",
+    category_id: category_id || null,
+    slug: slug || null,
+    page,
+    per_page,
+    include_counts,
+    tree_depth,
+  });
 
 const getCachedCategoryResponse = (key) => {
   const cached = categoryResponseCache.get(key);
@@ -261,19 +284,32 @@ const setCachedLocationResponse = (key, response, isError = false) => {
 export const categoryApi = {
   getCategory: ({
     category_id,
+    slug,
     page = 1,
     per_page = 50,
     language_id,
+    include_counts = true,
+    tree_depth = 0,
     signal,
   } = {}) => {
     const params = { page, per_page };
     if (category_id) params.category_id = category_id;
+    if (slug) params.slug = slug;
     if (language_id) params.language_id = language_id;
+    if (typeof include_counts === "boolean") {
+      params.include_counts = include_counts ? 1 : 0;
+    }
+    if (Number.isFinite(Number(tree_depth))) {
+      params.tree_depth = Math.max(0, Number(tree_depth));
+    }
     const requestKey = buildCategoryRequestKey({
       category_id,
+      slug,
       page,
       per_page,
       language_id,
+      include_counts,
+      tree_depth,
     });
     const cachedResponse = getCachedCategoryResponse(requestKey);
 
@@ -307,9 +343,20 @@ export const categoryApi = {
 
 // 3. MY ITEMS API
 export const getMyItemsApi = {
-  getMyItems: ({ sort_by, page, status, id, category_id, slug } = {}) => {
+  getMyItems: ({
+    sort_by,
+    page,
+    status,
+    id,
+    category_id,
+    slug,
+    limit,
+    compact,
+    signal,
+  } = {}) => {
     return Api.get(GET_MY_ITEMS, {
-      params: { page, sort_by, status, id, category_id, slug },
+      params: { page, sort_by, status, id, category_id, slug, limit, compact },
+      ...(signal ? { signal } : {}),
     });
   },
 };
@@ -376,51 +423,55 @@ export const getVerificationFiledsApi = {
 
 // 4. ITEM API
 export const allItemApi = {
-  getItems: ({
-    id,
-    custom_fields,
-    category_id,
-    min_price,
-    max_price,
-    sort_by,
-    posted_since,
-    featured_section_id,
-    status,
-    page,
-    search,
-    country,
-    state,
-    city,
-    slug,
-    category_slug,
-    featured_section_slug,
-    area_id,
-    latitude,
-    longitude,
-    radius,
-    user_id,
-    popular_items,
-    limit,
-    current_page,
-    has_video,
-    seller_type,
-    seller_verified,
-    is_pro,
-    is_shop,
-    is_free,
-    is_premium,
-    membership,
-    verified,
-    shop,
-    is_feature,
-    placement,
-    positions,
-    scarcity_only,
-    scarcity_enabled,
-    low_inventory_only,
-    inventory_lte,
-    no_cache,
-  } = {}) => {
+  getItems: (
+    {
+      id,
+      custom_fields,
+      category_id,
+      min_price,
+      max_price,
+      sort_by,
+      posted_since,
+      featured_section_id,
+      status,
+      page,
+      search,
+      country,
+      state,
+      city,
+      slug,
+      category_slug,
+      featured_section_slug,
+      area_id,
+      latitude,
+      longitude,
+      radius,
+      user_id,
+      popular_items,
+      limit,
+      compact,
+      current_page,
+      has_video,
+      seller_type,
+      seller_verified,
+      is_pro,
+      is_shop,
+      is_free,
+      is_premium,
+      membership,
+      verified,
+      shop,
+      is_feature,
+      placement,
+      positions,
+      scarcity_only,
+      scarcity_enabled,
+      low_inventory_only,
+      inventory_lte,
+      no_cache,
+    } = {},
+    requestConfig = {},
+  ) => {
     const params = {
       id,
       custom_fields,
@@ -446,6 +497,7 @@ export const allItemApi = {
       user_id,
       popular_items,
       limit,
+      compact,
       current_page,
       has_video,
       seller_type,
@@ -466,7 +518,8 @@ export const allItemApi = {
       inventory_lte,
     };
 
-    const shouldUseCache = !no_cache;
+    const hasAbortSignal = Boolean(requestConfig?.signal);
+    const shouldUseCache = !no_cache && !hasAbortSignal;
     const requestKey = stableSerialize(params);
 
     if (shouldUseCache) {
@@ -482,7 +535,7 @@ export const allItemApi = {
       }
     }
 
-    const request = Api.get(GET_ITEM, { params })
+    const request = Api.get(GET_ITEM, { params, ...(requestConfig || {}) })
       .then((response) => {
         if (shouldUseCache) {
           setItemsCache(requestKey, response);
@@ -564,24 +617,57 @@ export const FeaturedSectionApi = {
     positions,
     category_id,
     category_slug,
+    no_cache,
   } = {}) => {
-    return Api.get(GET_FEATURED_SECTION, {
-      params: {
-        city,
-        state,
-        country,
-        slug,
-        latitude,
-        longitude,
-        radius,
-        area_id,
-        current_page,
-        placement,
-        positions,
-        category_id,
-        category_slug,
-      },
-    });
+    const params = {
+      city,
+      state,
+      country,
+      slug,
+      latitude,
+      longitude,
+      radius,
+      area_id,
+      current_page,
+      placement,
+      positions,
+      category_id,
+      category_slug,
+    };
+
+    const shouldUseCache = !no_cache;
+    const requestKey = stableSerialize(params);
+
+    if (shouldUseCache) {
+      const cached = featuredResponseCache.get(requestKey);
+      const isFresh =
+        cached && Date.now() - cached.timestamp <= FEATURED_REQUEST_TTL;
+      if (isFresh) {
+        return Promise.resolve(cached.response);
+      }
+      if (featuredInFlightRequests.has(requestKey)) {
+        return featuredInFlightRequests.get(requestKey);
+      }
+    }
+
+    const request = Api.get(GET_FEATURED_SECTION, { params })
+      .then((response) => {
+        if (shouldUseCache) {
+          setFeaturedCache(requestKey, response);
+        }
+        return response;
+      })
+      .finally(() => {
+        if (shouldUseCache) {
+          featuredInFlightRequests.delete(requestKey);
+        }
+      });
+
+    if (shouldUseCache) {
+      featuredInFlightRequests.set(requestKey, request);
+    }
+
+    return request;
   },
 };
 // FAQ API

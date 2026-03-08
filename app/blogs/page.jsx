@@ -2,7 +2,6 @@ import StructuredData from "@/components/Layout/StructuredData";
 import Blogs from "@/components/PagesComponent/Blogs/Blogs";
 import { SEO_REVALIDATE_SECONDS } from "@/lib/constants";
 
-export const dynamic = "force-dynamic";
 
 export const generateMetadata = async ({ searchParams }) => {
   try {

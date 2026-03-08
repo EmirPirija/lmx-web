@@ -1,7 +1,6 @@
 import PrivacyPolicy from "@/components/PagesComponent/StaticPages/PrivacyPolicy";
 import { SEO_REVALIDATE_SECONDS } from "@/lib/constants";
 
-export const dynamic = "force-dynamic";
 
 export const generateMetadata = async ({ searchParams }) => {
   try {

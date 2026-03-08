@@ -274,6 +274,8 @@ const PopularCategoryFilterModal = ({ open, onOpenChange, category }) => {
           category_id: category.id,
           page: 1,
           per_page: 200,
+          tree_depth: 0,
+          include_counts: false,
         });
 
         const children = Array.isArray(subcategoriesResponse?.data?.data?.data)

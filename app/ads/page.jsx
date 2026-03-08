@@ -5,6 +5,29 @@ import { generateKeywords } from "@/utils/generateKeywords";
 
 export const dynamic = "force-dynamic";
 
+const fetchJsonWithTimeout = async (
+  url,
+  { headers = {}, revalidate = SEO_REVALIDATE_SECONDS, timeoutMs = 1800 } = {},
+) => {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(url, {
+      headers,
+      signal: controller.signal,
+      next: {
+        revalidate,
+      },
+    });
+    if (!response.ok) return null;
+    return response.json();
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+};
 
 const buildIndexableParams = (searchParams) => {
   const indexableFilters = [
@@ -83,17 +106,12 @@ export const generateMetadata = async ({ searchParams }) => {
 
     if (slug) {
       // Fetch category-specific SEO
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}${process.env.NEXT_PUBLIC_END_POINT}get-categories?slug=${slug}`,
+      const data = await fetchJsonWithTimeout(
+        `${process.env.NEXT_PUBLIC_API_URL}${process.env.NEXT_PUBLIC_END_POINT}get-categories?slug=${slug}&page=1&per_page=1&include_counts=0&tree_depth=0`,
         {
           headers: { "Content-Language": langCode || "en" },
-          next: {
-            revalidate: SEO_REVALIDATE_SECONDS,
-          },
         }
       );
-
-      const data = await response.json();
       const selfCategory = data?.self_category;
 
       title = selfCategory?.translated_name || title;
@@ -103,16 +121,12 @@ export const generateMetadata = async ({ searchParams }) => {
       image = selfCategory?.image || image;
     } else {
       // Fetch default ad listing SEO
-      const res = await fetch(
+      const data = await fetchJsonWithTimeout(
         `${process.env.NEXT_PUBLIC_API_URL}${process.env.NEXT_PUBLIC_END_POINT}seo-settings?page=ad-listing`,
         {
           headers: { "Content-Language": langCode || "en" },
-          next: {
-            revalidate: SEO_REVALIDATE_SECONDS,
-          },
         }
       );
-      const data = await res.json();
       const adListing = data?.data?.[0];
 
       title = adListing?.translated_title || title;
@@ -146,23 +160,18 @@ const getAllItems = async (langCode, searchParams) => {
   if (process.env.NEXT_PUBLIC_SEO === "false") return;
 
   try {
-    const queryString = buildIndexableParams(searchParams)
-      ? buildIndexableParams(searchParams)
-      : "";
+    const queryString = buildIndexableParams(searchParams) || "";
     const url = `${process.env.NEXT_PUBLIC_API_URL}${
       process.env.NEXT_PUBLIC_END_POINT
-    }get-item?page=1${queryString ? `&${queryString}` : ""}`;
+    }get-item?page=1&limit=6&compact=1${queryString ? `&${queryString}` : ""}`;
 
-    const res = await fetch(url, {
+    const data = await fetchJsonWithTimeout(url, {
       headers: {
         "Content-Language": langCode || "en",
       },
-      next: {
-        revalidate: SEO_REVALIDATE_SECONDS,
-      },
+      timeoutMs: 1600,
     });
 
-    const data = await res.json();
     return data?.data?.data || [];
   } catch (error) {
     console.error("Error fetching Product Items Data:", error);

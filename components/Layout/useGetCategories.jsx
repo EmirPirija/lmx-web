@@ -12,7 +12,7 @@ import {
   setIsCatLoadMore,
 } from "@/redux/reducer/categorySlice";
 import { categoryApi } from "@/utils/api"; // assume you have this
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import {
   getHasFetchedCategories,
   setHasFetchedCategories,
@@ -25,21 +25,43 @@ const useGetCategories = () => {
   const isCatLoadMore = useSelector(getIsCatLoadMore);
   const catLastPage = useSelector(getCatLastPage);
   const catCurrentPage = useSelector(getCatCurrentPage);
+  const hasCategorySeed = Array.isArray(cateData) && cateData.length > 0;
+
+  useEffect(() => {
+    if (hasCategorySeed && !getHasFetchedCategories()) {
+      setHasFetchedCategories(true);
+    }
+  }, [hasCategorySeed]);
 
   const getCategories = useCallback(
-    async (page = 1) => {
-      if (page === 1 && getHasFetchedCategories()) {
+    async (page = 1, options = {}) => {
+      const {
+        per_page = 18,
+        include_counts = true,
+        tree_depth = 0,
+        force = false,
+      } = options || {};
+
+      if (page === 1 && !force && (getHasFetchedCategories() || hasCategorySeed)) {
         return;
       }
+
       if (page === 1) {
         dispatch(setIsCatLoading(true));
       } else {
         dispatch(setIsCatLoadMore(true));
       }
       try {
-        const res = await categoryApi.getCategory({ page });
+        const res = await categoryApi.getCategory({
+          page,
+          per_page,
+          include_counts,
+          tree_depth,
+        });
         if (res?.data?.error === false) {
-          const data = res?.data?.data?.data;
+          const data = Array.isArray(res?.data?.data?.data)
+            ? res.data.data.data
+            : [];
           if (page === 1) {
             dispatch(setCateData(data));
           } else {
@@ -56,7 +78,7 @@ const useGetCategories = () => {
         dispatch(setIsCatLoadMore(false));
       }
     },
-    [cateData, dispatch]
+    [cateData, dispatch, hasCategorySeed]
   );
 
   return {
