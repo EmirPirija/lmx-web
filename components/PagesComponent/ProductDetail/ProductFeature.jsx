@@ -197,9 +197,6 @@ const ProductFeature = ({ filteredFields, productDetails }) => {
               <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">Karakteristike</h3>
               <p className="text-xs text-slate-500 dark:text-slate-400">Specifikacije i oprema</p>
             </div>
-            <span className="ml-auto inline-flex items-center rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-bold text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
-              {dedupedFeatureFields.length}
-            </span>
           </div>
           <div className="p-4 sm:p-5">
             <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2">
@@ -216,9 +213,9 @@ const ProductFeature = ({ filteredFields, productDetails }) => {
                   >
                     <div className={cn("flex items-start justify-between gap-3", isCheckbox && "flex-col")}>
                       <span className="inline-flex items-center gap-2.5 text-sm text-slate-500 dark:text-slate-400">
-                        <span className="inline-flex h-8 w-8 items-center justify-center bg-white p-1 dark:border-slate-700 dark:bg-slate-900">
+                        {/* <span className="inline-flex h-8 w-8 items-center justify-center bg-white p-1 dark:border-slate-700 dark:bg-slate-900">
                           <CustomFieldSemanticIcon fieldLabel={fieldLabel} className="w-[17px] h-[17px]" />
-                        </span>
+                        </span> */}
                         <span className="font-semibold">{fieldLabel}</span>
                       </span>
                       <div className={cn(isCheckbox ? "w-full pt-1" : "min-w-0 text-right")}>{renderValue(feature)}</div>

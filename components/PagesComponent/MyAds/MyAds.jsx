@@ -360,6 +360,15 @@ function BulkActionsBar({
 
 const RENEW_DUE_STATUS = "renew_due";
 const POSITION_RENEW_COOLDOWN_DAYS = 15;
+const formatBosnianDays = (value) => {
+  const days = Math.max(0, Math.abs(Math.trunc(Number(value) || 0)));
+  const mod10 = days % 10;
+  const mod100 = days % 100;
+
+  if (mod10 === 1 && mod100 !== 11) return `${days} dan`;
+  return `${days} dana`;
+};
+
 const parseDateSafe = (value) => {
   if (!value) return null;
   if (value instanceof Date && !Number.isNaN(value.getTime())) return value;
@@ -1302,11 +1311,88 @@ const MyAds = () => {
   };
 
   const activeStatusLabel = tabs.find((t) => t.value === status)?.label || "oglasa";
+  const statusTextForms = useMemo(() => {
+    const fallback = {
+      loading: "oglase",
+      emptyGenitive: activeStatusLabel.toLowerCase(),
+    };
+
+    const byStatus = {
+      approved: {
+        loading: "aktivne oglase",
+        emptyGenitive: "aktivnih oglasa",
+      },
+      inactive: {
+        loading: "skrivene oglase",
+        emptyGenitive: "skrivenih oglasa",
+      },
+      "sold out": {
+        loading: "završene oglase",
+        emptyGenitive: "završenih oglasa",
+      },
+      featured: {
+        loading: "istaknute oglase",
+        emptyGenitive: "istaknutih oglasa",
+      },
+      expired: {
+        loading: "istekle oglase",
+        emptyGenitive: "isteklih oglasa",
+      },
+      [RENEW_DUE_STATUS]: {
+        loading: "oglase za obnovu",
+        emptyGenitive: "oglasa za obnovu",
+      },
+    };
+
+    return byStatus[status] || fallback;
+  }, [activeStatusLabel, status]);
   const isInitialLoading = IsLoading && MyItems.length === 0;
   const hasBlockingListError =
     !isInitialLoading && Boolean(listError) && MyItems.length === 0;
   const hasEmptyState =
     !isInitialLoading && !hasBlockingListError && MyItems?.length === 0;
+  const emptyStateMeta = useMemo(() => {
+    const fallback = {
+      title: `Nema ${statusTextForms.emptyGenitive}`,
+      description:
+        "Trenutno nema oglasa u ovom statusu. Promijeni filter ili objavi novi oglas.",
+    };
+
+    const byStatus = {
+      approved: {
+        title: "Nema aktivnih oglasa",
+        description:
+          "Kada objaviš prvi oglas, ovdje ćeš pratiti stanje, performanse i sve ključne akcije.",
+      },
+      inactive: {
+        title: "Nema skrivenih oglasa",
+        description:
+          "Nijedan oglas trenutno nije sakriven. Ako želiš, aktivne oglase možeš privremeno sakriti iz pregleda kupaca.",
+      },
+      "sold out": {
+        title: "Nema završenih oglasa",
+        description:
+          "Ovdje će se prikazati oglasi koje si označio kao završene ili prodane.",
+      },
+      featured: {
+        title: "Nema istaknutih oglasa",
+        description:
+          "Istakni oglas da povećaš vidljivost i on će se pojaviti u ovoj sekciji.",
+      },
+      expired: {
+        title: "Nema isteklih oglasa",
+        description:
+          "Kada oglas istekne, pojavit će se ovdje kako bi ga mogao brzo obnoviti ili urediti.",
+      },
+      [RENEW_DUE_STATUS]: {
+        title: "Nema oglasa za obnovu",
+        description:
+          "Trenutno nema aktivnih oglasa koji su spremni za obnovu pozicije.",
+      },
+    };
+
+    return byStatus[status] || fallback;
+  }, [status, statusTextForms.emptyGenitive]);
 
   return (
     <div className={cn("space-y-6", bulkMode && "pb-36 sm:pb-6")}>
@@ -1482,7 +1568,7 @@ const MyAds = () => {
               <StateSurface
                 variant="loading"
                 compact
-                title={`Učitavamo ${activeStatusLabel.toLowerCase()}`}
+                title={`Učitavamo ${statusTextForms.loading}`}
                 description="Pripremamo tvoj feed oglasa i sinkronizujemo podatke."
               />
             </div>
@@ -1538,13 +1624,9 @@ const MyAds = () => {
               className="py-10 sm:py-14"
             >
               <NoData
-                name={activeStatusLabel.toLowerCase()}
-                title={`Nema ${activeStatusLabel.toLowerCase()}`}
-                description={
-                  status === "approved"
-                    ? "Kada objaviš prvi oglas, ovdje ćeš pratiti stanje, performanse i akcije."
-                    : "Nema oglasa u ovom statusu. Promijeni filter ili objavi novi oglas."
-                }
+                name={statusTextForms.emptyGenitive}
+                title={emptyStateMeta.title}
+                description={emptyStateMeta.description}
                 actionLabel={status === "approved" ? "Objavi oglas" : "Prikaži aktivne oglase"}
                 onAction={
                   status === "approved"
@@ -1557,6 +1639,14 @@ const MyAds = () => {
                     ? () => handleSortChange("new-to-old")
                     : () => navigate("/ad-listing")
                 }
+                className="max-w-none rounded-[30px] border border-slate-200/80 bg-white/90 shadow-[0_30px_95px_-62px_rgba(15,23,42,0.82)] dark:border-slate-700/70 dark:bg-[radial-gradient(130%_160%_at_50%_-10%,rgba(45,212,191,0.18),rgba(15,23,42,0.94)_52%,rgba(2,6,23,0.98)_100%)]"
+                contentClassName="max-w-2xl gap-5 sm:gap-6"
+                iconClassName="h-20 w-20 rounded-[28px] border border-slate-200/80 bg-slate-100 text-slate-600 ring-0 dark:border-slate-600/80 dark:bg-slate-900/75 dark:text-cyan-200"
+                titleClassName="text-2xl sm:text-[2rem] sm:leading-[1.1]"
+                descriptionClassName="text-base text-slate-600 dark:text-slate-300"
+                actionsClassName="w-full gap-3 pt-1 sm:w-auto sm:flex-row"
+                primaryActionClassName="h-12 rounded-2xl px-6 font-semibold shadow-[0_18px_40px_-24px_rgba(8,145,178,0.85)]"
+                secondaryActionClassName="h-12 rounded-2xl border-slate-300 bg-white/85 px-6 font-semibold text-slate-800 hover:bg-white dark:border-slate-600 dark:bg-slate-900/75 dark:text-slate-100 dark:hover:bg-slate-900"
               />
             </motion.div>
           </div>
@@ -1661,7 +1751,7 @@ const MyAds = () => {
                             : "border-slate-300 text-slate-600 hover:border-slate-400 dark:border-slate-600 dark:text-slate-300 dark:hover:border-slate-500"
                         )}
                       >
-                        {days} dana
+                        {formatBosnianDays(days)}
                       </button>
                     ))}
                   </div>

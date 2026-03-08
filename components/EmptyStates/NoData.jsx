@@ -11,6 +11,13 @@ const NoData = ({
   secondaryActionLabel,
   onSecondaryAction,
   className,
+  contentClassName,
+  iconClassName,
+  titleClassName,
+  descriptionClassName,
+  actionsClassName,
+  primaryActionClassName,
+  secondaryActionClassName,
   compact = false,
 }) => (
   <StateSurface
@@ -25,6 +32,13 @@ const NoData = ({
     secondaryActionLabel={secondaryActionLabel}
     onSecondaryAction={onSecondaryAction}
     className={className}
+    contentClassName={contentClassName}
+    iconClassName={iconClassName}
+    titleClassName={titleClassName}
+    descriptionClassName={descriptionClassName}
+    actionsClassName={actionsClassName}
+    primaryActionClassName={primaryActionClassName}
+    secondaryActionClassName={secondaryActionClassName}
     compact={compact}
   />
 );

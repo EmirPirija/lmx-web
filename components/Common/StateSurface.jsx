@@ -49,6 +49,13 @@ const StateSurface = ({
   secondaryActionLabel,
   onSecondaryAction,
   className,
+  contentClassName,
+  iconClassName,
+  titleClassName,
+  descriptionClassName,
+  actionsClassName,
+  primaryActionClassName,
+  secondaryActionClassName,
   icon: IconOverride,
   busy = false,
   compact = false,
@@ -69,34 +76,40 @@ const StateSurface = ({
         className,
       )}
     >
-      <div className="mx-auto flex max-w-xl flex-col items-center gap-4 sm:gap-5">
+      <div className={cn("mx-auto flex max-w-xl flex-col items-center gap-4 sm:gap-5", contentClassName)}>
         <div
           className={cn(
             "inline-flex h-16 w-16 items-center justify-center rounded-2xl",
             "ring-1 ring-black/5 dark:ring-white/10",
             resolvedVariant.iconTone,
+            iconClassName,
           )}
         >
           <Icon className={cn("h-8 w-8", isLoading && "animate-spin")} />
         </div>
 
         <div className="space-y-2">
-          <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-50 sm:text-xl">
+          <h3 className={cn("text-lg font-semibold text-slate-900 dark:text-slate-50 sm:text-xl", titleClassName)}>
             {title || resolvedVariant.title}
           </h3>
-          <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-300 sm:text-base">
+          <p className={cn("text-sm leading-relaxed text-slate-600 dark:text-slate-300 sm:text-base", descriptionClassName)}>
             {description || resolvedVariant.description}
           </p>
         </div>
 
         {(actionLabel || secondaryActionLabel) && (
-          <div className="flex w-full flex-col items-stretch justify-center gap-2 sm:w-auto sm:flex-row sm:items-center">
+          <div
+            className={cn(
+              "flex w-full flex-col items-stretch justify-center gap-2 sm:w-auto sm:flex-row sm:items-center",
+              actionsClassName,
+            )}
+          >
             {actionLabel ? (
               <Button
                 type="button"
                 onClick={onAction}
                 disabled={busy || !onAction}
-                className="h-11 rounded-2xl px-5"
+                className={cn("h-11 rounded-2xl px-5", primaryActionClassName)}
               >
                 {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
                 {actionLabel}
@@ -108,7 +121,7 @@ const StateSurface = ({
                 variant="outline"
                 onClick={onSecondaryAction}
                 disabled={busy || !onSecondaryAction}
-                className="h-11 rounded-2xl px-5"
+                className={cn("h-11 rounded-2xl px-5", secondaryActionClassName)}
               >
                 <Sparkles className="h-4 w-4" />
                 {secondaryActionLabel}

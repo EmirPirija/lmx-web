@@ -476,6 +476,7 @@ const FeaturedAdTriggerCard = ({
 const ProductDetails = ({ slug }) => {
   const CurrentLanguage = useSelector(CurrentLanguageData);
   const currentUser = useSelector(userSignUpData);
+  const authToken = useSelector((state) => state?.UserSignup?.data?.token || "");
   const { signOut } = FirebaseData();
   const dispatch = useDispatch();
   const pathName = usePathname();
@@ -711,8 +712,14 @@ const ProductDetails = ({ slug }) => {
 
   // 3. Effects
   useEffect(() => {
+    // /my-listing koristi auth-only endpoint; sačekaj da token bude dostupan.
+    if (isMyListingPath && !authToken) {
+      setIsLoading(false);
+      setProductDetails(null);
+      return;
+    }
     fetchProductDetails();
-  }, [slug, CurrentLanguage?.id]);
+  }, [slug, CurrentLanguage?.id, isMyListingPath, authToken]);
 
   useEffect(() => {
     dispatch(setHideMobileBottomNav(true));

@@ -38,6 +38,7 @@ import { getFeaturedMeta } from "@/utils/featuredPlacement";
 import { resolveRealEstateDisplayPricing } from "@/utils/realEstatePricing";
 import { formatRelativeTimeBs } from "@/utils/timeBosnian";
 import { useMediaQuery } from "usehooks-ts";
+import { useRouter } from "next/navigation";
 
 // ============================================
 // POMOĆNE FUNKCIJE
@@ -101,9 +102,12 @@ const getRenewNextAllowedDate = (item) => {
 };
 
 const formatBosnianDays = (days) => {
-  if (days === 1) return "1 dan";
-  if (days >= 2 && days <= 4) return `${days} dana`;
-  return `${days} dana`;
+  const normalizedDays = Math.max(0, Math.abs(Math.trunc(Number(days) || 0)));
+  const mod10 = normalizedDays % 10;
+  const mod100 = normalizedDays % 100;
+
+  if (mod10 === 1 && mod100 !== 11) return `${normalizedDays} dan`;
+  return `${normalizedDays} dana`;
 };
 
 const featuredPlacementOptions = [
@@ -831,7 +835,7 @@ const FeaturedPlanModal = ({
                       )}
                     >
                       <CalendarDays className="h-4 w-4" />
-                      {days} dana
+                      {formatBosnianDays(days)}
                     </button>
                   );
                 })}
@@ -840,7 +844,7 @@ const FeaturedPlanModal = ({
 
             <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-3 text-sm dark:border-slate-700 dark:bg-slate-800/70">
               <p className="font-semibold text-slate-900 dark:text-slate-100">
-                Odabrano: {selectedPlacementMeta?.label} • {duration} dana
+                Odabrano: {selectedPlacementMeta?.label} • {formatBosnianDays(duration)}
               </p>
               <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                 Nakon potvrde, oglas će biti aktiviran prema odabranom planu
@@ -1272,6 +1276,7 @@ const MyAdsCard = ({
   onContextMenuAction,
   onFeatureAction,
 }) => {
+  const router = useRouter();
   const isJobCategory = Number(data?.category?.is_job_category) === 1;
   const translatedItem = data?.translated_item;
   const publishedAgo = formatRelativeTimeBs(
@@ -1696,8 +1701,8 @@ const MyAdsCard = ({
           e.preventDefault();
           setShowQuickActions(false);
         } else {
-          // Normalan klik - idi na link
-          window.location.href = `/my-listing/${data?.slug}`;
+          // Normalan klik - client navigation (bez full reloada) da auth token ostane aktivan.
+          router.push(`/my-listing/${data?.slug}`);
         }
       }}
       onDoubleClick={(e) => {
@@ -2114,7 +2119,7 @@ const MyAdsCard = ({
     <motion.div
       ref={cardShellRef}
       layout
-      className="relative h-full w-[95%] mx-auto"
+      className="relative h-full w-full"
     >
       {cardContent}
 

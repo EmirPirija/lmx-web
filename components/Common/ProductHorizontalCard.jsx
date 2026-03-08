@@ -547,6 +547,7 @@ const ProductHorizontalCard = ({ item, onClick, trackingParams }) => {
   }, [item?.image, item?.gallery_images]);
 
   const totalSlides = slides.length;
+  const hasImageSlides = slides.some((slide) => slide.type === "image");
   const isViewMoreSlide = slides[currentSlide]?.type === "viewMore";
 
   const threeDots = useMemo(
@@ -666,11 +667,26 @@ const ProductHorizontalCard = ({ item, onClick, trackingParams }) => {
                   className="h-full w-full object-cover"
                 />
               ) : (
-                <div className="flex h-full w-full items-center justify-center bg-primary/5 p-4 text-center">
-                  <div className="rounded-xl border border-primary/20 bg-primary/10 px-3 py-2 text-xs font-semibold text-primary">
-                    Otvori oglas
+                !hasImageSlides ? (
+                  <div className="flex h-full w-full flex-col items-center justify-center gap-3 bg-slate-100/80 p-4 text-center dark:bg-slate-900/70">
+                    <CustomImage
+                      src="/assets/lmx-watermark.png"
+                      width={320}
+                      height={140}
+                      alt="LMX logo"
+                      className="h-auto w-[48%] max-w-[150px] min-w-[72px] opacity-50 select-none pointer-events-none"
+                    />
+                    <p className="max-w-[80%] text-center text-xs leading-tight text-slate-500 sm:text-sm">
+                    Oglas bez slike
+                    </p>
                   </div>
-                </div>
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center bg-primary/5 p-4 text-center">
+                    <div className="rounded-xl border border-primary/20 bg-primary/10 px-3 py-2 text-xs font-semibold text-primary">
+                      Otvori oglas
+                    </div>
+                  </div>
+                )
               )}
             </div>
           ))}

@@ -12,17 +12,18 @@ import { useSelector } from "react-redux";
 import { CurrentLanguageData } from "@/redux/reducer/languageSlice";
 import { isRealEstateItem } from "@/utils/realEstatePricing";
 import {
-  resolveLocationSelection as resolveBiHLocationSelection,
   searchLocations as searchBiHLocations,
 } from "@/lib/bih-locations";
 
-const COORDINATE_MISMATCH_THRESHOLD_METERS = 60000;
 const LOCATION_SEARCH_SCORE_MATCH_THRESHOLD = 70;
 const MAP_PRIVACY_RADIUS_REAL_ESTATE_METERS = 100;
-const MAP_PRIVACY_RADIUS_MUNICIPALITY_METERS = 3200;
-const MAP_PRIVACY_RADIUS_CITY_METERS = 9000;
-const MAP_PRIVACY_RADIUS_GENERIC_METERS = 6000;
-const NOMINATIM_BASE_URL = "https://nominatim.openstreetmap.org/search";
+const MAP_PRIVACY_RADIUS_FALLBACK_METERS = 1800;
+const MAP_PRIVACY_RADIUS_MIN_METERS = 350;
+const MAP_PRIVACY_RADIUS_MAX_METERS = 9000;
+const MAP_PRIVACY_RADIUS_MAX_CITY_METERS = 7000;
+const MAP_PRIVACY_RADIUS_MAX_MUNICIPALITY_METERS = 3200;
+const COORDINATE_MISMATCH_FALLBACK_METERS = 6000;
+const INTERNAL_NOMINATIM_ENDPOINT = "/internal-api/nominatim";
 const NOMINATIM_MAX_RESULTS = 6;
 
 const Map = dynamic(() => import("@/components/Location/Map"), {
@@ -110,6 +111,338 @@ const resolveCoordinatesFromObject = (source) => {
   return null;
 };
 
+const normalizeBounds = ({ minLat, maxLat, minLng, maxLng }) => {
+  const south = parseCoordinate(minLat);
+  const north = parseCoordinate(maxLat);
+  const west = parseCoordinate(minLng);
+  const east = parseCoordinate(maxLng);
+
+  if (
+    !isValidLatitude(south) ||
+    !isValidLatitude(north) ||
+    !isValidLongitude(west) ||
+    !isValidLongitude(east)
+  ) {
+    return null;
+  }
+
+  const normalized = {
+    minLat: Math.min(south, north),
+    maxLat: Math.max(south, north),
+    minLng: Math.min(west, east),
+    maxLng: Math.max(west, east),
+  };
+
+  const hasArea =
+    Math.abs(normalized.maxLat - normalized.minLat) > 0.000001 ||
+    Math.abs(normalized.maxLng - normalized.minLng) > 0.000001;
+  if (!hasArea) return null;
+
+  return normalized;
+};
+
+const resolveBoundsFromArray = (rawBounds) => {
+  if (!Array.isArray(rawBounds) || rawBounds.length < 4) return null;
+  const values = rawBounds.slice(0, 4).map((entry) => parseCoordinate(entry));
+  if (values.some((entry) => entry === null)) return null;
+
+  const [a, b, c, d] = values;
+
+  // Nominatim: [south, north, west, east]
+  const asNominatim = normalizeBounds({
+    minLat: a,
+    maxLat: b,
+    minLng: c,
+    maxLng: d,
+  });
+
+  // GeoJSON bbox: [west, south, east, north]
+  const asGeoJson = normalizeBounds({
+    minLat: b,
+    maxLat: d,
+    minLng: a,
+    maxLng: c,
+  });
+
+  if (asNominatim && !asGeoJson) return asNominatim;
+  if (asGeoJson && !asNominatim) return asGeoJson;
+  if (!asGeoJson && !asNominatim) return null;
+
+  const nominatimArea =
+    (asNominatim.maxLat - asNominatim.minLat) *
+    (asNominatim.maxLng - asNominatim.minLng);
+  const geoJsonArea =
+    (asGeoJson.maxLat - asGeoJson.minLat) *
+    (asGeoJson.maxLng - asGeoJson.minLng);
+
+  return nominatimArea <= geoJsonArea ? asNominatim : asGeoJson;
+};
+
+const resolveCoordinatesFromPointLikeValue = (value) => {
+  if (!value) return null;
+  if (Array.isArray(value) && value.length >= 2) {
+    const first = parseCoordinate(value[0]);
+    const second = parseCoordinate(value[1]);
+    if (isMeaningfulCoordinatePair(first, second)) {
+      return { lat: first, lng: second };
+    }
+    if (isMeaningfulCoordinatePair(second, first)) {
+      return { lat: second, lng: first };
+    }
+    return null;
+  }
+  return resolveCoordinatesFromObject(value);
+};
+
+const resolveBoundsFromPointPair = (southWest, northEast) => {
+  if (!southWest || !northEast) return null;
+
+  const sw = resolveCoordinatesFromPointLikeValue(southWest);
+  const ne = resolveCoordinatesFromPointLikeValue(northEast);
+
+  if (!sw || !ne) return null;
+  return normalizeBounds({
+    minLat: sw.lat,
+    maxLat: ne.lat,
+    minLng: sw.lng,
+    maxLng: ne.lng,
+  });
+};
+
+const resolveBoundsFromObject = (source) => {
+  if (!source || typeof source !== "object") return null;
+
+  const arrayCandidates = [
+    source?.boundingbox,
+    source?.bounding_box,
+    source?.bbox,
+    source?.geojson?.bbox,
+    source?.geometry?.bbox,
+    source?.envelope,
+    source?.extent,
+  ];
+
+  for (const rawBounds of arrayCandidates) {
+    const resolved = resolveBoundsFromArray(rawBounds);
+    if (resolved) return resolved;
+  }
+
+  const directObjectBounds = normalizeBounds({
+    minLat:
+      source?.south ??
+      source?.minLat ??
+      source?.min_lat ??
+      source?.minLatitude ??
+      source?.min_latitude,
+    maxLat:
+      source?.north ??
+      source?.maxLat ??
+      source?.max_lat ??
+      source?.maxLatitude ??
+      source?.max_latitude,
+    minLng:
+      source?.west ??
+      source?.minLng ??
+      source?.min_lng ??
+      source?.minLongitude ??
+      source?.min_longitude,
+    maxLng:
+      source?.east ??
+      source?.maxLng ??
+      source?.max_lng ??
+      source?.maxLongitude ??
+      source?.max_longitude,
+  });
+  if (directObjectBounds) return directObjectBounds;
+
+  const objectCandidates = [source?.bounds, source?.viewport];
+  for (const boundsObject of objectCandidates) {
+    if (!boundsObject || typeof boundsObject !== "object") continue;
+
+    const directBounds = normalizeBounds({
+      minLat:
+        boundsObject?.south ??
+        boundsObject?.minLat ??
+        boundsObject?.min_lat,
+      maxLat:
+        boundsObject?.north ??
+        boundsObject?.maxLat ??
+        boundsObject?.max_lat,
+      minLng:
+        boundsObject?.west ??
+        boundsObject?.minLng ??
+        boundsObject?.min_lng,
+      maxLng:
+        boundsObject?.east ??
+        boundsObject?.maxLng ??
+        boundsObject?.max_lng,
+    });
+    if (directBounds) return directBounds;
+
+    const fromPoints = resolveBoundsFromPointPair(
+      boundsObject?.southwest || boundsObject?.sw || boundsObject?.southWest,
+      boundsObject?.northeast || boundsObject?.ne || boundsObject?.northEast,
+    );
+    if (fromPoints) return fromPoints;
+  }
+
+  return null;
+};
+
+const getCenterFromBounds = (bounds) => {
+  if (!bounds) return null;
+  const lat = (bounds.minLat + bounds.maxLat) / 2;
+  const lng = (bounds.minLng + bounds.maxLng) / 2;
+  if (!isMeaningfulCoordinatePair(lat, lng)) return null;
+  return { lat, lng };
+};
+
+const sanitizeLinearRingCoordinates = (ring) => {
+  if (!Array.isArray(ring)) return null;
+
+  const points = [];
+  for (const point of ring) {
+    if (!Array.isArray(point) || point.length < 2) continue;
+    const lng = parseCoordinate(point[0]);
+    const lat = parseCoordinate(point[1]);
+    if (!isMeaningfulCoordinatePair(lat, lng)) continue;
+    points.push([lng, lat]);
+  }
+
+  if (points.length < 3) return null;
+
+  const first = points[0];
+  const last = points[points.length - 1];
+  if (first[0] !== last[0] || first[1] !== last[1]) {
+    points.push([...first]);
+  }
+
+  if (points.length < 4) return null;
+  return points;
+};
+
+const sanitizeGeoJsonGeometry = (geometry) => {
+  if (!geometry || typeof geometry !== "object") return null;
+  const type = String(geometry?.type || "");
+  const coordinates = geometry?.coordinates;
+
+  if (type === "Polygon") {
+    if (!Array.isArray(coordinates)) return null;
+    const rings = coordinates
+      .map((ring) => sanitizeLinearRingCoordinates(ring))
+      .filter(Boolean);
+    if (!rings.length) return null;
+    return { type: "Polygon", coordinates: rings };
+  }
+
+  if (type === "MultiPolygon") {
+    if (!Array.isArray(coordinates)) return null;
+    const polygons = coordinates
+      .map((polygon) => {
+        if (!Array.isArray(polygon)) return null;
+        const rings = polygon
+          .map((ring) => sanitizeLinearRingCoordinates(ring))
+          .filter(Boolean);
+        return rings.length ? rings : null;
+      })
+      .filter(Boolean);
+    if (!polygons.length) return null;
+    return { type: "MultiPolygon", coordinates: polygons };
+  }
+
+  return null;
+};
+
+const toFeatureWithSanitizedGeometry = (candidate) => {
+  if (!candidate || typeof candidate !== "object") return null;
+
+  if (String(candidate?.type || "") === "Feature") {
+    const sanitizedGeometry = sanitizeGeoJsonGeometry(candidate?.geometry);
+    if (!sanitizedGeometry) return null;
+    return {
+      type: "Feature",
+      geometry: sanitizedGeometry,
+      properties:
+        candidate?.properties && typeof candidate.properties === "object"
+          ? candidate.properties
+          : {},
+    };
+  }
+
+  const sanitizedGeometry = sanitizeGeoJsonGeometry(candidate);
+  if (!sanitizedGeometry) return null;
+  return { type: "Feature", geometry: sanitizedGeometry, properties: {} };
+};
+
+const resolveZoneGeoJsonFromObject = (source) => {
+  if (!source || typeof source !== "object") return null;
+
+  const direct = toFeatureWithSanitizedGeometry(source);
+  if (direct) return direct;
+
+  const nestedCandidates = [
+    source?.geojson,
+    source?.geometry,
+    source?.polygon_geojson,
+    source?.polygon,
+    source?.shape,
+    source?.boundary,
+    source?.feature,
+    source?.feature?.geometry,
+  ];
+
+  for (const candidate of nestedCandidates) {
+    if (!candidate) continue;
+    let parsedCandidate = candidate;
+    if (typeof candidate === "string") {
+      try {
+        parsedCandidate = JSON.parse(candidate);
+      } catch {
+        continue;
+      }
+    }
+
+    const parsed = toFeatureWithSanitizedGeometry(parsedCandidate);
+    if (parsed) return parsed;
+  }
+
+  return null;
+};
+
+const resolveBoundsFromGeoJson = (geoJsonFeature) => {
+  if (!geoJsonFeature || typeof geoJsonFeature !== "object") return null;
+
+  const coordinates = geoJsonFeature?.geometry?.coordinates;
+  if (!coordinates) return null;
+
+  let minLat = Number.POSITIVE_INFINITY;
+  let maxLat = Number.NEGATIVE_INFINITY;
+  let minLng = Number.POSITIVE_INFINITY;
+  let maxLng = Number.NEGATIVE_INFINITY;
+  let hasPoint = false;
+
+  const walk = (node) => {
+    if (!Array.isArray(node)) return;
+    if (node.length >= 2 && !Array.isArray(node[0])) {
+      const lng = parseCoordinate(node[0]);
+      const lat = parseCoordinate(node[1]);
+      if (!isMeaningfulCoordinatePair(lat, lng)) return;
+      minLat = Math.min(minLat, lat);
+      maxLat = Math.max(maxLat, lat);
+      minLng = Math.min(minLng, lng);
+      maxLng = Math.max(maxLng, lng);
+      hasPoint = true;
+      return;
+    }
+    node.forEach(walk);
+  };
+
+  walk(coordinates);
+  if (!hasPoint) return null;
+
+  return normalizeBounds({ minLat, maxLat, minLng, maxLng });
+};
+
 const toSearchCandidatesArray = (payload) => {
   if (Array.isArray(payload)) return payload.filter(Boolean);
   if (Array.isArray(payload?.results)) return payload.results.filter(Boolean);
@@ -145,7 +478,200 @@ const collectSearchResultTokens = (result) => {
   return values.map((value) => normalizeText(value)).filter(Boolean);
 };
 
-const scoreSearchResultForQuery = (result, normalizedQuery) => {
+const ADMINISTRATIVE_ADDRESS_TYPES = new Set([
+  "municipality",
+  "city",
+  "town",
+  "village",
+  "district",
+  "borough",
+  "suburb",
+  "quarter",
+  "neighbourhood",
+]);
+
+const MUNICIPALITY_PREFERRED_ADDRESS_TYPES = new Set([
+  "municipality",
+  "district",
+  "borough",
+  "suburb",
+  "quarter",
+  "neighbourhood",
+  "town",
+  "village",
+]);
+
+const POINT_OF_INTEREST_ADDRESS_TYPES = new Set([
+  "amenity",
+  "shop",
+  "tourism",
+  "office",
+  "building",
+  "commercial",
+  "education",
+  "healthcare",
+]);
+
+const POINT_OF_INTEREST_CATEGORIES = new Set([
+  "amenity",
+  "shop",
+  "tourism",
+  "leisure",
+  "building",
+  "office",
+  "highway",
+  "railway",
+]);
+
+const tokenizeLocationWords = (value) =>
+  normalizeText(value)
+    .replace(/[^a-z0-9\s]/g, " ")
+    .split(/\s+/)
+    .map((word) => word.trim())
+    .filter((word) => word.length >= 2);
+
+const collectSearchResultWordSet = (result) => {
+  const wordSet = new Set();
+  collectSearchResultTokens(result).forEach((token) => {
+    tokenizeLocationWords(token).forEach((word) => {
+      wordSet.add(word);
+    });
+  });
+  return wordSet;
+};
+
+const allWordsMatch = (wordSet, words = []) => {
+  if (!Array.isArray(words) || !words.length) return false;
+  return words.every((word) => wordSet.has(word));
+};
+
+const dedupeWordGroups = (groups = []) => {
+  const deduped = [];
+  const seen = new Set();
+
+  groups.forEach((group) => {
+    if (!Array.isArray(group) || !group.length) return;
+    const normalizedGroup = Array.from(
+      new Set(group.map((word) => String(word || "").trim()).filter(Boolean)),
+    );
+    if (!normalizedGroup.length) return;
+    const key = normalizedGroup.join("|");
+    if (seen.has(key)) return;
+    seen.add(key);
+    deduped.push(normalizedGroup);
+  });
+
+  return deduped;
+};
+
+const buildLocationSearchIntent = (query) => {
+  const normalizedQuery = String(query || "").trim();
+  if (!normalizedQuery) return null;
+
+  const libraryMatches = searchBiHLocations(normalizedQuery).slice(0, 6);
+  if (!libraryMatches.length) return null;
+
+  const primaryMatch = libraryMatches[0];
+  const cityName = normalizeLocationToken(primaryMatch?.cityName || "");
+  const municipalityName = normalizeLocationToken(
+    primaryMatch?.municipalityName || "",
+  );
+
+  const cityWords = Array.from(new Set(tokenizeLocationWords(cityName)));
+  const municipalityWords = Array.from(
+    new Set(tokenizeLocationWords(municipalityName)),
+  );
+  const municipalityDistinctWords = municipalityWords.filter(
+    (word) => !cityWords.includes(word),
+  );
+  const municipalityWordGroups = dedupeWordGroups([
+    municipalityDistinctWords,
+    municipalityWords,
+  ]);
+
+  const expectsMunicipality = Boolean(
+    primaryMatch?.municipalityId || municipalityWordGroups.length,
+  );
+  const granularity = expectsMunicipality
+    ? "municipality"
+    : cityWords.length
+      ? "city"
+      : "generic";
+
+  return {
+    cityName,
+    municipalityName,
+    cityWords,
+    municipalityWordGroups,
+    expectsMunicipality,
+    granularity,
+  };
+};
+
+const estimateBoundsRadiusMeters = (bounds) => {
+  if (!bounds) return null;
+
+  const minLat = parseCoordinate(bounds?.minLat);
+  const maxLat = parseCoordinate(bounds?.maxLat);
+  const minLng = parseCoordinate(bounds?.minLng);
+  const maxLng = parseCoordinate(bounds?.maxLng);
+
+  if (
+    !isValidLatitude(minLat) ||
+    !isValidLatitude(maxLat) ||
+    !isValidLongitude(minLng) ||
+    !isValidLongitude(maxLng)
+  ) {
+    return null;
+  }
+
+  const centerLat = (minLat + maxLat) / 2;
+  const latSpanMeters = Math.abs(maxLat - minLat) * 111320;
+  const lngSpanMeters =
+    Math.abs(maxLng - minLng) *
+    111320 *
+    Math.max(Math.cos((centerLat * Math.PI) / 180), 0.2);
+
+  if (!Number.isFinite(latSpanMeters) || !Number.isFinite(lngSpanMeters)) {
+    return null;
+  }
+
+  const halfDiagonal =
+    Math.sqrt(latSpanMeters * latSpanMeters + lngSpanMeters * lngSpanMeters) /
+    2;
+  return Number.isFinite(halfDiagonal) && halfDiagonal > 0
+    ? halfDiagonal
+    : null;
+};
+
+const getMinZoneRadiusForGranularity = (granularity = "generic") => {
+  if (granularity === "municipality") return 700;
+  if (granularity === "city") return 1600;
+  return 500;
+};
+
+const isResultAdministrativeBoundary = (result) => {
+  const category = normalizeText(result?.category);
+  const type = normalizeText(result?.type);
+  const addresstype = normalizeText(result?.addresstype);
+
+  return (
+    (category === "boundary" || type === "administrative") &&
+    ADMINISTRATIVE_ADDRESS_TYPES.has(addresstype)
+  );
+};
+
+const isBoundsUsableForGranularity = (bounds, granularity = "generic") => {
+  const estimatedRadiusMeters = estimateBoundsRadiusMeters(bounds);
+  if (!Number.isFinite(estimatedRadiusMeters)) return false;
+  return estimatedRadiusMeters >= getMinZoneRadiusForGranularity(granularity);
+};
+
+const scoreSearchResultForQuery = (
+  result,
+  normalizedQuery,
+  locationIntent = null,
+) => {
   if (!normalizedQuery) return 0;
   const tokens = collectSearchResultTokens(result);
   if (!tokens.length) return 0;
@@ -170,6 +696,19 @@ const scoreSearchResultForQuery = (result, normalizedQuery) => {
     }
   }
 
+  const addresstype = normalizeText(result?.addresstype);
+  const category = normalizeText(result?.category);
+  const type = normalizeText(result?.type);
+  const placeRank = Number(result?.place_rank);
+  const geoType = normalizeText(result?.geojson?.type);
+  const bounds = resolveBoundsFromObject(result);
+  const isAdministrativeBoundaryResult = isResultAdministrativeBoundary(result);
+  const isPointOfInterestResult =
+    POINT_OF_INTEREST_ADDRESS_TYPES.has(addresstype) ||
+    POINT_OF_INTEREST_CATEGORIES.has(category);
+  const approximateZoneRadiusMeters = estimateBoundsRadiusMeters(bounds);
+
+  let adjustedScore = bestScore;
   const resultCoordinates = resolveCoordinatesFromObject(result);
   if (
     bestScore > 0 &&
@@ -178,13 +717,91 @@ const scoreSearchResultForQuery = (result, normalizedQuery) => {
       resultCoordinates?.lng ?? null,
     )
   ) {
-    return bestScore + 8;
+    adjustedScore += 8;
   }
 
-  return bestScore;
+  if (category === "boundary" || type === "administrative") {
+    adjustedScore += 28;
+  }
+  if (ADMINISTRATIVE_ADDRESS_TYPES.has(addresstype)) {
+    adjustedScore += 20;
+  }
+  if (Number.isFinite(placeRank) && placeRank <= 16) {
+    adjustedScore += 8;
+  }
+
+  if (isPointOfInterestResult) {
+    adjustedScore -= 30;
+  }
+
+  if (geoType === "polygon" || geoType === "multipolygon") {
+    adjustedScore += 10;
+  } else if (geoType === "point") {
+    adjustedScore -= 16;
+  }
+
+  if (bounds) {
+    const latSpan = Math.abs(bounds.maxLat - bounds.minLat);
+    const lngSpan = Math.abs(bounds.maxLng - bounds.minLng);
+    const isTinyArea = latSpan < 0.002 && lngSpan < 0.002;
+    if (isTinyArea) adjustedScore -= 12;
+  }
+
+  if (locationIntent) {
+    const resultWordSet = collectSearchResultWordSet(result);
+    const cityWords = locationIntent?.cityWords || [];
+    const municipalityWordGroups = locationIntent?.municipalityWordGroups || [];
+
+    if (cityWords.length) {
+      adjustedScore += allWordsMatch(resultWordSet, cityWords) ? 14 : -18;
+    }
+
+    if (locationIntent?.expectsMunicipality) {
+      const hasMunicipalityMatch = municipalityWordGroups.some((group) =>
+        allWordsMatch(resultWordSet, group),
+      );
+
+      adjustedScore += hasMunicipalityMatch ? 56 : -56;
+
+      if (MUNICIPALITY_PREFERRED_ADDRESS_TYPES.has(addresstype)) {
+        adjustedScore += 28;
+      }
+      if (addresstype === "city" || addresstype === "county") {
+        adjustedScore -= 30;
+      }
+      if (!(category === "boundary" || type === "administrative")) {
+        adjustedScore -= 20;
+      }
+      if (isPointOfInterestResult) {
+        adjustedScore -= 95;
+      }
+      if (!isAdministrativeBoundaryResult) {
+        adjustedScore -= 45;
+      }
+      if (
+        Number.isFinite(approximateZoneRadiusMeters) &&
+        approximateZoneRadiusMeters <
+          getMinZoneRadiusForGranularity("municipality")
+      ) {
+        adjustedScore -= 80;
+      }
+    } else if (locationIntent?.granularity === "city") {
+      if (isPointOfInterestResult) {
+        adjustedScore -= 55;
+      }
+      if (
+        Number.isFinite(approximateZoneRadiusMeters) &&
+        approximateZoneRadiusMeters < getMinZoneRadiusForGranularity("city")
+      ) {
+        adjustedScore -= 40;
+      }
+    }
+  }
+
+  return adjustedScore;
 };
 
-const pickBestSearchResult = (payload, searchQuery) => {
+const pickBestSearchResult = (payload, searchQuery, locationIntent = null) => {
   const results = toSearchCandidatesArray(payload);
   if (!results.length) return null;
   const normalizedQuery = normalizeText(searchQuery);
@@ -193,7 +810,11 @@ const pickBestSearchResult = (payload, searchQuery) => {
   let bestScore = -1;
 
   for (const result of results) {
-    const score = scoreSearchResultForQuery(result, normalizedQuery);
+    const score = scoreSearchResultForQuery(
+      result,
+      normalizedQuery,
+      locationIntent,
+    );
     if (score > bestScore) {
       bestScore = score;
       bestResult = result;
@@ -204,12 +825,86 @@ const pickBestSearchResult = (payload, searchQuery) => {
   return bestResult || null;
 };
 
+const buildMunicipalityAliases = (municipalityName, cityName) => {
+  const normalizedMunicipality = String(municipalityName || "").trim();
+  if (!normalizedMunicipality) return [];
+
+  const aliases = [normalizedMunicipality];
+  const cityWords = new Set(tokenizeLocationWords(cityName));
+  const strippedAliasWords = normalizedMunicipality
+    .split(/\s+/)
+    .map((entry) => entry.trim())
+    .filter(Boolean)
+    .filter((entry) => {
+      const normalizedEntry = tokenizeLocationWords(entry)[0];
+      return normalizedEntry ? !cityWords.has(normalizedEntry) : true;
+    });
+  if (strippedAliasWords.length) {
+    aliases.push(strippedAliasWords.join(" "));
+  }
+
+  normalizedMunicipality
+    .split("-")
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length >= 3)
+    .forEach((entry) => {
+      aliases.push(entry);
+    });
+
+  const deduped = [];
+  const seen = new Set();
+  aliases.forEach((alias) => {
+    const key = normalizeText(alias);
+    if (!key || seen.has(key)) return;
+    seen.add(key);
+    deduped.push(alias);
+  });
+
+  return deduped.slice(0, 3);
+};
+
 const buildLocationSearchVariants = (query) => {
   const normalizedQuery = String(query || "").trim();
   if (!normalizedQuery) return [];
 
   const libraryMatches = searchBiHLocations(normalizedQuery).slice(0, 6);
+  const strictAdministrativeVariants = [];
+  libraryMatches.forEach((entry) => {
+    const municipalityName = String(entry?.municipalityName || "").trim();
+    const cityName = String(entry?.cityName || "").trim();
+
+    if (municipalityName && cityName) {
+      const municipalityAliases = buildMunicipalityAliases(
+        municipalityName,
+        cityName,
+      );
+      strictAdministrativeVariants.push(
+        `Općina ${municipalityName}, ${cityName}, Bosna i Hercegovina`,
+        `Opština ${municipalityName}, ${cityName}, Bosna i Hercegovina`,
+        `Grad ${cityName}, Općina ${municipalityName}, Bosna i Hercegovina`,
+        `${municipalityName}, ${cityName}, Bosna i Hercegovina`,
+      );
+
+      municipalityAliases.forEach((alias) => {
+        strictAdministrativeVariants.push(
+          `Općina ${alias}, ${cityName}, Bosna i Hercegovina`,
+          `Opština ${alias}, ${cityName}, Bosna i Hercegovina`,
+          `${cityName} - ${alias}, Bosna i Hercegovina`,
+        );
+      });
+      return;
+    }
+
+    if (cityName) {
+      strictAdministrativeVariants.push(
+        `Grad ${cityName}, Bosna i Hercegovina`,
+        `${cityName}, Bosna i Hercegovina`,
+      );
+    }
+  });
+
   const variants = [
+    ...strictAdministrativeVariants,
     normalizedQuery,
     `${normalizedQuery}, Bosna i Hercegovina`,
     `${normalizedQuery}, BiH`,
@@ -241,26 +936,47 @@ const getCoordinatesFromNominatimResult = (result) => {
   return { lat, lng };
 };
 
+const buildResolvedSearchCandidate = (result) => {
+  if (!result || typeof result !== "object") return null;
+
+  const zoneGeoJson = resolveZoneGeoJsonFromObject(result);
+  const bounds =
+    resolveBoundsFromObject(result) || resolveBoundsFromGeoJson(zoneGeoJson);
+  const coordinates =
+    resolveCoordinatesFromObject(result) ||
+    getCoordinatesFromNominatimResult(result) ||
+    getCenterFromBounds(bounds);
+
+  if (!isMeaningfulCoordinatePair(coordinates?.lat, coordinates?.lng)) {
+    return null;
+  }
+
+  return {
+    lat: coordinates.lat,
+    lng: coordinates.lng,
+    bounds: bounds || null,
+    zoneGeoJson: zoneGeoJson || null,
+  };
+};
+
 const resolveCoordinatesViaNominatim = async ({
   searchVariants = [],
   baseQuery = "",
   languageCode = "bs",
+  locationIntent = null,
 }) => {
   const candidateQueries = [...searchVariants, baseQuery]
     .map((value) => String(value || "").trim())
     .filter(Boolean);
   if (!candidateQueries.length) return null;
 
-  let bestCoordinates = null;
+  let bestCandidate = null;
   let bestScore = -1;
 
   for (const query of candidateQueries.slice(0, 5)) {
     const params = new URLSearchParams({
-      format: "jsonv2",
-      addressdetails: "1",
-      countrycodes: "ba",
-      limit: String(NOMINATIM_MAX_RESULTS),
       q: query,
+      limit: String(NOMINATIM_MAX_RESULTS),
     });
     if (languageCode) {
       params.set("accept-language", languageCode);
@@ -268,12 +984,15 @@ const resolveCoordinatesViaNominatim = async ({
 
     let response = null;
     try {
-      response = await fetch(`${NOMINATIM_BASE_URL}?${params.toString()}`, {
-        method: "GET",
-        headers: {
-          Accept: "application/json",
+      response = await fetch(
+        `${INTERNAL_NOMINATIM_ENDPOINT}?${params.toString()}`,
+        {
+          method: "GET",
+          headers: {
+            Accept: "application/json",
+          },
         },
-      });
+      );
     } catch {
       continue;
     }
@@ -285,27 +1004,50 @@ const resolveCoordinatesViaNominatim = async ({
     } catch {
       continue;
     }
-    const results = Array.isArray(payload) ? payload : [];
+    const results = Array.isArray(payload)
+      ? payload
+      : Array.isArray(payload?.data)
+        ? payload.data
+        : [];
     if (!results.length) continue;
 
     for (const result of results) {
-      const coordinates = getCoordinatesFromNominatimResult(result);
-      if (!coordinates) continue;
+      const candidate = buildResolvedSearchCandidate(result);
+      if (!candidate) continue;
+      const candidateGranularity = locationIntent?.expectsMunicipality
+        ? "municipality"
+        : locationIntent?.granularity || "generic";
+      const hasUsableCandidateBounds = isBoundsUsableForGranularity(
+        candidate?.bounds,
+        candidateGranularity,
+      );
 
-      const score = scoreSearchResultForQuery(
-        result,
-        normalizeText(baseQuery || query),
+      if (locationIntent?.expectsMunicipality && !hasUsableCandidateBounds) {
+        continue;
+      }
+
+      const score = Math.max(
+        scoreSearchResultForQuery(
+          result,
+          normalizeText(baseQuery || query),
+          locationIntent,
+        ),
+        scoreSearchResultForQuery(
+          result,
+          normalizeText(query),
+          locationIntent,
+        ),
       );
       if (score > bestScore) {
         bestScore = score;
-        bestCoordinates = coordinates;
+        bestCandidate = candidate;
       }
     }
   }
 
-  if (!bestCoordinates) return null;
+  if (!bestCandidate) return null;
   if (bestScore < LOCATION_SEARCH_SCORE_MATCH_THRESHOLD) return null;
-  return bestCoordinates;
+  return bestCandidate;
 };
 
 const resolvePrimaryCoordinates = (details) => {
@@ -434,6 +1176,71 @@ const distanceBetweenCoordinatesMeters = (from, to) => {
     Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return earthRadiusMeters * c;
+};
+
+const isCoordinateWithinBounds = (coordinates, bounds) => {
+  if (!coordinates || !bounds) return false;
+  if (!isMeaningfulCoordinatePair(coordinates.lat, coordinates.lng)) return false;
+
+  return (
+    coordinates.lat >= bounds.minLat &&
+    coordinates.lat <= bounds.maxLat &&
+    coordinates.lng >= bounds.minLng &&
+    coordinates.lng <= bounds.maxLng
+  );
+};
+
+const getRadiusMaxForGranularity = (granularity = "generic") => {
+  if (granularity === "municipality") {
+    return MAP_PRIVACY_RADIUS_MAX_MUNICIPALITY_METERS;
+  }
+  if (granularity === "city") {
+    return MAP_PRIVACY_RADIUS_MAX_CITY_METERS;
+  }
+  return MAP_PRIVACY_RADIUS_MAX_METERS;
+};
+
+const getRadiusFallbackForGranularity = (granularity = "generic") => {
+  if (granularity === "municipality") return 1200;
+  if (granularity === "city") return 2200;
+  return MAP_PRIVACY_RADIUS_FALLBACK_METERS;
+};
+
+const estimateRadiusFromBoundsMeters = (
+  bounds,
+  {
+    minMeters = MAP_PRIVACY_RADIUS_MIN_METERS,
+    maxMeters = MAP_PRIVACY_RADIUS_MAX_METERS,
+  } = {},
+) => {
+  if (!bounds) return null;
+
+  const center = getCenterFromBounds(bounds);
+  if (!center) return null;
+
+  const westPoint = { lat: center.lat, lng: bounds.minLng };
+  const eastPoint = { lat: center.lat, lng: bounds.maxLng };
+  const southPoint = { lat: bounds.minLat, lng: center.lng };
+  const northPoint = { lat: bounds.maxLat, lng: center.lng };
+
+  const widthMeters = distanceBetweenCoordinatesMeters(westPoint, eastPoint);
+  const heightMeters = distanceBetweenCoordinatesMeters(southPoint, northPoint);
+
+  if (!Number.isFinite(widthMeters) || !Number.isFinite(heightMeters)) {
+    return null;
+  }
+  if (widthMeters <= 0 || heightMeters <= 0) return null;
+
+  const equivalentAreaRadius = Math.sqrt((widthMeters * heightMeters) / Math.PI);
+  const halfDiagonal =
+    Math.sqrt(widthMeters * widthMeters + heightMeters * heightMeters) / 2;
+  const normalizedRadius = Math.max(equivalentAreaRadius, halfDiagonal * 0.72);
+
+  return clamp(
+    normalizedRadius,
+    minMeters,
+    maxMeters,
+  );
 };
 
 const createSeed = (input) => {
@@ -948,7 +1755,60 @@ const ProductLocation = ({ productDetails, onMapOpen }) => {
   }, [locationPartsWithoutCountry, regionLabel, zoneLocation]);
 
   const searchLocationQuery = useMemo(() => {
+    const areaToken = normalizeLocationToken(
+      areaLocationSignal ||
+        productDetails?.area_name ||
+        productDetails?.area?.translated_name ||
+        productDetails?.area?.name ||
+        productDetails?.translated_item?.area_name ||
+        municipalityOrCityFallback,
+    );
+    const cityToken = normalizeLocationToken(
+      productDetails?.city_translation ||
+        productDetails?.city ||
+        productDetails?.translated_item?.city_translation ||
+        productDetails?.translated_item?.city ||
+        resolvedLocationByPin?.city ||
+        "",
+    );
+    const stateToken = normalizeLocationToken(
+      productDetails?.state_translation ||
+        productDetails?.state ||
+        productDetails?.translated_item?.state_translation ||
+        productDetails?.translated_item?.state ||
+        resolvedLocationByPin?.state ||
+        "",
+    );
+
+    const composedParts = [];
+    const pushComposedPart = (part) => {
+      const normalized = normalizeLocationToken(part);
+      if (!normalized) return;
+      const normalizedLower = normalized.toLowerCase();
+      if (composedParts.some((entry) => entry.toLowerCase() === normalizedLower)) {
+        return;
+      }
+      if (
+        composedParts.some(
+          (entry) =>
+            entry.toLowerCase().includes(normalizedLower) ||
+            normalizedLower.includes(entry.toLowerCase()),
+        )
+      ) {
+        return;
+      }
+      composedParts.push(normalized);
+    };
+
+    pushComposedPart(areaToken);
+    pushComposedPart(cityToken);
+    pushComposedPart(stateToken);
+
+    const composedSpecificQuery =
+      composedParts.length >= 2 ? composedParts.join(", ") : "";
+
     const candidates = [
+      composedSpecificQuery,
       areaLocationSignal,
       productDetails?.area_name,
       productDetails?.area?.translated_name,
@@ -996,8 +1856,25 @@ const ProductLocation = ({ productDetails, onMapOpen }) => {
     shortLocation,
     fallbackLocationText,
     structuredLocationText,
+    resolvedLocationByPin?.city,
+    resolvedLocationByPin?.state,
     resolvedLocationByPin?.address,
   ]);
+
+  const searchLocationIntent = useMemo(
+    () => buildLocationSearchIntent(searchLocationQuery),
+    [searchLocationQuery],
+  );
+  const searchLocationGranularity =
+    searchLocationIntent?.granularity || "generic";
+  const mapRadiusMaxMeters = useMemo(
+    () => getRadiusMaxForGranularity(searchLocationGranularity),
+    [searchLocationGranularity],
+  );
+  const mapRadiusFallbackMeters = useMemo(
+    () => getRadiusFallbackForGranularity(searchLocationGranularity),
+    [searchLocationGranularity],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -1035,29 +1912,61 @@ const ProductLocation = ({ productDetails, onMapOpen }) => {
           }
 
           const payload = response?.data?.data;
-          const bestResult = pickBestSearchResult(payload, searchLocationQuery);
+          const bestResult = pickBestSearchResult(
+            payload,
+            searchLocationQuery,
+            searchLocationIntent,
+          );
           if (!bestResult) continue;
 
-          const score = scoreSearchResultForQuery(
-            bestResult,
-            normalizeText(searchLocationQuery),
+          const score = Math.max(
+            scoreSearchResultForQuery(
+              bestResult,
+              normalizeText(searchLocationQuery),
+              searchLocationIntent,
+            ),
+            scoreSearchResultForQuery(
+              bestResult,
+              normalizeText(searchVariant),
+              searchLocationIntent,
+            ),
           );
-          const coordinates = resolveCoordinatesFromObject(bestResult);
-          if (!coordinates) continue;
+          const resolvedCandidate = buildResolvedSearchCandidate(bestResult);
+          if (!resolvedCandidate) continue;
 
           if (score > bestScore) {
             bestScore = score;
-            bestResolved = coordinates;
+            bestResolved = resolvedCandidate;
           }
         }
 
-        const resolved =
-          bestResolved ||
-          (await resolveCoordinatesViaNominatim({
+        let nominatimResolved = null;
+        if (
+          !bestResolved ||
+          !bestResolved?.bounds ||
+          !bestResolved?.zoneGeoJson
+        ) {
+          nominatimResolved = await resolveCoordinatesViaNominatim({
             searchVariants,
             baseQuery: searchLocationQuery,
             languageCode: currentLanguage?.code || "bs",
-          }));
+            locationIntent: searchLocationIntent,
+          });
+        }
+
+        const resolved = nominatimResolved?.zoneGeoJson
+          ? nominatimResolved
+          : bestResolved
+            ? {
+                ...bestResolved,
+                bounds:
+                  bestResolved?.bounds || nominatimResolved?.bounds || null,
+                zoneGeoJson:
+                  bestResolved?.zoneGeoJson ||
+                  nominatimResolved?.zoneGeoJson ||
+                  null,
+              }
+            : nominatimResolved;
         if (!cancelled) {
           setResolvedCoordinatesBySearch(resolved || null);
         }
@@ -1067,6 +1976,7 @@ const ProductLocation = ({ productDetails, onMapOpen }) => {
             searchVariants: buildLocationSearchVariants(searchLocationQuery),
             baseQuery: searchLocationQuery,
             languageCode: currentLanguage?.code || "bs",
+            locationIntent: searchLocationIntent,
           });
           setResolvedCoordinatesBySearch(fallbackResolved || null);
         }
@@ -1077,56 +1987,66 @@ const ProductLocation = ({ productDetails, onMapOpen }) => {
     return () => {
       cancelled = true;
     };
-  }, [currentLanguage?.code, searchLocationQuery]);
+  }, [currentLanguage?.code, searchLocationIntent, searchLocationQuery]);
+
+  const searchAreaBounds = resolvedCoordinatesBySearch?.bounds || null;
+  const hasUsableSearchBounds = useMemo(
+    () =>
+      isBoundsUsableForGranularity(searchAreaBounds, searchLocationGranularity),
+    [searchAreaBounds, searchLocationGranularity],
+  );
+  const effectiveSearchAreaBounds = hasUsableSearchBounds
+    ? searchAreaBounds
+    : null;
+  const searchAreaGeoJson =
+    hasUsableSearchBounds && resolvedCoordinatesBySearch?.zoneGeoJson
+      ? resolvedCoordinatesBySearch.zoneGeoJson
+      : null;
+  const inferredSearchRadiusMeters = useMemo(
+    () =>
+      estimateRadiusFromBoundsMeters(effectiveSearchAreaBounds, {
+        maxMeters: mapRadiusMaxMeters,
+      }),
+    [effectiveSearchAreaBounds, mapRadiusMaxMeters],
+  );
+  const coordinateMismatchThresholdMeters = useMemo(() => {
+    if (Number.isFinite(inferredSearchRadiusMeters)) {
+      return clamp(inferredSearchRadiusMeters * 1.25, 1400, mapRadiusMaxMeters * 1.45);
+    }
+    return Math.max(
+      Math.min(COORDINATE_MISMATCH_FALLBACK_METERS, mapRadiusMaxMeters * 1.1),
+      mapRadiusFallbackMeters * 1.8,
+    );
+  }, [inferredSearchRadiusMeters, mapRadiusFallbackMeters, mapRadiusMaxMeters]);
 
   const mapPrivacyRadiusMeters = useMemo(() => {
     if (isRealEstateAd) return MAP_PRIVACY_RADIUS_REAL_ESTATE_METERS;
-
-    const resolvedBiHLocation = resolveBiHLocationSelection({
-      city:
-        resolvedLocationByPin?.city ||
-        productDetails?.city_translation ||
-        productDetails?.city ||
-        "",
-      municipalityName:
-        resolvedLocationByPin?.area ||
-        productDetails?.area?.translated_name ||
-        productDetails?.area?.name ||
-        productDetails?.area_name ||
-        municipalityOrCityFallback ||
-        "",
-      state:
-        resolvedLocationByPin?.state ||
-        productDetails?.state_translation ||
-        productDetails?.state ||
-        "",
-    });
-
-    if (resolvedBiHLocation?.municipality) {
-      return MAP_PRIVACY_RADIUS_MUNICIPALITY_METERS;
+    if (Number.isFinite(inferredSearchRadiusMeters)) {
+      return clamp(
+        inferredSearchRadiusMeters,
+        MAP_PRIVACY_RADIUS_MIN_METERS,
+        mapRadiusMaxMeters,
+      );
     }
-    if (resolvedBiHLocation?.city) return MAP_PRIVACY_RADIUS_CITY_METERS;
-    return MAP_PRIVACY_RADIUS_GENERIC_METERS;
+    return mapRadiusFallbackMeters;
   }, [
+    inferredSearchRadiusMeters,
     isRealEstateAd,
-    municipalityOrCityFallback,
-    productDetails?.area?.name,
-    productDetails?.area?.translated_name,
-    productDetails?.area_name,
-    productDetails?.city,
-    productDetails?.city_translation,
-    productDetails?.state,
-    productDetails?.state_translation,
-    resolvedLocationByPin?.area,
-    resolvedLocationByPin?.city,
-    resolvedLocationByPin?.state,
+    mapRadiusFallbackMeters,
+    mapRadiusMaxMeters,
   ]);
+
+  const mapPrivacyZoneGeoJson = useMemo(() => {
+    if (isRealEstateAd) return null;
+    return searchAreaGeoJson || null;
+  }, [isRealEstateAd, searchAreaGeoJson]);
 
   const effectiveCoordinates = useMemo(() => {
     const preciseCandidate = isMeaningfulCoordinatePair(preciseLat, preciseLng)
       ? { lat: preciseLat, lng: preciseLng }
       : null;
     const resolvedSearchCandidate = resolvedCoordinatesBySearch;
+    const searchBounds = effectiveSearchAreaBounds;
     const searchCandidate = isMeaningfulCoordinatePair(
       resolvedSearchCandidate?.lat ?? null,
       resolvedSearchCandidate?.lng ?? null,
@@ -1149,9 +2069,19 @@ const ProductLocation = ({ productDetails, onMapOpen }) => {
       const hasStrongLocalitySignal = Boolean(
         normalizeLocationToken(municipalityOrCityFallback),
       );
+      const preciseInsideSearchBounds = searchBounds
+        ? isCoordinateWithinBounds(preciseCandidate, searchBounds)
+        : true;
       if (
         hasStrongLocalitySignal &&
-        mismatchDistance > COORDINATE_MISMATCH_THRESHOLD_METERS
+        searchBounds &&
+        !preciseInsideSearchBounds
+      ) {
+        return searchCandidate;
+      }
+      if (
+        hasStrongLocalitySignal &&
+        mismatchDistance > coordinateMismatchThresholdMeters
       ) {
         return searchCandidate;
       }
@@ -1176,6 +2106,8 @@ const ProductLocation = ({ productDetails, onMapOpen }) => {
     preciseLng,
     resolvedCoordinatesBySearch?.lat,
     resolvedCoordinatesBySearch?.lng,
+    effectiveSearchAreaBounds,
+    coordinateMismatchThresholdMeters,
   ]);
 
   const obscuredCoordinates = useMemo(() => {
@@ -1193,6 +2125,7 @@ const ProductLocation = ({ productDetails, onMapOpen }) => {
   ]);
 
   const hasCoordinates = Boolean(obscuredCoordinates);
+  const hasZoneBoundary = Boolean(mapPrivacyZoneGeoJson);
   const shortLocationDisplay = useMemo(() => {
     if (!shortLocation || shortLocation === "Lokacija nije specificirana") {
       return shortLocation;
@@ -1200,10 +2133,14 @@ const ProductLocation = ({ productDetails, onMapOpen }) => {
     return hasCoordinates ? `Okvirno ${shortLocation}` : shortLocation;
   }, [hasCoordinates, shortLocation]);
   const locationHeaderHint = hasCoordinates
-    ? "Prikazujemo okvirnu zonu radi privatnosti prodavača."
+    ? hasZoneBoundary
+      ? "Prikazujemo okvirnu zonu prema granicama odabrane lokacije radi privatnosti prodavača."
+      : "Prikazujemo okvirnu zonu radi privatnosti prodavača."
     : "Lokacija je informativna (grad/općina), a tačnu adresu potvrđuje prodavač.";
   const privacyHint = hasCoordinates
-    ? "Tačna adresa nije javno prikazana i dijeli se po dogovoru sa prodavačem."
+    ? hasZoneBoundary
+      ? "Tačna adresa nije javno prikazana. Prikazana zona prati okvirne granice lokacije."
+      : "Tačna adresa nije javno prikazana i dijeli se po dogovoru sa prodavačem."
     : "Prikazana lokacija je informativna i može odstupati od tačne adrese.";
 
   const handleShowMapClick = () => {
@@ -1321,9 +2258,6 @@ const ProductLocation = ({ productDetails, onMapOpen }) => {
             </svg>
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-slate-700 break-words leading-relaxed dark:text-slate-200">
-              {shortLocationDisplay}
-            </p>
             <div className="mt-2 flex flex-wrap gap-2">
               {regionLabel ? (
                 <span className="inline-flex items-center rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
@@ -1349,6 +2283,7 @@ const ProductLocation = ({ productDetails, onMapOpen }) => {
             productData={mapProductData}
             privacyMode
             approximateRadiusMeters={mapPrivacyRadiusMeters}
+            approximateZoneGeoJson={mapPrivacyZoneGeoJson}
           />
         </div>
 

@@ -632,6 +632,7 @@ const ProductCard = ({ item, isLoading, onClick, trackingParams }) => {
   }, [item?.image, item?.gallery_images]);
 
   const totalSlides = slides.length;
+  const hasImageSlides = slides.some((slide) => slide.type === "image");
   const isViewMoreSlide = slides[currentSlide]?.type === "viewMore";
 
   // Kontrole za slajder
@@ -716,7 +717,7 @@ const ProductCard = ({ item, isLoading, onClick, trackingParams }) => {
     <CustomLink
       href={productLink}
       className={cn(
-        "group relative flex h-full w-[95%] flex-col overflow-hidden mx-auto",
+        "group relative flex h-full w-full flex-col overflow-hidden",
         "bg-white rounded-xl border border-slate-100 dark:bg-slate-900 dark:border-slate-800",
         "transition-all duration-200",
         "hover:shadow-sm",
@@ -750,17 +751,32 @@ const ProductCard = ({ item, isLoading, onClick, trackingParams }) => {
                 alt={translated_item?.name || item?.name || "listing"}
               />
             ) : (
-              <div className="w-full h-full flex flex-col items-center justify-center p-6 bg-primary/5">
-                <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center mb-3 border border-primary/15">
-                  <ChevronRight className="w-6 h-6" />
+              !hasImageSlides ? (
+                <div className="w-full h-full flex flex-col items-center justify-center gap-3 p-6 bg-slate-100/80 dark:bg-slate-900/70">
+                  <CustomImage
+                    src="/assets/lmx-watermark.png"
+                    width={320}
+                    height={140}
+                    className="h-auto w-[52%] max-w-[180px] min-w-[90px] opacity-50 select-none pointer-events-none"
+                    alt="LMX logo"
+                  />
+                  <p className="max-w-[80%] text-center text-sm leading-tight text-slate-500">
+                    Oglas bez slike
+                  </p>
                 </div>
-                <p className="text-center text-sm font-semibold text-slate-900 dark:text-slate-100">
-                  Detalji
-                </p>
-                <p className="text-xs text-slate-500 text-center mt-1">
-                  Otvori oglas
-                </p>
-              </div>
+              ) : (
+                <div className="w-full h-full flex flex-col items-center justify-center p-6 bg-primary/5">
+                  <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center mb-3 border border-primary/15">
+                    <ChevronRight className="w-6 h-6" />
+                  </div>
+                  <p className="text-center text-sm font-semibold text-slate-900 dark:text-slate-100">
+                    Detalji
+                  </p>
+                  <p className="text-xs text-slate-500 text-center mt-1">
+                    Otvori oglas
+                  </p>
+                </div>
+              )
             )}
           </div>
 

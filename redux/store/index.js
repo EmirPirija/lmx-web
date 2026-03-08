@@ -21,6 +21,7 @@ const persistConfig = {
   whitelist: [
     "Settings",
     "Category",
+    "UserSignup",
     "BreadcrumbPath",
     "CurrentLanguage",
     "Location",

@@ -60,15 +60,26 @@ const parseDateSafe = (value, { endOfDay = false } = {}) => {
   return null;
 };
 
+const formatBosnianDayCount = (value) => {
+  const days = Math.max(0, Math.abs(Math.trunc(Number(value) || 0)));
+  const mod10 = days % 10;
+  const mod100 = days % 100;
+
+  if (mod10 === 1 && mod100 !== 11) return `${days} dan`;
+  return `${days} dana`;
+};
+
 const formatRemainingShortBs = (msLeft) => {
   if (msLeft <= 0) return "Isteklo";
 
   const minutes = Math.ceil(msLeft / (60 * 1000));
   const hours = Math.ceil(msLeft / (60 * 60 * 1000));
-  const days = Math.ceil(msLeft / (24 * 60 * 60 * 1000));
+  const dayMs = 24 * 60 * 60 * 1000;
 
-  if (days >= 2) return `${days} dana`;
-  if (days === 1 && hours > 24) return "1 dan";
+  if (msLeft >= dayMs) {
+    const days = Math.ceil(msLeft / dayMs);
+    return formatBosnianDayCount(days);
+  }
   if (hours >= 2) return `${hours} h`;
   if (hours === 1) return "1 h";
   return `${Math.max(1, minutes)} min`;

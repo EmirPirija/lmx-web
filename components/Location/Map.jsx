@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import L from "leaflet";
-import { Circle, MapContainer, TileLayer, useMap } from "react-leaflet";
+import { Circle, GeoJSON, MapContainer, TileLayer, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { useLeafletTileTheme } from "@/hooks/useLeafletTileTheme";
 
@@ -200,6 +200,8 @@ const MapViewportSync = ({
   zoom,
   privacyMode = false,
   approximateRadiusMeters = 0,
+  approximateZoneBounds = null,
+  approximateZoneBoundsKey = "",
 }) => {
   const map = useMap();
   const previousViewportRef = useRef(null);
@@ -222,12 +224,30 @@ const MapViewportSync = ({
     const hasModeChanged = !previous || previous.privacyMode !== privacyMode;
     const hasRadiusChanged =
       !previous || previous.approximateRadiusMeters !== approximateRadiusMeters;
+    const hasZoneBoundsChanged =
+      !previous ||
+      previous.approximateZoneBoundsKey !== approximateZoneBoundsKey;
     const hasZoomChanged = !previous || previous.zoom !== zoom;
     const hasViewportChanged =
-      hasCenterChanged || hasModeChanged || hasRadiusChanged || hasZoomChanged;
+      hasCenterChanged ||
+      hasModeChanged ||
+      hasRadiusChanged ||
+      hasZoneBoundsChanged ||
+      hasZoomChanged;
 
     if (hasViewportChanged) {
-      if (privacyMode && approximateRadiusMeters > 0) {
+      if (
+        privacyMode &&
+        Array.isArray(approximateZoneBounds) &&
+        approximateZoneBounds.length === 2
+      ) {
+        const bounds = L.latLngBounds(approximateZoneBounds);
+        map.fitBounds(bounds, {
+          animate: false,
+          padding: [16, 16],
+          maxZoom: 14,
+        });
+      } else if (privacyMode && approximateRadiusMeters > 0) {
         const fitDiameterMeters = Math.max(approximateRadiusMeters * 2.2, 800);
         const bounds = L.latLng(center[0], center[1]).toBounds(
           fitDiameterMeters,
@@ -245,6 +265,7 @@ const MapViewportSync = ({
         center: [center[0], center[1]],
         privacyMode,
         approximateRadiusMeters,
+        approximateZoneBoundsKey,
         zoom,
       };
     }
@@ -256,7 +277,15 @@ const MapViewportSync = ({
     return () => {
       window.clearTimeout(resizeTimer);
     };
-  }, [map, center, zoom, privacyMode, approximateRadiusMeters]);
+  }, [
+    map,
+    center,
+    zoom,
+    privacyMode,
+    approximateRadiusMeters,
+    approximateZoneBounds,
+    approximateZoneBoundsKey,
+  ]);
 
   return null;
 };
@@ -267,6 +296,7 @@ const Map = ({
   productData,
   privacyMode = false,
   approximateRadiusMeters = 0,
+  approximateZoneGeoJson = null,
 }) => {
   const tileTheme = useLeafletTileTheme();
   const containerStyle = {
@@ -284,6 +314,32 @@ const Map = ({
   const shouldShowMarker = isValidLat && isValidLng;
   const center = [lat, lng];
   const zoom = privacyMode ? 13 : 14;
+  const hasApproximateZoneGeoJson = Boolean(privacyMode && approximateZoneGeoJson);
+
+  const approximateZoneBounds = useMemo(() => {
+    if (!hasApproximateZoneGeoJson) return null;
+    try {
+      const layer = L.geoJSON(approximateZoneGeoJson);
+      const bounds = layer.getBounds();
+      if (!bounds || !bounds.isValid()) return null;
+      const southWest = bounds.getSouthWest();
+      const northEast = bounds.getNorthEast();
+      return [
+        [southWest.lat, southWest.lng],
+        [northEast.lat, northEast.lng],
+      ];
+    } catch {
+      return null;
+    }
+  }, [approximateZoneGeoJson, hasApproximateZoneGeoJson]);
+
+  const approximateZoneBoundsKey = useMemo(() => {
+    if (!approximateZoneBounds) return "";
+    return approximateZoneBounds
+      .flat()
+      .map((value) => Number(value).toFixed(6))
+      .join("|");
+  }, [approximateZoneBounds]);
 
   if (!shouldShowMarker) return null;
 
@@ -595,6 +651,8 @@ const Map = ({
           zoom={zoom}
           privacyMode={privacyMode}
           approximateRadiusMeters={approximateRadiusMeters}
+          approximateZoneBounds={approximateZoneBounds}
+          approximateZoneBoundsKey={approximateZoneBoundsKey}
         />
 
         <TileLayer
@@ -604,7 +662,22 @@ const Map = ({
           maxZoom={tileTheme.maxZoom}
         />
 
-        {privacyMode && approximateRadiusMeters > 0 && (
+        {hasApproximateZoneGeoJson ? (
+          <GeoJSON
+            data={approximateZoneGeoJson}
+            style={() => ({
+              color: "#ef4444",
+              weight: 3,
+              dashArray: "3 7",
+              fillColor: "#14b8a6",
+              fillOpacity: 0.07,
+              opacity: 0.95,
+            })}
+            interactive={false}
+          />
+        ) : null}
+
+        {!hasApproximateZoneGeoJson && privacyMode && approximateRadiusMeters > 0 && (
           <Circle
             center={center}
             radius={approximateRadiusMeters}
