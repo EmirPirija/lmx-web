@@ -60,6 +60,11 @@ const getOfferModeFromValue = (value) => {
   return null;
 };
 
+const GALLERY_HERO_IMAGE_WIDTH = 1920;
+const GALLERY_HERO_IMAGE_HEIGHT = 1200;
+const GALLERY_HERO_IMAGE_SIZES =
+  "(max-width: 640px) 100vw, (max-width: 1024px) 94vw, (max-width: 1280px) 74vw, 66vw";
+
 const extractFieldValues = (field) => {
   const candidates = [
     field?.translated_selected_values,
@@ -363,7 +368,7 @@ const ProductGallery = ({
         </div>
       )}
     >
-      <div className="overflow-hidden rounded-none border-y border-slate-200/80 bg-gradient-to-br from-gray-50 via-white to-gray-100 p-0 shadow-[0_22px_55px_-36px_rgba(15,23,42,0.55)] dark:border-slate-700/70 dark:from-slate-900 dark:via-slate-900/85 dark:to-slate-800 sm:rounded-3xl sm:border sm:p-3">
+      <div className="overflow-hidden rounded-none border-y border-slate-200/80 bg-gradient-to-br from-gray-50 via-white to-gray-100 p-0 shadow-[0_22px_55px_-36px_rgba(15,23,42,0.55)] dark:border-slate-700/70 dark:from-slate-900 dark:via-slate-900/85 dark:to-slate-800 sm:rounded-3xl sm:border">
         <div
           className="relative overflow-hidden bg-black group/main z-0 sm:rounded-2xl"
           onTouchStart={handleMediaTouchStart}
@@ -448,10 +453,12 @@ const ProductGallery = ({
                   <CustomImage
                     src={placeHolderImage}
                     alt="Product placeholder"
-                    width={870}
-                    height={500}
+                    width={GALLERY_HERO_IMAGE_WIDTH}
+                    height={GALLERY_HERO_IMAGE_HEIGHT}
                     priority
                     loading="eager"
+                    quality={90}
+                    sizes={GALLERY_HERO_IMAGE_SIZES}
                     className="h-full w-full object-cover object-center"
                   />
                 </div>
@@ -471,10 +478,12 @@ const ProductGallery = ({
                         <CustomImage
                           src={imageUrl}
                           alt={`Product ${index + 1}`}
-                          width={870}
-                          height={500}
+                          width={GALLERY_HERO_IMAGE_WIDTH}
+                          height={GALLERY_HERO_IMAGE_HEIGHT}
                           priority={isPriority}
                           loading={isPriority ? "eager" : "lazy"}
+                          quality={92}
+                          sizes={GALLERY_HERO_IMAGE_SIZES}
                           className={`h-full w-full object-cover object-center transition-all duration-500 ${
                             selectedIndex === index && imageLoaded
                               ? "opacity-100 scale-100"

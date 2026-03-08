@@ -37,7 +37,6 @@ import SellerDetailCard from "./ProductSellerDetailCard";
 import ProductFeature from "./ProductFeature";
 import ProductDescription from "./ProductDescription";
 import ProductQuestions from "./ProductQuestions";
-import ProductLocation from "./ProductLocation";
 import SellerOtherAds from "./SellerOtherAds";
 import SimilarProducts from "./SimilarProducts";
 import ProfileDropdown from "@/components/PagesComponent/Home/ProfileDropdown";
@@ -53,6 +52,7 @@ import AdStatisticsSection from "@/components/PagesComponent/MyAds/AdStatisticsS
 import GiveReview from "@/components/PagesComponent/Chat/GiveReview";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import DeferredSection from "@/components/Common/DeferredSection";
 
 // Redux
 import { CurrentLanguageData } from "@/redux/reducer/languageSlice";
@@ -581,7 +581,6 @@ const ProductDetails = ({ slug }) => {
     trackImageZoom,
     trackVideoPlay,
     trackDescriptionExpand,
-    trackMapOpen,
     trackSellerProfileClick,
     trackPriceHistoryView,
     trackSimilarItemsClick,
@@ -642,7 +641,9 @@ const ProductDetails = ({ slug }) => {
 
       // Views - don't track if owner or accessed via my-listing
       if (!isMyListingPath && !isProductOwner) {
-        await setItemTotalClickApi.setItemTotalClick({ item_id: product.id });
+        setItemTotalClickApi
+          .setItemTotalClick({ item_id: product.id })
+          .catch(() => {});
       }
 
       // Breadcrumb
@@ -650,7 +651,7 @@ const ProductDetails = ({ slug }) => {
         dispatch(
           setBreadcrumbPath([
             { name: "Moji oglasi", slug: "/my-ads" },
-            { name: truncate(product.name, 40) },
+            { name: product?.name || "" },
           ]),
         );
       }
@@ -934,7 +935,7 @@ const ProductDetails = ({ slug }) => {
         {isMyListing ? (
           <BreadCrumb />
         ) : (
-          <BreadCrumb title2={truncate(productDetails?.name, 60)} />
+          <BreadCrumb title2={productDetails?.name || ""} />
         )}
       </div>
 
@@ -1025,21 +1026,18 @@ const ProductDetails = ({ slug }) => {
             </div>
 
             {/* 6. PITANJA */}
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-400">
+            <DeferredSection
+              rootMargin="440px 0px"
+              minHeight={280}
+              idleTimeoutMs={1400}
+              className="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-400"
+            >
               <ProductQuestions
                 productDetails={productDetails}
                 isSeller={isMyListing}
                 sellerSettings={sellerSettings}
               />
-            </div>
-
-            {/* LOKACIJA */}
-            <div className="animate-in fade-in slide-in-from-right-4 duration-500 delay-300">
-              <ProductLocation
-                productDetails={productDetails}
-                onMapOpen={trackMapOpen}
-              />
-            </div>
+            </DeferredSection>
           </div>
 
           {/* --- DESNA KOLONA (Sidebar) --- */}
@@ -1125,22 +1123,32 @@ const ProductDetails = ({ slug }) => {
 
         {/* OSTALI OGLASI ISTOG PRODAVAČA */}
         {!isMyListing && (
-          <div className="mt-12 lg:mt-16 animate-in fade-in slide-in-from-bottom-8 duration-700">
+          <DeferredSection
+            rootMargin="900px 0px"
+            minHeight={240}
+            idleTimeoutMs={1800}
+            className="mt-12 lg:mt-16 animate-in fade-in slide-in-from-bottom-8 duration-700"
+          >
             <SellerOtherAds
               productDetails={productDetails}
               onItemClick={trackSimilarItemsClick}
             />
-          </div>
+          </DeferredSection>
         )}
 
         {/* SLIČNI OGLASI */}
         {!isMyListing && (
-          <div className="mt-10 lg:mt-16 animate-in fade-in slide-in-from-bottom-8 duration-700">
+          <DeferredSection
+            rootMargin="1100px 0px"
+            minHeight={240}
+            idleTimeoutMs={2400}
+            className="mt-10 lg:mt-16 animate-in fade-in slide-in-from-bottom-8 duration-700"
+          >
             <SimilarProducts
               productDetails={productDetails}
               onItemClick={trackSimilarItemsClick}
             />
-          </div>
+          </DeferredSection>
         )}
       </div>
 
