@@ -2,6 +2,13 @@ import { Manrope } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/redux/store/providers";
 import { Toaster } from "@/components/ui/sonner";
+import StructuredData from "@/components/Layout/StructuredData";
+import {
+  buildGlobalSeoSchemas,
+  buildSeoMetadata,
+  fetchGlobalSeo,
+  fetchSystemSettingsSeo,
+} from "@/lib/seoRuntime";
 
 import CompareFloatingBar from "@/components/Compare/CompareFloatingBar";
 
@@ -22,68 +29,57 @@ const normalizeUrl = (value) => {
 };
 
 // Metadata (SEO)
-export const generateMetadata = () => {
+export const generateMetadata = async () => {
   const siteUrl = normalizeUrl(process.env.NEXT_PUBLIC_WEB_URL);
-  const title =
-    process.env.NEXT_PUBLIC_META_TITLE ||
-    "LMX - Marketplace za kupovinu i prodaju u BiH";
-  const description =
-    process.env.NEXT_PUBLIC_META_DESCRIPTION ||
-    "Objavi oglas i kupuj/prodaj proizvode i usluge širom BiH na LMX marketplace platformi.";
-  const keywords =
-    process.env.NEXT_PUBLIC_META_KEYWORDS ||
-    process.env.NEXT_PUBLIC_META_kEYWORDS ||
-    "LMX, marketplace BiH, oglasi, kupovina, prodaja";
-  const ogImage = `${siteUrl}/apple-touch-icon.png`;
+  const globalSeo =
+    process.env.NEXT_PUBLIC_SEO === "false"
+      ? null
+      : await fetchGlobalSeo("en");
+  const metadata = buildSeoMetadata({
+    seo: globalSeo,
+    fallbackTitle:
+      process.env.NEXT_PUBLIC_META_TITLE ||
+      "LMX - Marketplace za kupovinu i prodaju u BiH",
+    fallbackDescription:
+      process.env.NEXT_PUBLIC_META_DESCRIPTION ||
+      "Objavi oglas i kupuj/prodaj proizvode i usluge širom BiH na LMX marketplace platformi.",
+    fallbackKeywords:
+      process.env.NEXT_PUBLIC_META_KEYWORDS ||
+      process.env.NEXT_PUBLIC_META_kEYWORDS ||
+      "LMX, marketplace BiH, oglasi, kupovina, prodaja",
+    canonicalPath: "/",
+    fallbackImage: `${siteUrl}/apple-touch-icon.png`,
+  });
   const googleVerification = process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION;
 
   return {
     metadataBase: new URL(siteUrl),
-    title,
-    description,
-    keywords,
-    alternates: {
-      canonical: "/",
-    },
-    robots: {
-      index: true,
-      follow: true,
-      googleBot: {
-        index: true,
-        follow: true,
-      },
-    },
+    ...metadata,
     verification: googleVerification
       ? {
           google: googleVerification,
         }
       : undefined,
-    openGraph: {
-      title,
-      description,
-      url: siteUrl,
-      siteName: "LMX",
-      type: "website",
-      locale: "bs_BA",
-      images: [
-        {
-          url: ogImage,
-          width: 1200,
-          height: 630,
-          alt: "LMX marketplace",
-        },
-      ],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-      images: [ogImage],
-    },
   };
 };
 
-export default function RootLayout({ children }) {
+export default async function RootLayout({ children }) {
+  const globalSeo =
+    process.env.NEXT_PUBLIC_SEO === "false"
+      ? null
+      : await fetchGlobalSeo("en");
+  const systemSettings =
+    process.env.NEXT_PUBLIC_SEO === "false"
+      ? null
+      : await fetchSystemSettingsSeo();
+  const globalSchemas =
+    process.env.NEXT_PUBLIC_SEO === "false"
+      ? []
+      : buildGlobalSeoSchemas({
+          seo: globalSeo,
+          systemSettings,
+        });
+
   return (
     <html
       lang="en"
@@ -107,6 +103,8 @@ export default function RootLayout({ children }) {
           !pointer-events-auto relative
         `}
       >
+        {globalSchemas.length > 0 ? <StructuredData data={globalSchemas} /> : null}
+
         {/* 1. ThemeProvider mora obuhvatiti cijelu aplikaciju */}
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
           

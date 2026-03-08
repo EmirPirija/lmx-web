@@ -2,6 +2,11 @@ import StructuredData from "@/components/Layout/StructuredData";
 import Products from "@/components/PagesComponent/Ads/Ads";
 import { SEO_REVALIDATE_SECONDS } from "@/lib/constants";
 import { generateKeywords } from "@/utils/generateKeywords";
+import {
+  buildSeoMetadata,
+  fetchSeoPage,
+  getSeoCustomSchema,
+} from "@/lib/seoRuntime";
 
 export const dynamic = "force-dynamic";
 
@@ -101,8 +106,11 @@ export const generateMetadata = async ({ searchParams }) => {
 
     let title = process.env.NEXT_PUBLIC_META_TITLE;
     let description = process.env.NEXT_PUBLIC_META_DESCRIPTION;
-    let keywords = process.env.NEXT_PUBLIC_META_kEYWORDS;
+    let keywords =
+      process.env.NEXT_PUBLIC_META_KEYWORDS ||
+      process.env.NEXT_PUBLIC_META_kEYWORDS;
     let image = "";
+    let listingSeo = null;
 
     if (slug) {
       // Fetch category-specific SEO
@@ -121,13 +129,8 @@ export const generateMetadata = async ({ searchParams }) => {
       image = selfCategory?.image || image;
     } else {
       // Fetch default ad listing SEO
-      const data = await fetchJsonWithTimeout(
-        `${process.env.NEXT_PUBLIC_API_URL}${process.env.NEXT_PUBLIC_END_POINT}seo-settings?page=ad-listing`,
-        {
-          headers: { "Content-Language": langCode || "en" },
-        }
-      );
-      const adListing = data?.data?.[0];
+      listingSeo = await fetchSeoPage("ad-listing", langCode || "en");
+      const adListing = listingSeo || {};
 
       title = adListing?.translated_title || title;
       description = adListing?.translated_description || description;
@@ -139,17 +142,25 @@ export const generateMetadata = async ({ searchParams }) => {
     const paramsStr = buildCanonicalParams(originalSearchParams);
     const canonicalUrl = `${baseUrl}/ads${paramsStr ? `?${paramsStr}` : ""}`;
 
-    return {
-      title,
-      description,
-      openGraph: {
-        images: image ? [image] : [],
-      },
-      keywords,
-      alternates: {
-        canonical: canonicalUrl,
-      },
-    };
+    if (!slug) {
+      return buildSeoMetadata({
+        seo: listingSeo,
+        fallbackTitle: title,
+        fallbackDescription: description,
+        fallbackKeywords: keywords,
+        explicitCanonical: canonicalUrl,
+        fallbackImage: image || "/apple-touch-icon.png",
+      });
+    }
+
+    return buildSeoMetadata({
+      seo: null,
+      fallbackTitle: title,
+      fallbackDescription: description,
+      fallbackKeywords: keywords,
+      explicitCanonical: canonicalUrl,
+      fallbackImage: image || "/apple-touch-icon.png",
+    });
   } catch (error) {
     console.error("Error fetching MetaData:", error);
     return null;
@@ -182,9 +193,11 @@ const getAllItems = async (langCode, searchParams) => {
 const AdsPage = async ({ searchParams }) => {
   const originalSearchParams = await searchParams;
   const langCode = originalSearchParams?.lang || "en";
+  const listingSeo = await fetchSeoPage("ad-listing", langCode || "en");
+  const customSchema = getSeoCustomSchema(listingSeo);
   const AllItems = await getAllItems(langCode, originalSearchParams);
 
-  const jsonLd = AllItems
+  const baseJsonLd = AllItems
     ? {
         "@context": "https://schema.org",
         "@type": "ItemList",
@@ -205,7 +218,7 @@ const AdsPage = async ({ searchParams }) => {
             offers: {
               "@type": "Offer",
               price: product.price || undefined,
-              priceCurrency: product?.price ? "USD" : undefined,
+              priceCurrency: product?.price ? "BAM" : undefined,
               availability: product?.price
                 ? "https://schema.org/InStock"
                 : "https://schema.org/PreOrder",
@@ -215,6 +228,13 @@ const AdsPage = async ({ searchParams }) => {
         })),
       }
     : null;
+
+  let jsonLd = baseJsonLd;
+  if (baseJsonLd && Array.isArray(customSchema)) {
+    jsonLd = [baseJsonLd, ...customSchema];
+  } else if (baseJsonLd && customSchema && typeof customSchema === "object") {
+    jsonLd = [baseJsonLd, customSchema];
+  }
 
   return (
     <>

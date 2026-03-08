@@ -1,5 +1,5 @@
 import TermsAndCondition from "@/components/PagesComponent/StaticPages/TermsAndCondition";
-import { SEO_REVALIDATE_SECONDS } from "@/lib/constants";
+import { buildSeoMetadata, fetchSeoPage } from "@/lib/seoRuntime";
 
 
 
@@ -9,34 +9,16 @@ export const generateMetadata = async ({ searchParams }) => {
     if (process.env.NEXT_PUBLIC_SEO === "false") return;
     const params = await searchParams;
     const langCode = params?.lang || "en";
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}${process.env.NEXT_PUBLIC_END_POINT}seo-settings?page=terms-and-conditions`,
-      {
-        headers: {
-          "Content-Language": langCode || "en",
-        },
-        next: {
-          revalidate: SEO_REVALIDATE_SECONDS,
-        },
-      }
-    );
-    const data = await res.json();
-    const termsAndConditions = data?.data?.[0];
-
-    return {
-      title:
-        termsAndConditions?.translated_title ||
-        process.env.NEXT_PUBLIC_META_TITLE,
-      description:
-        termsAndConditions?.translated_description ||
-        process.env.NEXT_PUBLIC_META_DESCRIPTION,
-      openGraph: {
-        images: termsAndConditions?.image ? [termsAndConditions?.image] : [],
-      },
-      keywords:
-        termsAndConditions?.translated_keywords ||
+    const seo = await fetchSeoPage("terms-and-conditions", langCode || "en");
+    return buildSeoMetadata({
+      seo,
+      fallbackTitle: process.env.NEXT_PUBLIC_META_TITLE,
+      fallbackDescription: process.env.NEXT_PUBLIC_META_DESCRIPTION,
+      fallbackKeywords:
+        process.env.NEXT_PUBLIC_META_KEYWORDS ||
         process.env.NEXT_PUBLIC_META_kEYWORDS,
-    };
+      canonicalPath: "/terms-and-condition",
+    });
   } catch (error) {
     console.error("Error fetching MetaData:", error);
     return null;

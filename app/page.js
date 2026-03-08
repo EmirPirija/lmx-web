@@ -2,6 +2,11 @@ import Layout from "@/components/Layout/Layout";
 import StructuredData from "@/components/Layout/StructuredData";
 import Home from "@/components/PagesComponent/Home/Home";
 import { SEO_REVALIDATE_SECONDS } from "@/lib/constants";
+import {
+  buildSeoMetadata,
+  fetchSeoPage,
+  getSeoCustomSchema,
+} from "@/lib/seoRuntime";
 
 const fetchJsonWithTimeout = async (
   url,
@@ -34,27 +39,16 @@ export const generateMetadata = async ({ searchParams }) => {
   const langCode = (await searchParams)?.lang;
 
   try {
-    const data = await fetchJsonWithTimeout(
-      `${process.env.NEXT_PUBLIC_API_URL}${process.env.NEXT_PUBLIC_END_POINT}seo-settings?page=home`,
-      {
-        headers: {
-          "Content-Language": langCode || "en",
-        },
-      }
-    );
-    const home = data?.data?.[0];
-
-    return {
-      title: home?.translated_title || process.env.NEXT_PUBLIC_META_TITLE,
-      description:
-        home?.translated_description ||
-        process.env.NEXT_PUBLIC_META_DESCRIPTION,
-      openGraph: {
-        images: home?.image ? [home?.image] : [],
-      },
-      keywords:
-        home?.translated_keywords || process.env.NEXT_PUBLIC_META_kEYWORDS,
-    };
+    const homeSeo = await fetchSeoPage("home", langCode || "en");
+    return buildSeoMetadata({
+      seo: homeSeo,
+      fallbackTitle: process.env.NEXT_PUBLIC_META_TITLE,
+      fallbackDescription: process.env.NEXT_PUBLIC_META_DESCRIPTION,
+      fallbackKeywords:
+        process.env.NEXT_PUBLIC_META_KEYWORDS ||
+        process.env.NEXT_PUBLIC_META_kEYWORDS,
+      canonicalPath: "/",
+    });
   } catch (error) {
     console.error("Error fetching MetaData:", error);
     return null;
@@ -99,15 +93,17 @@ const fetchProductItems = async (langCode) => {
 
 export default async function HomePage({ searchParams }) {
   const langCode = (await searchParams)?.lang;
+  const homeSeo = await fetchSeoPage("home", langCode || "en");
   const [categoriesData, productItemsData] = await Promise.all([
     fetchCategories(langCode),
     fetchProductItems(langCode),
   ]);
 
   let jsonLd = null;
+  const customSchema = getSeoCustomSchema(homeSeo);
 
   if (process.env.NEXT_PUBLIC_SEO !== "false") {
-    jsonLd = {
+    const itemListSchema = {
       "@context": "https://schema.org",
       "@type": "ItemList",
       itemListElement: [
@@ -135,7 +131,7 @@ export default async function HomePage({ searchParams }) {
               offers: {
                 "@type": "Offer",
                 price: product?.price,
-                priceCurrency: "USD",
+                priceCurrency: "BAM",
               },
             }),
             countryOfOrigin: product?.translated_item?.country,
@@ -143,6 +139,14 @@ export default async function HomePage({ searchParams }) {
         })),
       ],
     };
+
+    if (Array.isArray(customSchema)) {
+      jsonLd = [itemListSchema, ...customSchema];
+    } else if (customSchema && typeof customSchema === "object") {
+      jsonLd = [itemListSchema, customSchema];
+    } else {
+      jsonLd = itemListSchema;
+    }
   }
 
   return (

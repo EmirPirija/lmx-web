@@ -1,6 +1,11 @@
 import StructuredData from "@/components/Layout/StructuredData";
 import BlogDetailPage from "@/components/PagesComponent/BlogDetail/BlogDetailPage";
 import { SEO_REVALIDATE_SECONDS } from "@/lib/constants";
+import {
+  buildSeoMetadata,
+  fetchSeoPage,
+  getSeoCustomSchema,
+} from "@/lib/seoRuntime";
 
 const stripHtml = (html) => {
   return html.replace(/<[^>]*>/g, ""); // Regular expression to remove HTML tags
@@ -19,6 +24,7 @@ export const generateMetadata = async ({ params, searchParams }) => {
     const slugParams = await params;
     const langParams = await searchParams;
     const langCode = langParams?.lang || "en";
+    const blogsSeo = await fetchSeoPage("blogs", langCode || "en");
     const response = await fetch(
       `${process.env.NEXT_PUBLIC_API_URL}${process.env.NEXT_PUBLIC_END_POINT}blogs?slug=${slugParams?.slug}`,
       {
@@ -43,16 +49,19 @@ export const generateMetadata = async ({ params, searchParams }) => {
       ""
     );
 
-    return {
-      title: data?.translated_title || process.env.NEXT_PUBLIC_META_TITLE,
-      description: plainTextDescription
-        ? plainTextDescription
-        : process.env.NEXT_PUBLIC_META_DESCRIPTION,
-      openGraph: {
-        images: data?.image ? [data?.image] : [],
-      },
-      keywords: data?.translated_tags || process.env.NEXT_PUBLIC_META_kEYWORDS,
-    };
+    return buildSeoMetadata({
+      seo: blogsSeo,
+      fallbackTitle: data?.translated_title || process.env.NEXT_PUBLIC_META_TITLE,
+      fallbackDescription:
+        plainTextDescription || process.env.NEXT_PUBLIC_META_DESCRIPTION,
+      fallbackKeywords: Array.isArray(data?.translated_tags)
+        ? data.translated_tags.join(", ")
+        : data?.translated_tags ||
+          process.env.NEXT_PUBLIC_META_KEYWORDS ||
+          process.env.NEXT_PUBLIC_META_kEYWORDS,
+      canonicalPath: `/blogs/${slugParams?.slug || ""}`,
+      fallbackImage: data?.image || "/apple-touch-icon.png",
+    });
   } catch (error) {
     console.error("Error fetching MetaData:", error);
     return null;
@@ -87,9 +96,11 @@ const fetchSingleBlogItem = async (slug, langCode) => {
 const BlogPage = async ({ params, searchParams }) => {
   const { slug } = await params;
   const langCode = (await searchParams).lang || "en";
+  const blogsSeo = await fetchSeoPage("blogs", langCode || "en");
+  const customSchema = getSeoCustomSchema(blogsSeo);
   const singleBlog = await fetchSingleBlogItem(slug, langCode);
 
-  const jsonLd = singleBlog
+  const baseJsonLd = singleBlog
     ? {
         "@context": "https://schema.org",
         "@type": "BlogPosting",
@@ -108,9 +119,16 @@ const BlogPage = async ({ params, searchParams }) => {
       }
     : null;
 
+  let jsonLd = baseJsonLd;
+  if (baseJsonLd && Array.isArray(customSchema)) {
+    jsonLd = [baseJsonLd, ...customSchema];
+  } else if (baseJsonLd && customSchema && typeof customSchema === "object") {
+    jsonLd = [baseJsonLd, customSchema];
+  }
+
   return (
     <>
-      <StructuredData data={jsonLd} />
+      {jsonLd ? <StructuredData data={jsonLd} /> : null}
       <BlogDetailPage slug={slug} />
     </>
   );

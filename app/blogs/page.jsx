@@ -1,6 +1,11 @@
 import StructuredData from "@/components/Layout/StructuredData";
 import Blogs from "@/components/PagesComponent/Blogs/Blogs";
 import { SEO_REVALIDATE_SECONDS } from "@/lib/constants";
+import {
+  buildSeoMetadata,
+  fetchSeoPage,
+  getSeoCustomSchema,
+} from "@/lib/seoRuntime";
 
 
 export const generateMetadata = async ({ searchParams }) => {
@@ -8,34 +13,16 @@ export const generateMetadata = async ({ searchParams }) => {
     if (process.env.NEXT_PUBLIC_SEO === "false") return;
     const params = await searchParams;
     const langCode = params?.lang || "en";
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}${process.env.NEXT_PUBLIC_END_POINT}seo-settings?page=blogs`,
-      {
-        headers: {
-          "Content-Language": langCode || "en",
-        },
-        next: {
-          revalidate: SEO_REVALIDATE_SECONDS,
-        },
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error("Failed to fetch blogs metadata");
-    }
-    const data = await response.json();
-    const blogs = data?.data[0];
-    return {
-      title: blogs?.translated_title || process.env.NEXT_PUBLIC_META_TITLE,
-      description:
-        blogs?.translated_description ||
-        process.env.NEXT_PUBLIC_META_DESCRIPTION,
-      openGraph: {
-        images: blogs?.image ? [blogs?.image] : [],
-      },
-      keywords:
-        blogs?.translated_keywords || process.env.NEXT_PUBLIC_META_kEYWORDS,
-    };
+    const seo = await fetchSeoPage("blogs", langCode || "en");
+    return buildSeoMetadata({
+      seo,
+      fallbackTitle: process.env.NEXT_PUBLIC_META_TITLE,
+      fallbackDescription: process.env.NEXT_PUBLIC_META_DESCRIPTION,
+      fallbackKeywords:
+        process.env.NEXT_PUBLIC_META_KEYWORDS ||
+        process.env.NEXT_PUBLIC_META_kEYWORDS,
+      canonicalPath: "/blogs",
+    });
   } catch (error) {
     console.error("Error fetching MetaData:", error);
     return null;
@@ -55,7 +42,7 @@ const formatDate = (dateString) => {
 
 const fetchBlogItems = async (langCode, tag) => {
   try {
-    if (process.env.NEXT_PUBLIC_SEO === "false") return;
+    if (process.env.NEXT_PUBLIC_SEO === "false") return [];
     let url = `${process.env.NEXT_PUBLIC_API_URL}${process.env.NEXT_PUBLIC_END_POINT}blogs`;
 
     if (tag) {
@@ -86,9 +73,11 @@ const BlogsPage = async ({ searchParams }) => {
   const params = await searchParams;
   const langCode = params?.lang || "en";
   const tag = params?.tag || null;
+  const blogsSeo = await fetchSeoPage("blogs", langCode || "en");
+  const customSchema = getSeoCustomSchema(blogsSeo);
   const blogItems = await fetchBlogItems(langCode, tag);
 
-  const jsonLd = blogItems
+  const baseJsonLd = blogItems
     ? {
         "@context": "https://schema.org",
         "@type": "ItemList",
@@ -111,9 +100,17 @@ const BlogsPage = async ({ searchParams }) => {
         })),
       }
     : null;
+
+  let jsonLd = baseJsonLd;
+  if (baseJsonLd && Array.isArray(customSchema)) {
+    jsonLd = [baseJsonLd, ...customSchema];
+  } else if (baseJsonLd && customSchema && typeof customSchema === "object") {
+    jsonLd = [baseJsonLd, customSchema];
+  }
+
   return (
     <>
-      <StructuredData data={jsonLd} />
+      {jsonLd ? <StructuredData data={jsonLd} /> : null}
       <Blogs />
     </>
   );

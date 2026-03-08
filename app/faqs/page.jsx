@@ -1,5 +1,5 @@
 import FaqsPage from "@/components/PagesComponent/Faq/FaqsPage";
-import { SEO_REVALIDATE_SECONDS } from "@/lib/constants";
+import { buildSeoMetadata, fetchSeoPage } from "@/lib/seoRuntime";
 
 
 export const generateMetadata = async ({ searchParams }) => {
@@ -7,31 +7,16 @@ export const generateMetadata = async ({ searchParams }) => {
     if (process.env.NEXT_PUBLIC_SEO === "false") return;
     const params = await searchParams;
     const langCode = params?.lang || "en";
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}${process.env.NEXT_PUBLIC_END_POINT}seo-settings?page=faqs`,
-      {
-        headers: {
-          "Content-Language": langCode || "en",
-        },
-        next: {
-          revalidate: SEO_REVALIDATE_SECONDS,
-        },
-      }
-    );
-    const data = await response.json();
-    const faqs = data?.data?.[0];
-
-    return {
-      title: faqs?.translated_title || process.env.NEXT_PUBLIC_META_TITLE,
-      description:
-        faqs?.translated_description ||
-        process.env.NEXT_PUBLIC_META_DESCRIPTION,
-      openGraph: {
-        images: faqs?.image ? [faqs?.image] : [],
-      },
-      keywords:
-        faqs?.translated_keywords || process.env.NEXT_PUBLIC_META_kEYWORDS,
-    };
+    const seo = await fetchSeoPage("faqs", langCode || "en");
+    return buildSeoMetadata({
+      seo,
+      fallbackTitle: process.env.NEXT_PUBLIC_META_TITLE,
+      fallbackDescription: process.env.NEXT_PUBLIC_META_DESCRIPTION,
+      fallbackKeywords:
+        process.env.NEXT_PUBLIC_META_KEYWORDS ||
+        process.env.NEXT_PUBLIC_META_kEYWORDS,
+      canonicalPath: "/faqs",
+    });
   } catch (error) {
     console.error("Error fetching MetaData:", error);
     return null;

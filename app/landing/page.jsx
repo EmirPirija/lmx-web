@@ -3,7 +3,7 @@ import AnythingYouWant from "@/components/PagesComponent/LandingPage/AnythingYou
 import OurBlogs from "@/components/PagesComponent/LandingPage/OurBlogs";
 import QuickAnswers from "@/components/PagesComponent/LandingPage/QuickAnswers";
 import WorkProcess from "@/components/PagesComponent/LandingPage/WorkProcess";
-import { SEO_REVALIDATE_SECONDS } from "@/lib/constants";
+import { buildSeoMetadata, fetchSeoPage } from "@/lib/seoRuntime";
 
 
 export const generateMetadata = async ({ searchParams }) => {
@@ -11,31 +11,16 @@ export const generateMetadata = async ({ searchParams }) => {
     if (process.env.NEXT_PUBLIC_SEO === "false") return;
     const params = await searchParams;
     const langCode = params?.lang || "en";
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}${process.env.NEXT_PUBLIC_END_POINT}seo-settings?page=landing`,
-      {
-        headers: {
-          "Content-Language": langCode || "en",
-        },
-        next: {
-          revalidate: SEO_REVALIDATE_SECONDS,
-        },
-      }
-    );
-    const data = await res.json();
-    const landing = data?.data?.[0];
-
-    return {
-      title: landing?.translated_title || process.env.NEXT_PUBLIC_META_TITLE,
-      description:
-        landing?.translated_description ||
-        process.env.NEXT_PUBLIC_META_DESCRIPTION,
-      openGraph: {
-        images: landing?.image ? [landing?.image] : [],
-      },
-      keywords:
-        landing?.translated_keywords || process.env.NEXT_PUBLIC_META_kEYWORDS,
-    };
+    const seo = await fetchSeoPage("landing", langCode || "en");
+    return buildSeoMetadata({
+      seo,
+      fallbackTitle: process.env.NEXT_PUBLIC_META_TITLE,
+      fallbackDescription: process.env.NEXT_PUBLIC_META_DESCRIPTION,
+      fallbackKeywords:
+        process.env.NEXT_PUBLIC_META_KEYWORDS ||
+        process.env.NEXT_PUBLIC_META_kEYWORDS,
+      canonicalPath: "/landing",
+    });
   } catch (error) {
     console.error("Error fetching MetaData:", error);
     return null;

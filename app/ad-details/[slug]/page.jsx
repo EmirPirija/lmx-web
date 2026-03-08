@@ -3,6 +3,11 @@ import ProductDetail from "@/components/PagesComponent/ProductDetail/ProductDeta
 import { SEO_REVALIDATE_SECONDS } from "@/lib/constants";
 import { generateKeywords } from "@/utils/generateKeywords";
 import { cache } from "react";
+import {
+  buildSeoMetadata,
+  fetchSeoPage,
+  getSeoCustomSchema,
+} from "@/lib/seoRuntime";
 
 const fetchItemBySlug = cache(async (slug, langCode) => {
   if (process.env.NEXT_PUBLIC_SEO === "false") return null;
@@ -21,7 +26,10 @@ const fetchItemBySlug = cache(async (slug, langCode) => {
     );
 
     const data = await res.json();
-    return data?.data?.data?.[0] || null;
+    const payload = data?.data;
+    if (Array.isArray(payload)) return payload[0] || null;
+    if (Array.isArray(payload?.data)) return payload.data[0] || null;
+    return null;
   } catch (error) {
     console.error("Error fetching item data:", error);
     return null;
@@ -33,20 +41,25 @@ export const generateMetadata = async ({ params, searchParams }) => {
   try {
     const { slug } = await params;
     const langCode = (await searchParams)?.lang || "en";
+    const listingSeo = await fetchSeoPage("ad-listing", langCode || "en");
     const item = await fetchItemBySlug(slug, langCode);
     const title = item?.translated_item?.name;
     const description = item?.translated_item?.description;
     const keywords = generateKeywords(item?.translated_item?.description);
     const image = item?.image;
 
-    return {
-      title: title || process.env.NEXT_PUBLIC_META_TITLE,
-      description: description || process.env.NEXT_PUBLIC_META_DESCRIPTION,
-      openGraph: {
-        images: image ? [image] : [],
-      },
-      keywords: keywords,
-    };
+    return buildSeoMetadata({
+      seo: listingSeo,
+      fallbackTitle: title || process.env.NEXT_PUBLIC_META_TITLE,
+      fallbackDescription:
+        description || process.env.NEXT_PUBLIC_META_DESCRIPTION,
+      fallbackKeywords:
+        keywords ||
+        process.env.NEXT_PUBLIC_META_KEYWORDS ||
+        process.env.NEXT_PUBLIC_META_kEYWORDS,
+      canonicalPath: `/ad-details/${slug}`,
+      fallbackImage: image || "/apple-touch-icon.png",
+    });
   } catch (error) {
     console.error("Error fetching MetaData:", error);
     return null;
@@ -58,8 +71,10 @@ const getItemData = async (slug, langCode) => fetchItemBySlug(slug, langCode);
 const ProductDetailPage = async ({ params, searchParams }) => {
   const { slug } = await params;
   const langCode = (await searchParams).lang || "en";
+  const listingSeo = await fetchSeoPage("ad-listing", langCode || "en");
+  const customSchema = getSeoCustomSchema(listingSeo);
   const product = await getItemData(slug, langCode);
-  const jsonLd = product
+  const productSchema = product
     ? {
         "@context": "https://schema.org",
         "@type": "Product",
@@ -76,12 +91,19 @@ const ProductDetailPage = async ({ params, searchParams }) => {
           offers: {
             "@type": "Offer",
             price: product.price,
-            priceCurrency: "USD",
+            priceCurrency: "BAM",
           },
         }),
         countryOfOrigin: product?.translated_item?.country,
       }
     : null;
+
+  let jsonLd = productSchema;
+  if (productSchema && Array.isArray(customSchema)) {
+    jsonLd = [productSchema, ...customSchema];
+  } else if (productSchema && customSchema && typeof customSchema === "object") {
+    jsonLd = [productSchema, customSchema];
+  }
 
   return (
     <>
