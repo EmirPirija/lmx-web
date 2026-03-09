@@ -981,7 +981,7 @@ const ReelCard = memo(
 
     const handleShare = (e) => {
       e?.stopPropagation();
-      const url = `${window.location.origin}/ad-details/${item?.slug}`;
+      const url = `${window.location.origin}/oglas/${item?.slug}`;
       if (navigator.share) {
         navigator.share({ title: item?.name, url });
       } else {
@@ -1131,7 +1131,7 @@ const ReelCard = memo(
             onClick={(e) => {
               e.stopPropagation();
               const sid = seller?.id || seller?.user_id;
-              if (sid) router.push(`/seller/${sid}`);
+              if (sid) router.push(`/prodavac/${sid}`);
             }}
             className="flex items-center gap-1.5 min-w-0 hover:opacity-80 transition-opacity"
           >
@@ -1364,13 +1364,13 @@ const ReelCard = memo(
                     {
                       icon: MdOpenInNew,
                       label: "Pogledaj oglas",
-                      fn: () => router.push(`/ad-details/${item?.slug}`),
+                      fn: () => router.push(`/oglas/${item?.slug}`),
                     },
                     {
                       icon: MdStorefront,
                       label: "Profil prodavača",
                       fn: () =>
-                        seller?.id && router.push(`/seller/${seller.id}`),
+                        seller?.id && router.push(`/prodavac/${seller.id}`),
                     },
                     {
                       icon: MdShare,
@@ -1465,7 +1465,7 @@ const ReelCard = memo(
             type="button"
             onClick={(e) => {
               e.stopPropagation();
-              router.push(`/ad-details/${item?.slug}`);
+              router.push(`/oglas/${item?.slug}`);
             }}
             className="text-left w-full"
           >

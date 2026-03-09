@@ -76,7 +76,7 @@ const LocationTree = () => {
     newSearchParams.delete("lng");
     newSearchParams.delete("km_range");
 
-    window.history.pushState(null, '', `/ads?${newSearchParams.toString()}`);
+    window.history.pushState(null, '', `/oglasi?${newSearchParams.toString()}`);
 
   };
 

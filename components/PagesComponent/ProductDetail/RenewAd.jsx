@@ -191,7 +191,7 @@ const RenewAd = ({
                         </span>
                         <div className="flex items-center gap-2 text-xs">
                           <span className="text-gray-500">
-                            {item.duration} {"Dana" || "dana"}
+                            {item.duration} dana
                           </span>
                           {item?.is_active && (
                             <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full font-medium">
@@ -221,7 +221,7 @@ const RenewAd = ({
                       {selectedPackage?.translated_name || selectedPackage?.name}
                     </p>
                     <p className="text-blue-700 text-xs mt-1">
-                      {"Oglas će biti aktivan" || "Oglas će biti aktivan"} {selectedPackage.duration} {"Dana" || "dana"}
+                      Oglas će biti aktivan {selectedPackage.duration} dana
                     </p>
                     {!selectedPackage?.is_active && (
                       <p className="text-orange-600 text-xs mt-2 font-medium">

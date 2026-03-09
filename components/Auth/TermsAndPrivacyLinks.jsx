@@ -8,7 +8,7 @@ const TermsAndPrivacyLinks = ({ settings, OnHide }) => {
         {settings?.company_name}
       </span>{" "}
       <CustomLink
-        href="/terms-and-condition"
+        href="/uslovi-koristenja"
         className="text-primary underline font-semibold"
         onClick={OnHide}
       >
@@ -16,7 +16,7 @@ const TermsAndPrivacyLinks = ({ settings, OnHide }) => {
       </CustomLink>{" "}
       {"i"}{" "}
       <CustomLink
-        href="/privacy-policy"
+        href="/politika-privatnosti"
         className="text-primary underline font-semibold"
         onClick={OnHide}
       >
@@ -24,7 +24,7 @@ const TermsAndPrivacyLinks = ({ settings, OnHide }) => {
       </CustomLink>{" "}
       {"i"}{" "}
       <CustomLink
-        href="/data-deletion"
+        href="/brisanje-podataka"
         className="text-primary underline font-semibold"
         onClick={OnHide}
       >

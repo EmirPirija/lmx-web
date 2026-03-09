@@ -29,7 +29,7 @@ function normalizeSavedSearch(item) {
 }
 
 // ✅ Helper: URL builder (traženo u SavedSearches.jsx)
-export function buildSavedSearchUrl(queryString, basePath = "/ads") {
+export function buildSavedSearchUrl(queryString, basePath = "/oglasi") {
   const qs = (queryString || "").toString().trim();
   if (!qs) return basePath;
 

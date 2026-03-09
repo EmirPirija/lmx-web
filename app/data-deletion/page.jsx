@@ -15,7 +15,7 @@ export const generateMetadata = async ({ searchParams }) => {
       fallbackDescription:
         "Informacije o zahtjevu, rokovima i postupku brisanja korisničkih podataka na LMX platformi.",
       fallbackKeywords: "brisanje podataka, privatnost, lmx",
-      canonicalPath: "/data-deletion",
+      canonicalPath: "/brisanje-podataka",
     });
   } catch (error) {
     console.error("Error fetching MetaData:", error);

@@ -862,8 +862,8 @@ const PromotionSection = ({ summary }) => {
         {[
           { label: "Pregledi", value: featured?.views || 0 },
           { label: "Prosječno/dan", value: featured?.avg_views_per_day || 0 },
-          { label: "Poboljšanje", value: improvement > 0 ? `+${improvement}%` : "N/A", highlight: true },
-          { label: "Dana", value: featured?.days || 0 },
+          { label: "Poboljšanje", value: improvement > 0 ? `+${improvement}%` : "Nije dostupno", highlight: true },
+          { label: "dana", value: featured?.days || 0 },
         ].map((item, i) => (
           <div key={i} className="bg-white/70 backdrop-blur-sm rounded-xl p-3">
             <p className="text-[10px] text-amber-700 uppercase tracking-wide font-medium">{item.label}</p>

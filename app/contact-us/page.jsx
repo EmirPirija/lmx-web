@@ -16,7 +16,7 @@ export const generateMetadata = async ({ searchParams }) => {
       fallbackKeywords:
         process.env.NEXT_PUBLIC_META_KEYWORDS ||
         process.env.NEXT_PUBLIC_META_kEYWORDS,
-      canonicalPath: "/contact-us",
+      canonicalPath: "/kontakt",
     });
   } catch (error) {
     console.error("Error fetching MetaData:", error);

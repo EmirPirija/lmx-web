@@ -62,8 +62,8 @@ const LocationPopup = ({ onClose, extraDetails = {}, country, state, city, area 
     // Očisti extra detalje pri promjeni lokacije (opcionalno)
     Object.keys(extraDetails || {}).forEach((key) => newSearchParams.delete(key));
 
-    const url = `/ads?${newSearchParams.toString()}`;
-    if (pathname.startsWith("/ads")) window.history.pushState(null, "", url);
+    const url = `/oglasi?${newSearchParams.toString()}`;
+    if (pathname.startsWith("/oglasi")) window.history.pushState(null, "", url);
     else navigate(url);
     
     onClose();

@@ -28,7 +28,7 @@ const DataDeletion = () => {
               profila.
             </li>
             <li>
-              Putem stranice <a href="/contact-us">Kontakt</a>.
+              Putem stranice <a href="/kontakt">Kontakt</a>.
             </li>
             {supportEmail ? (
               <li>

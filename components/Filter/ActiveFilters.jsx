@@ -112,11 +112,11 @@ const ActiveFilters = ({ country, state, city, area, extraDetails, customFields 
       newSearchParams.delete("lat");
       newSearchParams.delete("lng");
     }
-    window.history.pushState(null, "", `/ads?${newSearchParams.toString()}`);
+    window.history.pushState(null, "", `/oglasi?${newSearchParams.toString()}`);
   };
 
   const clearAllFilters = () => {
-    window.history.pushState(null, "", `/ads`);
+    window.history.pushState(null, "", `/oglasi`);
   };
 
   if (activeFilters.length === 0) return null;

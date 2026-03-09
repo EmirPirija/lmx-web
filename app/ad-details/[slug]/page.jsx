@@ -57,7 +57,7 @@ export const generateMetadata = async ({ params, searchParams }) => {
         keywords ||
         process.env.NEXT_PUBLIC_META_KEYWORDS ||
         process.env.NEXT_PUBLIC_META_kEYWORDS,
-      canonicalPath: `/ad-details/${slug}`,
+      canonicalPath: `/oglas/${slug}`,
       fallbackImage: image || "/apple-touch-icon.png",
     });
   } catch (error) {
@@ -82,7 +82,7 @@ const ProductDetailPage = async ({ params, searchParams }) => {
         name: product?.translated_item?.name,
         description: product?.translated_item?.description,
         image: product?.image,
-        url: `${process.env.NEXT_PUBLIC_WEB_URL}/ad-details/${product?.slug}`,
+        url: `${process.env.NEXT_PUBLIC_WEB_URL}/oglas/${product?.slug}`,
         category: {
           "@type": "Thing",
           name: product?.category?.translated_name || "General Category", // Default category name

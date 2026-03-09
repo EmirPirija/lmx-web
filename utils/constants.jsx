@@ -25,27 +25,27 @@ export const workProcessSteps = [
 export const quickLinks = [
     {
         id: 1,
-        href: "/about-us",
+        href: "/o-nama",
         label: "O nama",
     },
     {
         id: 2,
-        href: "/contact-us",
+        href: "/kontakt",
         label: "Kontakt",
     },
     {
         id: 3,
-        href: "/subscription",
+        href: "/pretplata",
         label: "Pretplata",
     },
     {
         id: 4,
-        href: "/blogs",
+        href: "/blog",
         label: "Naš blog",
     },
     {
         id: 5,
-        href: "/faqs",
+        href: "/cesta-pitanja",
         label: "Česta pitanja",
     },
 ];
@@ -53,17 +53,17 @@ export const quickLinks = [
 export const headerQuickLinks = [
     {
         id: 1,
-        href: "/about-us",
+        href: "/o-nama",
         label: "O nama",
     },
     {
         id: 5,
-        href: "/faqs",
+        href: "/cesta-pitanja",
         label: "Česta pitanja",
     },
     {
         id: 6,
-        href: "/shop",
+        href: "/prodavnica",
         label: "Pokreni LMX Shop",
     },
     {
@@ -73,7 +73,7 @@ export const headerQuickLinks = [
     },
     {
         id: 2,
-        href: "/contact-us",
+        href: "/kontakt",
         label: "Kontakt",
     },
     {

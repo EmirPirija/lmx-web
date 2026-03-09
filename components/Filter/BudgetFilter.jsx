@@ -24,7 +24,7 @@ const BudgetFilter = () => {
     else newSearchParams.delete("min_price");
     if (maxPrice) newSearchParams.set("max_price", maxPrice);
     else newSearchParams.delete("max_price");
-    window.history.pushState(null, "", `/ads?${newSearchParams.toString()}`);
+    window.history.pushState(null, "", `/oglasi?${newSearchParams.toString()}`);
   };
 
   return (

@@ -113,7 +113,7 @@ export default async function HomePage({ searchParams }) {
           item: {
             "@type": "Thing", // No "Category" type in Schema.org
             name: category?.translated_name,
-            url: `${process.env.NEXT_PUBLIC_WEB_URL}/ads?category=${category?.slug}`,
+            url: `${process.env.NEXT_PUBLIC_WEB_URL}/oglasi?category=${category?.slug}`,
           },
         })),
         ...productItemsData.map((product, index) => ({
@@ -125,7 +125,7 @@ export default async function HomePage({ searchParams }) {
             productID: product?.id,
             description: product?.translated_item?.description,
             image: product?.image,
-            url: `${process.env.NEXT_PUBLIC_WEB_URL}/ad-details/${product?.slug}`,
+            url: `${process.env.NEXT_PUBLIC_WEB_URL}/oglas/${product?.slug}`,
             category: product?.category?.translated_name,
             ...(product?.price && {
               offers: {

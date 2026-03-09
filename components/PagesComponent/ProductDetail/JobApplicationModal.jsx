@@ -116,7 +116,7 @@ const JobApplicationModal = ({
                 />
               ))
             ) : (
-              <NoData name={"Prijave za posao"} />
+              <NoData name="prijava za posao" />
             )}
           </div>
 

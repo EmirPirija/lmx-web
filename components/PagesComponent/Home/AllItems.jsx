@@ -204,7 +204,7 @@ const AllItems = ({ cityData, KmRange }) => {
           ))
         ) : (
           <div className="col-span-full">
-            <NoData name={"Oglasi"} />
+            <NoData name="oglasa" />
           </div>
         )}
       </div>

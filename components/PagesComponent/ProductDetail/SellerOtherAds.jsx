@@ -116,7 +116,7 @@ const SellerOtherAds = ({ productDetails, onItemClick }) => {
 
         {showProfileLink && (
           <Link
-            href={`/seller/${sellerId}`}
+            href={`/prodavac/${sellerId}`}
             className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition-colors hover:border-slate-300 hover:text-primary dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600"
           >
             Pogledaj sve na profilu

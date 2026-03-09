@@ -58,7 +58,7 @@ const HomeMobileMenu = ({
   const isHomePage = pathname === "/";
 
   const showMenu = !!UserData;
-  const showCategories = !pathname.startsWith("/ads");
+  const showCategories = !pathname.startsWith("/oglasi");
 
   // 🔥 CHAT COUNT STATE
   const [totalUnreadMessages, setTotalUnreadMessages] = useState(0);

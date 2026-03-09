@@ -13,7 +13,7 @@ export const generateMetadata = async ({ searchParams }) => {
       fallbackDescription:
         "Pronađite oglase na interaktivnoj mapi - nekretnine, automobili i više",
       fallbackKeywords: "mapa, oglasi, nekretnine, pretraga, lokacija",
-      canonicalPath: "/map-search",
+      canonicalPath: "/pretraga-mapa",
     });
   } catch (error) {
     console.error("Error fetching Map Search MetaData:", error);

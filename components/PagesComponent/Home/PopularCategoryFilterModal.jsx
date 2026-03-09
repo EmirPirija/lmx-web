@@ -537,7 +537,7 @@ const PopularCategoryFilterModal = ({ open, onOpenChange, category }) => {
     }
 
     onOpenChange(false);
-    router.push(`/ads?${params.toString()}`);
+    router.push(`/oglasi?${params.toString()}`);
   };
 
   return (

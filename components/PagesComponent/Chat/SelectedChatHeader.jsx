@@ -221,7 +221,7 @@ const SelectedChatHeader = ({
 
         {/* Avatar */}
         <div className="relative flex-shrink-0">
-          <CustomLink href={`/seller/${userData?.id}`}>
+          <CustomLink href={`/prodavac/${userData?.id}`}>
             <div className="relative group cursor-pointer">
               <UserAvatarMedia
                 sources={[
@@ -249,7 +249,7 @@ const SelectedChatHeader = ({
         <div className="flex flex-col min-w-0 justify-center">
           <div className="flex items-center gap-1.5">
             <CustomLink
-              href={`/seller/${userData?.id}`}
+              href={`/prodavac/${userData?.id}`}
               className="font-bold text-slate-900 dark:text-slate-100 truncate text-[15px] hover:underline decoration-slate-300 underline-offset-4"
             >
               {userData?.name}
@@ -300,7 +300,7 @@ const SelectedChatHeader = ({
 
         {itemData?.image && (
           <CustomLink
-            href={`/ad-details/${itemData?.slug}`}
+            href={`/oglas/${itemData?.slug}`}
             className="relative group flex-shrink-0"
           >
             <CustomImage
@@ -364,7 +364,7 @@ const SelectedChatHeader = ({
 
             <DropdownMenuItem asChild>
               <CustomLink
-                href={`/ad-details/${itemData?.slug}`}
+                href={`/oglas/${itemData?.slug}`}
                 className="flex items-center w-full cursor-pointer px-2 py-1.5"
               >
                 <HiEye className="mr-2 h-4 w-4 text-slate-500" />

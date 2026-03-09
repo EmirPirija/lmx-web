@@ -149,7 +149,7 @@ const PageHeader = ({ config }) => {
 
       {!config.isChat && (
         <div className="flex items-center gap-2">
-          <CustomLink href="/ad-listing">
+          <CustomLink href="/objavi-oglas">
             <Button size="sm" className="rounded-xl gap-2 font-semibold">
               <Plus className="w-4 h-4" />
               Novi oglas

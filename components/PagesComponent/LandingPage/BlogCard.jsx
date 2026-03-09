@@ -27,7 +27,7 @@ const BlogCard = ({ blog }) => {
         }}
       ></p>
       <CustomLink
-        href={`/blogs/${blog?.slug}`}
+        href={`/blog/${blog?.slug}`}
         className="flex items-center gap-3 text-primary text-lg mt-auto"
       >
         <span>{"Pročitaj"}</span>

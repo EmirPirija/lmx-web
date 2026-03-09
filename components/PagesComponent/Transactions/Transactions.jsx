@@ -186,7 +186,7 @@ const Transactions = () => {
         animate={{ opacity: 1, scale: 1 }}
         className="py-16"
       >
-        <NoData name={"Transakcije"} />
+        <NoData name="transakcija" />
       </motion.div>
     );
   }

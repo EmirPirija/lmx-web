@@ -144,7 +144,7 @@ const PushNotificationLayout = ({ children }) => {
         if (currentUserId > 0 && ownerId > 0 && currentUserId === ownerId) {
           return `/my-listing/${slug}`;
         }
-        return `/ad-details/${slug}`;
+        return `/oglas/${slug}`;
       }
 
       return "/notifications";

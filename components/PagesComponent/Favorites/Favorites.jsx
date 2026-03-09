@@ -89,7 +89,7 @@ const Favorites = () => {
         animate={{ opacity: 1, scale: 1 }}
         className="py-16"
       >
-        <NoData name={"Favoriti"} />
+        <NoData name="favorita" />
       </motion.div>
     );
   }
@@ -104,7 +104,7 @@ const Favorites = () => {
         animate={{ opacity: 1, scale: 1 }}
         className="py-16"
       >
-        <NoData name={"Favoriti"} />
+        <NoData name="favorita" />
       </motion.div>
     );
   }

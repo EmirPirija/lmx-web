@@ -187,7 +187,7 @@ const QuestionCard = ({
       {/* Header - Oglas info */}
       <div className="px-4 py-3 border-b border-slate-100 bg-slate-50/50">
         <Link
-          href={`/ad-details/${question.item?.slug || question.item?.id}`}
+          href={`/oglas/${question.item?.slug || question.item?.id}`}
           className="flex items-center gap-3 group"
         >
           <div className="w-12 h-12 rounded-lg overflow-hidden bg-slate-200 flex-shrink-0">
@@ -369,7 +369,7 @@ const EmptyState = ({ filter, onResetFilter }) => {
       icon: IoCheckmarkCircleOutline,
     },
     answered: {
-      title: "Još nemate odgovorenih pitanja",
+      title: "Još niste odgovorili ni na jedno pitanje.",
       description: "Pitanja na koja odgovorite pojavit će se ovdje.",
       icon: IoChatbubbleOutline,
     },

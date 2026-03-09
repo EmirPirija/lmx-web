@@ -167,7 +167,7 @@ const PROFILE_CONTEXT_COPY = {
     title: "Promo pristup",
     description: "Svi planovi su trenutno aktivni kroz promo režim.",
   },
-  "/contact-us": {
+  "/kontakt": {
     title: "Kontakt podrške",
     description: "Pošalji upit podršci za tehničke poteškoće i prijedloge.",
   },
@@ -634,7 +634,7 @@ const ProfileSidebar = ({
                 ))}
               </div>
               <CustomLink
-                href="/ad-listing"
+                href="/objavi-oglas"
                 onClick={onClose}
                 className="mt-3 inline-flex items-center gap-2 rounded-lg border border-emerald-300/80 bg-emerald-100 px-2.5 py-1.5 text-[11px] font-semibold text-emerald-800 transition-colors hover:bg-emerald-200 dark:border-emerald-500/35 dark:bg-emerald-500/15 dark:text-emerald-200 dark:hover:bg-emerald-500/25"
               >

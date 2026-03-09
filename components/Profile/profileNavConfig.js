@@ -197,7 +197,7 @@ export const getProfileNavigationSections = ({
       title: "Podrška",
       items: [
         {
-          href: "/contact-us",
+          href: "/kontakt",
           icon: Headset,
           label: "Kontakt podrške",
           description: "Pošalji upit i prijavi problem",

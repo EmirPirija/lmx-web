@@ -137,7 +137,7 @@ const FeaturedSections = ({ featuredData, setFeaturedData, allEmpty }) => {
                   <div className="flex items-center gap-2">
                     {!isAllAdsSection && sectionItems.length > 4 && (
                       <CustomLink
-                        href={`/ads?featured_section=${ele?.slug}`}
+                        href={`/oglasi?featured_section=${ele?.slug}`}
                         className="text-sm sm:text-base font-medium whitespace-nowrap"
                         prefetch={false}
                       >

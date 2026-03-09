@@ -1102,26 +1102,26 @@ const ItemStatisticsDashboard = ({ itemId, itemName }) => {
                       : reelStats?.video_source === "upload"
                       ? "Direktni upload"
                       : "Vanjski video link"
-                    : "Dodaj video za veci engagement"}
+                    : "Dodaj video za veći angažman"}
                 </p>
               </div>
               <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-                <p className="text-xs uppercase tracking-wide text-slate-500 font-semibold">Completion rate</p>
+                <p className="text-xs uppercase tracking-wide text-slate-500 font-semibold">Stopa završavanja</p>
                 <p className="mt-1 text-sm font-bold text-slate-800">{formatPercent(reelCompletionRate)}</p>
-                <p className="mt-1 text-xs text-slate-400">Zavrsenih gledanja</p>
+                <p className="mt-1 text-xs text-slate-400">Završenih gledanja</p>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <MiniStat icon={IoEyeOutline} label="Video play" value={reelPlays} color="purple" />
+              <MiniStat icon={IoEyeOutline} label="Video pregledi" value={reelPlays} color="purple" />
               <MiniStat icon={IoCheckmarkCircleOutline} label="Do kraja" value={reelStats?.completions || 0} color="green" />
             </div>
 
             {hasReelVideo && (
               <div className="space-y-2">
-                <RateRow label="25% zadrzavanje" value={reelStats?.watch_25_rate || 0} color="bg-blue-500" />
-                <RateRow label="50% zadrzavanje" value={reelStats?.watch_50_rate || 0} color="bg-indigo-500" />
-                <RateRow label="75% zadrzavanje" value={reelStats?.watch_75_rate || 0} color="bg-violet-500" />
+                <RateRow label="25% zadržavanje" value={reelStats?.watch_25_rate || 0} color="bg-blue-500" />
+                <RateRow label="50% zadržavanje" value={reelStats?.watch_50_rate || 0} color="bg-indigo-500" />
+                <RateRow label="75% zadržavanje" value={reelStats?.watch_75_rate || 0} color="bg-violet-500" />
               </div>
             )}
           </div>

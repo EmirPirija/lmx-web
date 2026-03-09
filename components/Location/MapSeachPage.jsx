@@ -102,7 +102,7 @@ const MapSearchPage = () => {
 
   const handleAdClick = (ad) => {
     // Navigate to ad detail page
-    router.push(`/ad-details/${ad.id}`);
+    router.push(`/oglas/${ad.id}`);
   };
 
   const handleMapBoundsChange = useCallback((bounds) => {

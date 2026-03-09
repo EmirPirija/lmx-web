@@ -12,7 +12,7 @@ const Tags = ({ tag, langCode }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [blogTags, setBlogTags] = useState([]);
 
-  const isAllTagActive = pathname === "/blogs" && !tag;
+  const isAllTagActive = pathname === "/blog" && !tag;
 
   useEffect(() => {
     getBlogTagsData();
@@ -31,11 +31,11 @@ const Tags = ({ tag, langCode }) => {
   };
 
   const handleAllTags = () => {
-    navigate("/blogs", { scroll: false });
+    navigate("/blog", { scroll: false });
   };
 
   const handleTagClick = (tagItem) => {
-    window.history.pushState(null, "", `/blogs?tag=${tagItem}`);
+    window.history.pushState(null, "", `/blog?tag=${tagItem}`);
   };
   return (
     <div className="flex flex-col border rounded-lg ">

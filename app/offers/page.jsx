@@ -528,7 +528,7 @@ const OfferCard = ({ offer, type, onAction, isActionLoading }) => {
 
   const goToUserProfile = () => {
     if (otherUser?.id) {
-      router.push(`/seller/${otherUser.id}`);
+      router.push(`/prodavac/${otherUser.id}`);
     }
   };
 
@@ -537,7 +537,7 @@ const OfferCard = ({ offer, type, onAction, isActionLoading }) => {
     const slug = item?.slug || item?.item_slug || offer?.item_slug;
 
     if (slug) {
-      router.push(`/ad-details/${slug}`);
+      router.push(`/oglas/${slug}`);
     } else if (item?.id) {
       // If no slug but we have item ID, try to navigate using ID (might not work in all cases)
       toast.info("Pregled oglasa nije dostupan");
@@ -912,7 +912,7 @@ const OffersPage = () => {
                   : "Vaše ponude za oglase drugih prodavača će se prikazati ovdje."
               }
               actionLabel={activeTab === "sent" ? "Pregledaj oglase" : undefined}
-              onAction={activeTab === "sent" ? () => router.push("/ads") : undefined}
+              onAction={activeTab === "sent" ? () => router.push("/oglasi") : undefined}
               compact
             />
           </motion.div>

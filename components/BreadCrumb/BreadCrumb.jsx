@@ -68,7 +68,7 @@ const BreadCrumb = ({ title2 }) => {
                       targetUrl += `&lang=${langCode}`;
                     }
                   } else if (crumb.isAllCategories) {
-                    targetUrl = `/ads?${newSearchParams.toString()}`;
+                    targetUrl = `/oglasi?${newSearchParams.toString()}`;
                   } else {
                     targetUrl = `${targetUrl}?lang=${langCode}`;
                   }

@@ -21,7 +21,7 @@ export const generateMetadata = async ({ searchParams }) => {
       fallbackKeywords:
         process.env.NEXT_PUBLIC_META_KEYWORDS ||
         process.env.NEXT_PUBLIC_META_kEYWORDS,
-      canonicalPath: "/blogs",
+      canonicalPath: "/blog",
     });
   } catch (error) {
     console.error("Error fetching MetaData:", error);
@@ -90,7 +90,7 @@ const BlogsPage = async ({ searchParams }) => {
             description: blog?.translated_description
               ? stripHtml(blog.translated_description)
               : "No description available", // Strip HTML from description
-            url: `${process.env.NEXT_PUBLIC_WEB_URL}/blogs/${blog?.slug}`,
+            url: `${process.env.NEXT_PUBLIC_WEB_URL}/blog/${blog?.slug}`,
             image: blog?.image,
             datePublished: blog?.created_at ? formatDate(blog.created_at) : "", // Format date to ISO 8601
             keywords: blog?.translated_tags

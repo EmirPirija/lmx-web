@@ -28,7 +28,7 @@ const AreaNode = ({ area, city, state, country }) => {
     newSearchParams.set("state", state?.name);
     newSearchParams.set("city", city?.name);
 
-    window.history.pushState(null, '', `/ads?${newSearchParams.toString()}`);
+    window.history.pushState(null, '', `/oglasi?${newSearchParams.toString()}`);
   };
 
   return (

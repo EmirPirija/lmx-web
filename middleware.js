@@ -4,6 +4,9 @@ const MAINTENANCE_PUBLIC_PATHS = new Set([
   '/privacy-policy',
   '/terms-and-condition',
   '/data-deletion',
+  '/politika-privatnosti',
+  '/uslovi-koristenja',
+  '/brisanje-podataka',
 ]);
 
 export function middleware(req) {

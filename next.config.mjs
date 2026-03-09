@@ -4,6 +4,35 @@ const shouldDisableImageOptimization =
   process.env.NEXT_PUBLIC_DISABLE_IMAGE_OPTIMIZATION === "true";
 const isDev = process.env.NODE_ENV !== "production";
 
+const slugRouteMappings = [
+  { legacy: "/ad-listing", localized: "/objavi-oglas" },
+  { legacy: "/ad-details", localized: "/oglas" },
+  { legacy: "/about-us", localized: "/o-nama" },
+  { legacy: "/contact-us", localized: "/kontakt" },
+  { legacy: "/faqs", localized: "/cesta-pitanja" },
+  { legacy: "/terms-and-condition", localized: "/uslovi-koristenja" },
+  { legacy: "/privacy-policy", localized: "/politika-privatnosti" },
+  { legacy: "/refund-policy", localized: "/politika-povrata" },
+  { legacy: "/data-deletion", localized: "/brisanje-podataka" },
+  { legacy: "/map-search", localized: "/pretraga-mapa" },
+  { legacy: "/subscription", localized: "/pretplata" },
+  { legacy: "/blogs", localized: "/blog" },
+  { legacy: "/seller", localized: "/prodavac" },
+  { legacy: "/shop", localized: "/prodavnica" },
+  { legacy: "/ads", localized: "/oglasi" },
+];
+
+const routeRedirects = slugRouteMappings.map(({ legacy, localized }) => ({
+  source: `${legacy}/:path*`,
+  destination: `${localized}/:path*`,
+  permanent: true,
+}));
+
+const routeRewrites = slugRouteMappings.map(({ legacy, localized }) => ({
+  source: `${localized}/:path*`,
+  destination: `${legacy}/:path*`,
+}));
+
 const nextConfig = {
   reactStrictMode: false,
   htmlLimitedBots: /.*/,
@@ -37,9 +66,13 @@ const nextConfig = {
       },
     ],
   },
+  async redirects() {
+    return routeRedirects;
+  },
   // ADD THIS SECTION BELOW
   async rewrites() {
     return [
+      ...routeRewrites,
       {
         // Keep local /api passthrough for legacy/dev calls, but never override
         // Next.js internal proxy handlers under /api/internal/*.

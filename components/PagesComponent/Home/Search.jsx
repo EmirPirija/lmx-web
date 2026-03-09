@@ -674,10 +674,10 @@ const Search = ({
 
         const url =
           selectedItem?.slug && selectedItem.slug !== "all-categories"
-            ? `/ads?category=${selectedItem.slug}`
-            : "/ads";
+            ? `/oglasi?category=${selectedItem.slug}`
+            : "/oglasi";
 
-        if (pathname === "/ads") {
+        if (pathname === "/oglasi") {
           window.history.pushState(null, "", url);
           window.dispatchEvent(new Event("popstate"));
         } else {
@@ -691,15 +691,15 @@ const Search = ({
       saveToHistory(query);
 
       const encodedQuery = encodeURIComponent(query);
-      const baseUrl = `/ads?query=${encodedQuery}`;
+      const baseUrl = `/oglasi?query=${encodedQuery}`;
       const url =
         selectedItem?.slug === "all-categories"
           ? baseUrl
-          : `/ads?category=${selectedItem?.slug}&query=${encodedQuery}`;
+          : `/oglasi?category=${selectedItem?.slug}&query=${encodedQuery}`;
 
       setShowSuggestions(false);
 
-      if (pathname === "/ads") {
+      if (pathname === "/oglasi") {
         window.history.pushState(null, "", url);
         window.dispatchEvent(new Event("popstate"));
       } else {
@@ -722,8 +722,8 @@ const Search = ({
     (category) => {
       setShowSuggestions(false);
       const url = searchQuery
-        ? `/ads?category=${category.slug}&query=${encodeURIComponent(searchQuery)}`
-        : `/ads?category=${category.slug}`;
+        ? `/oglasi?category=${category.slug}&query=${encodeURIComponent(searchQuery)}`
+        : `/oglasi?category=${category.slug}`;
       navigate(url);
     },
     [navigate, searchQuery]
@@ -733,7 +733,7 @@ const Search = ({
     (e) => {
       e.stopPropagation();
       setShowSuggestions(false);
-      navigate(`/ads?query=${encodeURIComponent(searchQuery)}`);
+      navigate(`/oglasi?query=${encodeURIComponent(searchQuery)}`);
     },
     [navigate, searchQuery]
   );
@@ -741,7 +741,7 @@ const Search = ({
   const handleUserClick = useCallback(
     (user) => {
       setShowSuggestions(false);
-      navigate(`/seller/${user.id}`);
+      navigate(`/prodavac/${user.id}`);
     },
     [navigate]
   );
@@ -1048,7 +1048,7 @@ const Search = ({
                         markUsed(s.id);
                         setShowSuggestions(false);
                         navigate(
-                          s.queryString ? `/ads?${s.queryString}` : "/ads"
+                          s.queryString ? `/oglasi?${s.queryString}` : "/oglasi"
                         );
                       }}
                       className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/70"

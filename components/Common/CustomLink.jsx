@@ -1,6 +1,7 @@
 "use client";
 import { getCurrentLangCode } from "@/redux/reducer/languageSlice";
 import { getDefaultLanguageCode } from "@/redux/reducer/settingSlice";
+import { localizeInternalPath } from "@/lib/routeSlugs";
 import Link from "next/link";
 import { useSelector } from "react-redux";
 
@@ -8,7 +9,7 @@ const shouldDisableAutoPrefetch = (href = "") => {
   const normalized = String(href || "").trim().toLowerCase();
   if (!normalized.startsWith("/")) return false;
   return (
-    normalized.startsWith("/ad-details/") ||
+    normalized.startsWith("/oglas/") ||
     normalized.startsWith("/my-listing/") ||
     normalized.startsWith("/my-ads/")
   );
@@ -30,16 +31,17 @@ const CustomLink = ({ href, children, prefetch, ...props }) => {
 
   // Split hash (#) safely from href
   const [baseHref, hash = ""] = href.split("#");
+  const localizedBaseHref = localizeInternalPath(baseHref);
 
   // Append lang param safely
-  const separator = baseHref.includes("?") ? "&" : "?";
-  const newHref = `${baseHref}${separator}lang=${langCode}${
+  const separator = localizedBaseHref.includes("?") ? "&" : "?";
+  const newHref = `${localizedBaseHref}${separator}lang=${langCode}${
     hash ? `#${hash}` : ""
   }`;
   const resolvedPrefetch =
     typeof prefetch === "boolean"
       ? prefetch
-      : shouldDisableAutoPrefetch(baseHref)
+      : shouldDisableAutoPrefetch(localizedBaseHref)
         ? false
         : undefined;
 

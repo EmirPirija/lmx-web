@@ -1360,11 +1360,10 @@ const MyAds = () => {
     }
   };
 
-  const activeStatusLabel = tabs.find((t) => t.value === status)?.label || "oglasa";
   const statusTextForms = useMemo(() => {
     const fallback = {
       loading: "oglase",
-      emptyGenitive: activeStatusLabel.toLowerCase(),
+      emptyGenitive: "oglasa",
     };
 
     const byStatus = {
@@ -1395,7 +1394,7 @@ const MyAds = () => {
     };
 
     return byStatus[status] || fallback;
-  }, [activeStatusLabel, status]);
+  }, [status]);
   const isInitialLoading = IsLoading && MyItems.length === 0;
   const hasBlockingListError =
     !isInitialLoading && Boolean(listError) && MyItems.length === 0;
@@ -1702,14 +1701,14 @@ const MyAds = () => {
                 actionLabel={status === "approved" ? "Objavi oglas" : "Prikaži aktivne oglase"}
                 onAction={
                   status === "approved"
-                    ? () => navigate("/ad-listing")
+                    ? () => navigate("/objavi-oglas")
                     : () => handleStatusChange("approved")
                 }
                 secondaryActionLabel={status === "approved" ? "Resetuj sortiranje" : "Objavi oglas"}
                 onSecondaryAction={
                   status === "approved"
                     ? () => handleSortChange("new-to-old")
-                    : () => navigate("/ad-listing")
+                    : () => navigate("/objavi-oglas")
                 }
                 className="max-w-none rounded-[30px] border border-slate-200/80 bg-white/90 shadow-[0_30px_95px_-62px_rgba(15,23,42,0.82)] dark:border-slate-700/70 dark:bg-[radial-gradient(130%_160%_at_50%_-10%,rgba(45,212,191,0.18),rgba(15,23,42,0.94)_52%,rgba(2,6,23,0.98)_100%)]"
                 contentClassName="max-w-2xl gap-5 sm:gap-6"

@@ -1281,7 +1281,7 @@ export default function Profile() {
     debouncedSave("location", { location: newLocation });
   };
 
-  const sellerProfilePath = UserData?.id ? `/seller/${UserData.id}` : "";
+  const sellerProfilePath = UserData?.id ? `/prodavac/${UserData.id}` : "";
 
   useEffect(() => {
     if (!sellerProfilePath || typeof window === "undefined") {

@@ -141,7 +141,7 @@ const JobApplications = () => {
           </div>
         </>
       ) : (
-        <NoData name={"Prijave za posao"} />
+        <NoData name="prijava za posao" />
       )}
     </>
   );

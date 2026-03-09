@@ -22,17 +22,17 @@ import googleDownload from "../../public/assets/Google Download.png";
 import appleDownload from "../../public/assets/iOS Download.png";
 
 const FOOTER_PRIMARY_LINKS = [
-  { href: "/about-us", label: "O nama" },
-  { href: "/faqs", label: "FAQs" },
-  { href: "/contact-us", label: "Kontakt" },
+  { href: "/o-nama", label: "O nama" },
+  { href: "/cesta-pitanja", label: "FAQs" },
+  { href: "/kontakt", label: "Kontakt" },
   { href: "/svi-korisnici", label: "Svi korisnici" },
 ];
 
 const FOOTER_PLATFORM_LINKS = [
-  { href: "/shop", label: "Pokreni LMX Shop" },
+  { href: "/prodavnica", label: "Pokreni LMX Shop" },
   { href: "/pro", label: "Postani PRO" },
   { href: "/my-ads", label: "Moji oglasi" },
-  { href: "/ad-listing", label: "Objavi oglas" },
+  { href: "/objavi-oglas", label: "Objavi oglas" },
 ];
 
 const FOOTER_SELLER_LINKS = [
@@ -43,10 +43,10 @@ const FOOTER_SELLER_LINKS = [
 ];
 
 const FOOTER_LEGAL_LINKS = [
-  { href: "/privacy-policy", label: "Politika privatnosti" },
-  { href: "/data-deletion", label: "Brisanje podataka" },
-  { href: "/terms-and-condition", label: "Uslovi korištenja" },
-  { href: "/refund-policy", label: "Pravila povrata" },
+  { href: "/politika-privatnosti", label: "Politika privatnosti" },
+  { href: "/brisanje-podataka", label: "Brisanje podataka" },
+  { href: "/uslovi-koristenja", label: "Uslovi korištenja" },
+  { href: "/politika-povrata", label: "Pravila povrata" },
 ];
 
 export default function Footer() {
@@ -76,7 +76,7 @@ export default function Footer() {
               Svi planovi su trenutno dostupni besplatno.
             </div>
             <CustomLink
-              href="/ad-listing"
+              href="/objavi-oglas"
               className="flex items-center gap-2 rounded-xl border border-cyan-200/80 bg-cyan-50/80 px-3 py-2.5 text-xs font-medium text-cyan-800 transition-colors hover:bg-cyan-100/70 dark:border-cyan-700/60 dark:bg-cyan-900/20 dark:text-cyan-200 dark:hover:bg-cyan-900/30"
             >
               <Video size={15} className="text-cyan-500 dark:text-cyan-300" />

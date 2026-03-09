@@ -41,8 +41,8 @@ const BudgetPopup = ({ onClose }) => {
     // Reset page on filter change
     if (newSearchParams.has("page")) newSearchParams.set("page", "1");
 
-    const url = `/ads?${newSearchParams.toString()}`;
-    if (pathname.startsWith("/ads")) {
+    const url = `/oglasi?${newSearchParams.toString()}`;
+    if (pathname.startsWith("/oglasi")) {
       window.history.pushState(null, "", url);
     } else {
       navigate(url);

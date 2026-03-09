@@ -25,7 +25,7 @@ const RangeFilter = () => {
     if (!areaId || !lat || !lng) return;
     const newSearchParams = new URLSearchParams(searchParams);
     newSearchParams.set("km_range", value);
-    window.history.pushState(null, "", `/ads?${newSearchParams.toString()}`);
+    window.history.pushState(null, "", `/oglasi?${newSearchParams.toString()}`);
   };
 
   const hasValidLocation = areaId && lat && lng;

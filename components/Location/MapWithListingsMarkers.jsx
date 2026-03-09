@@ -588,7 +588,7 @@ const MarkerUpdater = ({
       const routeLat = useApproximateZoneMarkers ? displayLat : parsedLat;
       const routeLng = useApproximateZoneMarkers ? displayLng : parsedLng;
       const listingUrl = ad?.slug
-        ? `/ad-details/${encodeURI(String(ad.slug).replace(/^\/+/, ""))}`
+        ? `/oglas/${encodeURI(String(ad.slug).replace(/^\/+/, ""))}`
         : "";
       const safeListingUrl = listingUrl ? escapeHtml(listingUrl) : "";
 

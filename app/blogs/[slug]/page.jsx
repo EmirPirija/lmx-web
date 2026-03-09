@@ -59,7 +59,7 @@ export const generateMetadata = async ({ params, searchParams }) => {
         : data?.translated_tags ||
           process.env.NEXT_PUBLIC_META_KEYWORDS ||
           process.env.NEXT_PUBLIC_META_kEYWORDS,
-      canonicalPath: `/blogs/${slugParams?.slug || ""}`,
+      canonicalPath: `/blog/${slugParams?.slug || ""}`,
       fallbackImage: data?.image || "/apple-touch-icon.png",
     });
   } catch (error) {
@@ -108,7 +108,7 @@ const BlogPage = async ({ params, searchParams }) => {
         description: singleBlog?.translated_description
           ? stripHtml(singleBlog.translated_description)
           : "No description available", // Strip HTML from description
-        url: `${process.env.NEXT_PUBLIC_WEB_URL}/blogs/${singleBlog?.slug}`,
+        url: `${process.env.NEXT_PUBLIC_WEB_URL}/blog/${singleBlog?.slug}`,
         image: singleBlog?.image,
         datePublished: singleBlog?.created_at
           ? formatDate(singleBlog.created_at)

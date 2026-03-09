@@ -1154,7 +1154,7 @@ export const SellerPreviewCard = ({
   const computedShareUrl =
     shareUrl ||
     (sellerId
-      ? `${process.env.NEXT_PUBLIC_WEB_URL}/seller/${sellerId}`
+      ? `${process.env.NEXT_PUBLIC_WEB_URL}/prodavac/${sellerId}`
       : `${process.env.NEXT_PUBLIC_WEB_URL}${pathname}`);
 
   const title = `${sellerDisplayName || "Prodavač"} | ${CompanyName}`;
@@ -1334,7 +1334,7 @@ export const SellerPreviewCard = ({
               if (sellerId) {
                 return (
                   <CustomLink
-                    href={`/seller/${sellerId}`}
+                    href={`/prodavac/${sellerId}`}
                     className="flex-shrink-0"
                   >
                     {avatar}
@@ -1351,7 +1351,7 @@ export const SellerPreviewCard = ({
               <div className="flex items-center justify-between gap-2">
                 {sellerId ? (
                   <CustomLink
-                    href={`/seller/${sellerId}`}
+                    href={`/prodavac/${sellerId}`}
                     className="text-sm font-semibold text-slate-900 dark:text-slate-100 hover:text-primary truncate transition-colors flex items-center gap-1.5"
                   >
                     <span className="truncate">{sellerDisplayName}</span>
@@ -2101,7 +2101,7 @@ const SellerDetailCard = ({
 
       {/* LINK ZA PROFIL */}
       {/* <CustomLink
-        href={`/seller/${mainSellerId}`}
+        href={`/prodavac/${mainSellerId}`}
         onClick={onProfileClick}
         className="inline-flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors group"
       >

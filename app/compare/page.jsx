@@ -213,7 +213,7 @@ export default function ComparePage() {
           </div>
           <h1 className="text-3xl font-bold text-slate-900 mb-3">Usporedba je prazna</h1>
           <p className="text-slate-500 max-w-sm mb-8 text-lg">Odaberite oglase koje želite usporediti klikom na ikonu vage na kartici oglasa.</p>
-          <Link href="/ads">
+          <Link href="/oglasi">
               <Button className="rounded-full px-8 py-6 bg-slate-900 hover:bg-slate-800 text-lg shadow-lg shadow-slate-200">Pretraži oglase</Button>
           </Link>
         </div>
@@ -316,7 +316,7 @@ export default function ComparePage() {
                             </button>
                             
                             {/* Image & Badges */}
-                            <Link href={`/ad-details/${item.slug}`} className="block relative mb-2 md:mb-4">
+                            <Link href={`/oglas/${item.slug}`} className="block relative mb-2 md:mb-4">
                                 <div className="aspect-[4/3] w-full relative rounded-lg md:rounded-2xl overflow-hidden bg-slate-100 border border-slate-100 shadow-sm">
                                     <CustomImage 
                                         src={item.image || item.thumbnail_image} 
@@ -345,7 +345,7 @@ export default function ComparePage() {
 
                             {/* Title & Price */}
                             <div className="space-y-1 text-left px-1">
-                                <Link href={`/ad-details/${item.slug}`} className="block">
+                                <Link href={`/oglas/${item.slug}`} className="block">
                                     <h3 className="text-xs md:text-base font-bold text-slate-900 line-clamp-2 hover:text-blue-600 transition-colors min-h-[32px] md:min-h-[44px] leading-snug">
                                         {item.translated_item?.name || item.name}
                                     </h3>
@@ -456,7 +456,7 @@ export default function ComparePage() {
                     <td className="p-5 border-r border-slate-100 bg-white sticky left-0 z-10"></td>
                     {items.map(item => (
                         <td key={item.id} className="p-5 text-center border-t border-slate-100">
-                            <Link href={`/ad-details/${item.slug}`}>
+                            <Link href={`/oglas/${item.slug}`}>
                                 <Button className="w-full rounded-xl font-bold bg-slate-900 hover:bg-blue-600 text-white shadow-md hover:shadow-xl hover:-translate-y-0.5 transition-all h-12 text-base">
                                     Detaljnije
                                 </Button>

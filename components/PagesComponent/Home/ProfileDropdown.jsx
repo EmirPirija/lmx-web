@@ -710,7 +710,7 @@ const ProfileDropdown = ({
         {/* PRIMARY ACTION */}
         <div className="px-4 py-3">
           <Link
-            href="/ad-listing"
+            href="/objavi-oglas"
             onClick={() => closeAndRestoreDockImmediately()}
             className="flex items-center justify-center gap-2 py-3 bg-[#11b7b0] text-white rounded-xl font-semibold hover:scale-[1.01] hover:bg-[#0fa8a2] transition-all duration-200 w-full group shadow-sm shadow-primary/20"
           >
@@ -839,7 +839,7 @@ const ProfileDropdown = ({
               icon={Headset}
               label={"Kontakt"}
               description="Kontaktiraj podršku"
-              onClick={() => handleNavigate("/contact-us")}
+              onClick={() => handleNavigate("/kontakt")}
             />
           </MenuSection>
 

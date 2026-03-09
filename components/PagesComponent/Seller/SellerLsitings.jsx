@@ -361,11 +361,17 @@ const SellerLsitings = ({
     emptyLabel ||
     (filterStatus === "sold out"
       ? "Ovaj prodavač još nema prodanih oglasa."
-      : "Ovaj prodavač trenutno nema oglasa.");
+      : "Ovaj prodavač trenutno nema aktivnih oglasa.");
 
-  const emptyStateLabel = hasActiveBuyerFilters
+  const emptyStateTitle = hasActiveBuyerFilters
     ? "Nema oglasa za odabrane filtere."
     : showEmptyLabel;
+
+  const emptyStateName = hasActiveBuyerFilters
+    ? "oglasa za odabrane filtere"
+    : filterStatus === "sold out"
+      ? "prodanih oglasa"
+      : "aktivnih oglasa";
 
   useEffect(() => {
     if (!canUseBuyerFilters) {
@@ -764,7 +770,7 @@ const SellerLsitings = ({
                   className="inline-flex items-center gap-1.5 rounded-xl bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 transition-all hover:bg-red-100 dark:bg-red-900/20 dark:text-red-300"
                 >
                   <X className="h-4 w-4" />
-                  Reset
+                  Resetuj
                 </button>
               )}
             </div>
@@ -899,7 +905,7 @@ const SellerLsitings = ({
                   onClick={resetBuyerFilters}
                   className="inline-flex h-10 items-center justify-center rounded-xl bg-red-50 px-3 text-xs font-semibold text-red-700 dark:bg-red-900/20 dark:text-red-300"
                 >
-                  Reset
+                  Resetuj
                 </button>
               )}
               <button
@@ -956,7 +962,10 @@ const SellerLsitings = ({
           )
         ) : (
           <div className="col-span-12 rounded-2xl bg-white p-2 dark:bg-slate-900 sm:p-4">
-            <NoData name={emptyStateLabel} />
+            <NoData
+              name={emptyStateName}
+              title={emptyStateTitle}
+            />
           </div>
         )}
       </div>

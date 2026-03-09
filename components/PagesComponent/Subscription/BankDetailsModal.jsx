@@ -109,7 +109,10 @@ const BankDetailsModal = ({ packageId, bankDetails }) => {
               </div>
             </>
           ) : (
-            <NoData name={"Podaci bankovnog računa"} />
+            <NoData
+              name="podataka bankovnog računa"
+              title="Podaci bankovnog računa nisu dostupni."
+            />
           )}
         </DialogHeader>
       </DialogContent>

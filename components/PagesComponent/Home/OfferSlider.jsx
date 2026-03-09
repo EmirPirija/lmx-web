@@ -50,12 +50,12 @@ const OfferSlider = ({ Slider }) => {
                 if (userData && userData?.id === ele?.model?.user_id) {
                   href = `/my-listing/${ele?.model?.slug}`;
                 } else {
-                  href = `/ad-details/${ele?.model?.slug}`;
+                  href = `/oglas/${ele?.model?.slug}`;
                 }
               } else if (ele?.model_type === null) {
                 href = ele?.third_party_link;
               } else if (ele?.model_type === "App\\Models\\Category") {
-                href = `/ads?category=${ele.model.slug}`;
+                href = `/oglasi?category=${ele.model.slug}`;
               } else {
                 href = "/";
               }

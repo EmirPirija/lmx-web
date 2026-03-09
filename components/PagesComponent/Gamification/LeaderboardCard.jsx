@@ -75,7 +75,7 @@ export default function LeaderboardCard({ user, rank }) {
   return (
     <button
       type="button"
-      onClick={() => router.push(`/seller/${user.id}`)}
+      onClick={() => router.push(`/prodavac/${user.id}`)}
       className={cn(
         "w-full text-left rounded-3xl border p-4",
         "border-slate-200/70 dark:border-slate-700/70 bg-white dark:bg-slate-900/60",

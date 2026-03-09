@@ -184,14 +184,14 @@ const getAttributionSource = ({
     }
   }
 
-  if (window.location.pathname.startsWith("/ads") && params.get("category")) {
+  if (window.location.pathname.startsWith("/oglasi") && params.get("category")) {
     return {
       source: "category",
       source_detail: params.get("category")?.slice(0, 100) || null,
     };
   }
 
-  if (window.location.pathname.startsWith("/ads")) {
+  if (window.location.pathname.startsWith("/oglasi")) {
     return {
       source: "search",
       source_detail: params.get("query")?.slice(0, 100) || null,
@@ -728,7 +728,7 @@ export const useSearchTracking = () => {
 // ============================================
 export const createShareUrl = (itemSlug, shareToken) => {
   const baseUrl = process.env.NEXT_PUBLIC_WEB_URL || window.location.origin;
-  return `${baseUrl}/ad-details/${itemSlug}?ref=share&token=${shareToken}`;
+  return `${baseUrl}/oglas/${itemSlug}?ref=share&token=${shareToken}`;
 };
 
 export const shareToSocialMedia = async (

@@ -40,7 +40,7 @@ const PopularPosts = ({ langCode }) => {
           popularBlogs?.map((popularBlog) => (
             <CustomLink
               key={popularBlog?.id}
-              href={`/blogs/${popularBlog?.slug}`}
+              href={`/blog/${popularBlog?.slug}`}
               className="flex gap-3 px-4 py-2 items-center"
             >
               <CustomImage
@@ -57,7 +57,7 @@ const PopularPosts = ({ langCode }) => {
           ))
         ) : (
           <div className="col-span-full">
-            <NoData name={"Popularno"} />
+            <NoData name="popularnih članaka" />
           </div>
         )}
       </div>

@@ -140,7 +140,7 @@ export const generateMetadata = async ({ searchParams }) => {
 
     const baseUrl = process.env.NEXT_PUBLIC_WEB_URL;
     const paramsStr = buildCanonicalParams(originalSearchParams);
-    const canonicalUrl = `${baseUrl}/ads${paramsStr ? `?${paramsStr}` : ""}`;
+    const canonicalUrl = `${baseUrl}/oglasi${paramsStr ? `?${paramsStr}` : ""}`;
 
     if (!slug) {
       return buildSeoMetadata({
@@ -210,7 +210,7 @@ const AdsPage = async ({ searchParams }) => {
             name: product?.translated_item?.name || "",
             description: product?.translated_item?.description || "",
             image: product?.image || "",
-            url: `${process.env.NEXT_PUBLIC_WEB_URL}/ad-details/${product?.slug}`,
+            url: `${process.env.NEXT_PUBLIC_WEB_URL}/oglas/${product?.slug}`,
             category: {
               "@type": "Thing",
               name: product?.category?.translated_name || "",

@@ -980,7 +980,7 @@ const Ads = () => {
           {
             name: "Sve kategorije",
             key: "all-categories",
-            slug: "/ads",
+            slug: "/oglasi",
             isAllCategories: true,
           },
         ]),
@@ -1046,13 +1046,13 @@ const Ads = () => {
         {
           name: "Sve kategorije",
           key: "all-categories",
-          slug: "/ads",
+          slug: "/oglasi",
           isAllCategories: true,
         },
         ...data.map((item) => ({
           name: item.translated_name,
           key: item.slug,
-          slug: `/ads?category=${item.slug}`,
+          slug: `/oglasi?category=${item.slug}`,
         })),
       ];
       dispatch(setBreadcrumbPath(breadcrumbArray));
@@ -1289,7 +1289,7 @@ const Ads = () => {
 
   const handleSortBy = (value) => {
     newSearchParams.set("sort_by", value);
-    window.history.pushState(null, "", `/ads?${newSearchParams.toString()}`);
+    window.history.pushState(null, "", `/oglasi?${newSearchParams.toString()}`);
   };
 
   const sortOptions = [
@@ -1396,28 +1396,28 @@ const Ads = () => {
     newSearchParams.delete("lat");
     newSearchParams.delete("lng");
     newSearchParams.delete("km_range");
-    window.history.pushState(null, "", `/ads?${newSearchParams.toString()}`);
+    window.history.pushState(null, "", `/oglasi?${newSearchParams.toString()}`);
   };
 
   const handleClearRange = () => {
     newSearchParams.delete("km_range");
-    window.history.pushState(null, "", `/ads?${newSearchParams.toString()}`);
+    window.history.pushState(null, "", `/oglasi?${newSearchParams.toString()}`);
   };
 
   const handleClearDatePosted = () => {
     newSearchParams.delete("date_posted");
-    window.history.pushState(null, "", `/ads?${newSearchParams.toString()}`);
+    window.history.pushState(null, "", `/oglasi?${newSearchParams.toString()}`);
   };
 
   const handleClearBudget = () => {
     newSearchParams.delete("min_price");
     newSearchParams.delete("max_price");
-    window.history.pushState(null, "", `/ads?${newSearchParams.toString()}`);
+    window.history.pushState(null, "", `/oglasi?${newSearchParams.toString()}`);
   };
 
   const handleClearFeaturedSection = () => {
     newSearchParams.delete("featured_section");
-    window.history.pushState(null, "", `/ads?${newSearchParams.toString()}`);
+    window.history.pushState(null, "", `/oglasi?${newSearchParams.toString()}`);
   };
 
   const handleClearCategory = () => {
@@ -1425,7 +1425,7 @@ const Ads = () => {
     Object.keys(extraDetails || {})?.forEach((key) => {
       newSearchParams.delete(key);
     });
-    window.history.pushState(null, "", `/ads?${newSearchParams.toString()}`);
+    window.history.pushState(null, "", `/oglasi?${newSearchParams.toString()}`);
   };
 
   const handleClearExtraDetail = (keyToRemove) => {
@@ -1433,7 +1433,7 @@ const Ads = () => {
     delete updatedExtraDetails[keyToRemove];
     setExtraDetails(updatedExtraDetails);
     newSearchParams.delete(keyToRemove);
-    window.history.pushState(null, "", `/ads?${newSearchParams.toString()}`);
+    window.history.pushState(null, "", `/oglasi?${newSearchParams.toString()}`);
   };
 
   const handleClearAll = () => {
@@ -1459,14 +1459,14 @@ const Ads = () => {
       newSearchParams.delete(key);
     });
     setExtraDetails({});
-    window.history.pushState(null, "", `/ads?${newSearchParams.toString()}`);
+    window.history.pushState(null, "", `/oglasi?${newSearchParams.toString()}`);
   };
 
   const handleClearQuery = () => {
     newSearchParams.delete("query");
     newSearchParams.delete("search");
     newSearchParams.delete("q");
-    window.history.pushState(null, "", `/ads?${newSearchParams.toString()}`);
+    window.history.pushState(null, "", `/oglasi?${newSearchParams.toString()}`);
   };
 
   const handleQuickCategoryNavigate = useCallback((categorySlug) => {
@@ -1477,18 +1477,18 @@ const Ads = () => {
       params.delete("category");
     }
     params.delete("page");
-    window.history.pushState(null, "", `/ads?${params.toString()}`);
+    window.history.pushState(null, "", `/oglasi?${params.toString()}`);
     window.dispatchEvent(new Event("popstate"));
   }, []);
 
   const handleClearSellerType = () => {
     newSearchParams.delete("seller_type");
-    window.history.pushState(null, "", `/ads?${newSearchParams.toString()}`);
+    window.history.pushState(null, "", `/oglasi?${newSearchParams.toString()}`);
   };
 
   const handleClearSellerVerified = () => {
     newSearchParams.delete("seller_verified");
-    window.history.pushState(null, "", `/ads?${newSearchParams.toString()}`);
+    window.history.pushState(null, "", `/oglasi?${newSearchParams.toString()}`);
   };
 
   const postedSince =
@@ -1779,7 +1779,7 @@ const Ads = () => {
     )
   ) : (
     <div className="col-span-full py-12 flex justify-center">
-      <NoData name={"Oglasi"} />
+      <NoData name="oglasa" />
     </div>
   );
 
@@ -2234,7 +2234,7 @@ const Ads = () => {
 
                                   {mapCardDetails.slug ? (
                                     <a
-                                      href={`/ad-details/${encodeURI(String(mapCardDetails.slug).replace(/^\/+/, ""))}`}
+                                      href={`/oglas/${encodeURI(String(mapCardDetails.slug).replace(/^\/+/, ""))}`}
                                       className="inline-flex h-8 items-center rounded-lg bg-primary px-2.5 text-[11px] font-semibold text-white hover:bg-primary/90"
                                     >
                                       Otvori oglas

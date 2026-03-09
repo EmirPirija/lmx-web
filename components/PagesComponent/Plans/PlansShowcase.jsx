@@ -105,7 +105,7 @@ export default function PlansShowcase({ mode = "pricing" }) {
             ) : null}
             <div className="flex flex-wrap gap-2">
               <Link
-                href="/ad-listing"
+                href="/objavi-oglas"
                 className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90"
               >
                 <Sparkles className="h-4 w-4" />

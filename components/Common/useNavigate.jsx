@@ -3,6 +3,7 @@ import { getCurrentLangCode } from "@/redux/reducer/languageSlice";
 import { getDefaultLanguageCode } from "@/redux/reducer/settingSlice";
 import { usePathname, useRouter } from "next/navigation";
 import { useSelector } from "react-redux";
+import { localizeInternalPath } from "@/lib/routeSlugs";
 
 export const useNavigate = () => {
   const router = useRouter();
@@ -33,7 +34,8 @@ export const useNavigate = () => {
   };
 
   const navigate = (path, options = {}) => {
-    const targetPath = appendLangParam(path);
+    const localizedPath = localizeInternalPath(path);
+    const targetPath = appendLangParam(localizedPath);
     const mergedOptions = { ...(options || {}) };
 
     if (

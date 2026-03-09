@@ -38,10 +38,10 @@ const FilterTree = ({ extraDetails }) => {
       params.delete(key);
     });
 
-    if (pathname.startsWith("/ads")) {
-      window.history.pushState(null, "", `/ads?${params.toString()}`);
+    if (pathname.startsWith("/oglasi")) {
+      window.history.pushState(null, "", `/oglasi?${params.toString()}`);
     } else {
-      navigate(`/ads?${params.toString()}`);
+      navigate(`/oglasi?${params.toString()}`);
     }
   };
 

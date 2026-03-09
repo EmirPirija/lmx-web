@@ -957,7 +957,7 @@ const ReelViewerModal = ({
 
   const handleShare = async () => {
     if (!item) return;
-    const url = `${window.location.origin}/ad-details/${item.slug}`;
+    const url = `${window.location.origin}/oglas/${item.slug}`;
     if (navigator.share) {
       try {
         await navigator.share({ title: item.name, url });
@@ -973,14 +973,14 @@ const ReelViewerModal = ({
   const goToDetails = () => {
     if (!item?.slug) return;
     onOpenChange?.(false);
-    router.push(`/ad-details/${item.slug}`);
+    router.push(`/oglas/${item.slug}`);
   };
 
   const goToSeller = () => {
     const sid = seller?.id || seller?.user_id;
     if (!sid) return;
     onOpenChange?.(false);
-    router.push(`/seller/${sid}`);
+    router.push(`/prodavac/${sid}`);
   };
 
   if (!open || !portalReady) return null;

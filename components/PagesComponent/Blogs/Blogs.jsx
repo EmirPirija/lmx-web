@@ -73,7 +73,7 @@ const Blogs = () => {
                   blogs?.map((blog) => <BlogCard key={blog?.id} blog={blog} />)
                 ) : (
                   <div className="col-span-full">
-                    <NoData name={"Blog"} />
+                    <NoData name="blogova" />
                   </div>
                 )}
               </div>

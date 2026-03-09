@@ -102,7 +102,7 @@ const CountryNode = ({ country }) => {
     newSearchParams.delete("area");
     newSearchParams.delete("areaId");
     newSearchParams.delete("km_range");
-    window.history.pushState(null, '', `/ads?${newSearchParams.toString()}`);
+    window.history.pushState(null, '', `/oglasi?${newSearchParams.toString()}`);
   };
 
   const loadMore = async () => {

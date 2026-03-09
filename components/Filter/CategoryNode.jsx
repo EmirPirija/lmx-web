@@ -70,10 +70,10 @@ const CategoryNode = ({ category, extraDetails }) => {
     Object.keys(extraDetails || {}).forEach((key) => {
       newSearchParams.delete(key);
     });
-    if (pathname.startsWith("/ads")) {
-      window.history.pushState(null, "", `/ads?${newSearchParams.toString()}`);
+    if (pathname.startsWith("/oglasi")) {
+      window.history.pushState(null, "", `/oglasi?${newSearchParams.toString()}`);
     } else {
-      navigate(`/ads?${newSearchParams.toString()}`);
+      navigate(`/oglasi?${newSearchParams.toString()}`);
     }
   };
 

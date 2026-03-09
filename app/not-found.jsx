@@ -17,25 +17,25 @@ import {
 
 const QUICK_LINKS = [
   {
-    href: "/ads",
+    href: "/oglasi",
     label: "Pregledaj oglase",
     description: "Pogledaj najnovije i aktivne oglase.",
     icon: Search,
   },
   {
-    href: "/ad-listing",
+    href: "/objavi-oglas",
     label: "Objavi oglas",
     description: "Dodaj oglas i poveži se s kupcima.",
     icon: Compass,
   },
   {
-    href: "/map-search",
+    href: "/pretraga-mapa",
     label: "Pretraga na mapi",
     description: "Pronađi oglase po lokaciji.",
     icon: MapPin,
   },
   {
-    href: "/contact-us",
+    href: "/kontakt",
     label: "Kontakt podrške",
     description: "Javi nam ako je link neispravan.",
     icon: RefreshCw,
@@ -76,10 +76,10 @@ const NotFound = () => {
     event.preventDefault();
     const value = searchValue.trim();
     if (!value) {
-      router.push("/ads");
+      router.push("/oglasi");
       return;
     }
-    router.push(`/ads?query=${encodeURIComponent(value)}`);
+    router.push(`/oglasi?query=${encodeURIComponent(value)}`);
   };
 
   return (

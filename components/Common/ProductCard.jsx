@@ -709,10 +709,10 @@ const ProductCard = ({ item, isLoading, onClick, trackingParams }) => {
     : false;
 
   const productLinkBase = isDemoItem
-    ? "/ads"
+    ? "/oglasi"
     : userData?.id === item?.user_id
       ? `/my-listing/${item?.slug}`
-      : `/ad-details/${item?.slug}`;
+      : `/oglas/${item?.slug}`;
   const productLink = trackingParams
     ? `${productLinkBase}?${new URLSearchParams(trackingParams).toString()}`
     : productLinkBase;

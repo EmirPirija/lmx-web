@@ -19,7 +19,7 @@ const PrivacyPolicy = () => {
           {parse(privacy || "")}
           <p>
             Informacije o zahtjevu i postupku brisanja naloga možeš pronaći na
-            stranici <a href="/data-deletion">{"Brisanje podataka"}</a>.
+            stranici <a href="/brisanje-podataka">{"Brisanje podataka"}</a>.
           </p>
         </div>
       </div>

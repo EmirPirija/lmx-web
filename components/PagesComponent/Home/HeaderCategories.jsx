@@ -358,22 +358,22 @@ const HeaderCategories = ({ cateData = [] }) => {
   }, [cateData]);
 
   const buildCategoryUrl = (categorySlug) => {
-    if (pathname.startsWith("/ads")) {
+    if (pathname.startsWith("/oglasi")) {
       const sp = new URLSearchParams(searchParams.toString());
       sp.delete("lang");
       sp.set("category", categorySlug);
-      return `/ads?${sp.toString()}`;
+      return `/oglasi?${sp.toString()}`;
     }
-    return `/ads?category=${categorySlug}`;
+    return `/oglasi?category=${categorySlug}`;
   };
 
   const handleCategoryClick = (slug) => {
-    if (pathname.startsWith("/ads")) {
+    if (pathname.startsWith("/oglasi")) {
       const sp = new URLSearchParams(searchParams.toString());
       sp.set("category", slug);
-      window.history.pushState(null, "", `/ads?${sp.toString()}`);
+      window.history.pushState(null, "", `/oglasi?${sp.toString()}`);
     } else {
-      navigate(`/ads?category=${slug}`);
+      navigate(`/oglasi?category=${slug}`);
     }
   };
 
@@ -497,7 +497,7 @@ const HeaderCategories = ({ cateData = [] }) => {
                           </div>
 
                           <CustomLink
-                            href="/ads"
+                            href="/oglasi"
                             className={cn(
                               "mt-5 inline-flex w-full items-center justify-between rounded-xl",
                               "border border-border bg-background px-4 py-3",

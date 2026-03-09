@@ -24,7 +24,7 @@ const benefitItems = [
     icon: Layers,
     title: "Brzo objavi i upravljaj oglasima",
     description: "Jednostavan workflow za kreiranje, uređivanje i praćenje performansi oglasa.",
-    href: "/ad-listing",
+    href: "/objavi-oglas",
     tone: "from-cyan-500/15 to-blue-500/15 border-cyan-200/80 dark:border-cyan-800/70",
     iconTone: "text-cyan-500",
   },
@@ -33,7 +33,7 @@ const benefitItems = [
     icon: Video,
     title: "Video i vizuelna promocija",
     description: "Istakni ponudu kroz video format i ubrzaj kontakt sa ozbiljnim kupcima.",
-    href: "/ad-listing",
+    href: "/objavi-oglas",
     tone: "from-violet-500/15 to-indigo-500/15 border-violet-200/80 dark:border-violet-800/70",
     iconTone: "text-violet-500",
   },
@@ -42,7 +42,7 @@ const benefitItems = [
     icon: Search,
     title: "Pametna pretraga i bolja vidljivost",
     description: "Napredni filteri i bolji prikaz oglasa olakšavaju pronalazak pravih kupaca.",
-    href: "/ads",
+    href: "/oglasi",
     tone: "from-emerald-500/15 to-teal-500/15 border-emerald-200/80 dark:border-emerald-800/70",
     iconTone: "text-emerald-500",
   },
@@ -116,7 +116,7 @@ const PlatformBenefitsStrip = () => {
           </h2>
         </div>
         <CustomLink
-          href="/ad-listing"
+          href="/objavi-oglas"
           className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
         >
           <MdRocketLaunch size={16} className="text-primary" />

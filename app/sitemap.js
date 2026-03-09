@@ -32,17 +32,17 @@ export default async function sitemap() {
   }
 
   const publicRoutes = [
-    "about-us",
-    "ads",
-    "blogs",
-    "contact-us",
-    "data-deletion",
-    "faqs",
+    "o-nama",
+    "oglasi",
+    "blog",
+    "kontakt",
+    "brisanje-podataka",
+    "cesta-pitanja",
     "landing",
-    "privacy-policy",
-    "refund-policy",
-    "subscription",
-    "terms-and-condition",
+    "politika-privatnosti",
+    "politika-povrata",
+    "pretplata",
+    "uslovi-koristenja",
   ];
 
   // ✅ Escape XML entities
@@ -98,7 +98,7 @@ export default async function sitemap() {
       const json = await res.json();
       const products = json?.data || [];
       adEntries = products.map((product) => {
-        const url = `${baseUrl}/ad-details/${product?.slug}`;
+        const url = `${baseUrl}/oglas/${product?.slug}`;
         return {
           url: withDefaultLang(url),
           lastModified: new Date(product?.updated_at),
@@ -123,7 +123,7 @@ export default async function sitemap() {
       const json = await res.json();
       const categories = json?.data || [];
       categoryEntries = categories.map((category) => {
-        const url = `${baseUrl}/ads?category=${category?.slug}`;
+        const url = `${baseUrl}/oglasi?category=${category?.slug}`;
         return {
           url: withDefaultLang(url),
           lastModified: new Date(category?.updated_at),
@@ -148,7 +148,7 @@ export default async function sitemap() {
       const json = await res.json();
       const blogs = json?.data || [];
       blogEntries = blogs.map((blog) => {
-        const url = `${baseUrl}/blogs/${blog?.slug}`;
+        const url = `${baseUrl}/blog/${blog?.slug}`;
         return {
           url: withDefaultLang(url),
           lastModified: new Date(blog?.updated_at),
@@ -173,7 +173,7 @@ export default async function sitemap() {
       const json = await res.json();
       const featuredSections = json?.data || [];
       featuredSectionEntries = featuredSections.map((featuredSection) => {
-        const url = `${baseUrl}/ads?featured_section=${featuredSection?.slug}`;
+        const url = `${baseUrl}/oglasi?featured_section=${featuredSection?.slug}`;
         return {
           url: withDefaultLang(url),
           lastModified: new Date(featuredSection?.updated_at),
@@ -198,7 +198,7 @@ export default async function sitemap() {
       const json = await res.json();
       const sellers = json?.data || [];
       sellerProfileEntries = sellers.map((seller) => {
-        const url = `${baseUrl}/seller/${seller?.id}`;
+        const url = `${baseUrl}/prodavac/${seller?.id}`;
         return {
           url: withDefaultLang(url),
           lastModified: new Date(seller?.updated_at),

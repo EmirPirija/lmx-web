@@ -54,7 +54,7 @@ const BlogDetailPage = ({ slug }) => {
         setBreadcrumbPath([
           {
             name: "Naši blogovi",
-            slug: "/blogs",
+            slug: "/blog",
           },
           {
             name: truncate(title, 30),
@@ -179,7 +179,11 @@ const BlogDetailPage = ({ slug }) => {
               </div>
             ) : (
               <div className="col-span-1 md:col-span-8">
-                <NoData name={"Blog"} />
+                <NoData
+                  name="bloga"
+                  title="Blog nije pronađen."
+                  description="Traženi članak nije dostupan ili je uklonjen."
+                />
               </div>
             )}
 

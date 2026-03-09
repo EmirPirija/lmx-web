@@ -107,7 +107,7 @@ const ChoosePackageModal = ({
                           ? "Neograničeno"
                           : item.item_limit}
                       </strong>{" "}
-                      {"Oglasi"} &nbsp;|&nbsp;&nbsp;
+                      {"oglasa"} &nbsp;|&nbsp;&nbsp;
                       <strong
                         className={cn(
                           item?.id == selectedPackageId
@@ -119,14 +119,14 @@ const ChoosePackageModal = ({
                           ? "Neograničeno"
                           : item.duration}
                       </strong>{" "}
-                      {"Dana"}
+                      {"dana"}
                     </span>
                   </div>
                 </div>
               </div>
             ))
           ) : (
-            <NoData name="packages" />
+            <NoData name="paketa" title="Nema dostupnih paketa." />
           )}
         </div>
 

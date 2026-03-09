@@ -724,7 +724,7 @@ export default function SellerDashboard() {
             </CustomLink>
 
             {userData?.id ? (
-              <CustomLink href={`/seller/${userData.id}`}>
+              <CustomLink href={`/prodavac/${userData.id}`}>
                 <Button variant="outline" size="sm" className="gap-2">
                   <ArrowRight size={16} />
                   Javni profil
@@ -732,7 +732,7 @@ export default function SellerDashboard() {
               </CustomLink>
             ) : null}
 
-            <CustomLink href="/ad-listing">
+            <CustomLink href="/objavi-oglas">
               <Button
                 size="sm"
                 className="gap-2 bg-slate-900 hover:bg-slate-800"
@@ -1149,7 +1149,7 @@ export default function SellerDashboard() {
 
               <div className="space-y-1">
                 <CustomLink
-                  href="/faqs"
+                  href="/cesta-pitanja"
                   className="flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 transition-colors group"
                 >
                   <div className="flex items-center gap-3">

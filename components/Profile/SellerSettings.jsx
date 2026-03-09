@@ -543,8 +543,8 @@ const CompactToggle = ({
 const QRCodeSection = ({ userId, userName }) => {
   const profileUrl =
     typeof window !== "undefined"
-      ? `${window.location.origin}/seller/${userId}`
-      : `/seller/${userId}`;
+      ? `${window.location.origin}/prodavac/${userId}`
+      : `/prodavac/${userId}`;
   const qrRef = useRef(null);
   const [copied, setCopied] = useState(false);
 

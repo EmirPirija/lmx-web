@@ -94,14 +94,14 @@ const ExtraDetailsPopup = ({ onClose, customFields, isLoading = false }) => {
       }
     }
 
-    window.history.pushState(null, "", `/ads?${newSearchParams.toString()}`);
+    window.history.pushState(null, "", `/oglasi?${newSearchParams.toString()}`);
     setLocalParams(newSearchParams);
   };
 
   const clearAll = () => {
     const newSearchParams = new URLSearchParams(searchParams);
     customFields.forEach(field => newSearchParams.delete(field.id));
-    window.history.pushState(null, "", `/ads?${newSearchParams.toString()}`);
+    window.history.pushState(null, "", `/oglasi?${newSearchParams.toString()}`);
     setLocalParams(newSearchParams);
   };
 

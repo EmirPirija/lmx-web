@@ -49,7 +49,7 @@ const formatPercent = (value) => {
 
 const formatCurrencyKm = (value) => {
   const num = Number(value);
-  if (!Number.isFinite(num)) return "N/A";
+  if (!Number.isFinite(num)) return "Nije dostupno";
   return `${num.toLocaleString("bs-BA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} KM`;
 };
 
@@ -431,7 +431,7 @@ export default function SellerAnalyticsOverview() {
         <div className="rounded-2xl border border-slate-200/80 bg-white/90 p-4 dark:border-slate-700/70 dark:bg-slate-900/60">
           <div className="flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-white">
             <Gauge className="h-4 w-4 text-sky-500" />
-            Boost ROI
+            Učinak isticanja
           </div>
           <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
             <div className="rounded-lg bg-slate-100 p-2 dark:bg-slate-800">
@@ -445,7 +445,7 @@ export default function SellerAnalyticsOverview() {
               <p className="text-sm font-extrabold text-slate-900 dark:text-slate-100">
                 {boostSummary.cost_per_contact !== null && boostSummary.cost_per_contact !== undefined
                   ? formatCurrencyKm(boostSummary.cost_per_contact)
-                  : "N/A"}
+                  : "Nije dostupno"}
               </p>
             </div>
           </div>
@@ -459,7 +459,7 @@ export default function SellerAnalyticsOverview() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-white">
               <Sparkles className="h-4 w-4 text-violet-500" />
-              Gamification score
+              Skor gamifikacije
             </div>
             <span className="rounded-full bg-violet-100 px-2 py-1 text-[11px] font-semibold text-violet-700 dark:bg-violet-900/30 dark:text-violet-300">
               {gamification.rank}
@@ -610,7 +610,7 @@ export default function SellerAnalyticsOverview() {
               <div className="mt-1 text-lg font-extrabold text-slate-900 dark:text-white">{formatInt(reels.total_reels)}</div>
             </div>
             <div className="rounded-xl bg-slate-100 dark:bg-slate-800 p-3">
-              <div className="text-slate-500 dark:text-slate-300">Completion</div>
+              <div className="text-slate-500 dark:text-slate-300">Stopa završavanja</div>
               <div className="mt-1 text-lg font-extrabold text-slate-900 dark:text-white">{formatPercent(reels.completion_rate)}</div>
             </div>
           </div>
@@ -633,7 +633,7 @@ export default function SellerAnalyticsOverview() {
               </div>
             ))}
             {!reels?.top_reels?.length && (
-              <div className="text-xs text-slate-500 dark:text-slate-400">Jos nema reel podataka za prikaz.</div>
+              <div className="text-xs text-slate-500 dark:text-slate-400">Još nema podataka o reelovima za prikaz.</div>
             )}
           </div>
         </div>

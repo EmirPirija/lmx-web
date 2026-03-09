@@ -180,7 +180,7 @@ const Notifications = () => {
       if (currentUserId == notificationUserId) {
         navigate(`/my-listing/${notification.item.slug}`);
       } else {
-        navigate(`/ad-details/${notification.item.slug}`);
+        navigate(`/oglas/${notification.item.slug}`);
       }
     }
   };
@@ -190,7 +190,7 @@ const Notifications = () => {
   }
 
   if (!notifications || notifications.length === 0) {
-    return <NoData name={"Obavještenja"} />;
+    return <NoData name="obavještenja" />;
   }
 
   return (

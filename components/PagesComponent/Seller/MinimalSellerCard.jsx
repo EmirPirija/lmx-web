@@ -827,7 +827,7 @@ export const MinimalSellerCard = ({
   const computedShareUrl =
     shareUrl ||
     (seller?.id
-      ? `${process.env.NEXT_PUBLIC_WEB_URL}/seller/${seller.id}`
+      ? `${process.env.NEXT_PUBLIC_WEB_URL}/prodavac/${seller.id}`
       : `${process.env.NEXT_PUBLIC_WEB_URL}${pathname}`);
 
   const title = `${sellerDisplayName || "Prodavač"} | ${CompanyName}`;
@@ -930,7 +930,7 @@ export const MinimalSellerCard = ({
         <div className="flex items-start gap-3">
           {/* Avatar */}
           <CustomLink
-            href={`/seller/${seller?.id}`}
+            href={`/prodavac/${seller?.id}`}
             className="relative isolate flex-shrink-0 group"
           >
             <div
@@ -999,7 +999,7 @@ export const MinimalSellerCard = ({
             {/* Name row with share */}
             <div className="flex items-center justify-between gap-2">
               <CustomLink
-                href={`/seller/${seller?.id}`}
+                href={`/prodavac/${seller?.id}`}
                 className="text-sm font-semibold text-slate-900 hover:text-primary truncate transition-colors flex items-center gap-1.5"
               >
                 <span className="truncate">{sellerDisplayName}</span>

@@ -119,7 +119,7 @@ export default function SavedSearches() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button onClick={() => navigate("/ads")}>Idi na oglase</Button>
+            <Button onClick={() => navigate("/oglasi")}>Idi na oglase</Button>
           </CardContent>
         </Card>
       ) : (

@@ -84,7 +84,7 @@ const Filter = ({
     const newSearchParams = new URLSearchParams();
     const lang = searchParams.get("lang");
     if (lang) newSearchParams.set("lang", lang);
-    window.history.pushState(null, "", `/ads?${newSearchParams.toString()}`);
+    window.history.pushState(null, "", `/oglasi?${newSearchParams.toString()}`);
   };
 
   const handleLocationSaved = (locationData) => {
@@ -95,7 +95,7 @@ const Filter = ({
 
     if (!locationData) {
       params.delete("km_range");
-      window.history.pushState(null, "", `/ads?${params.toString()}`);
+      window.history.pushState(null, "", `/oglasi?${params.toString()}`);
       setIsLocationModalOpen(false);
       return;
     }
@@ -121,7 +121,7 @@ const Filter = ({
 
     params.delete("km_range");
 
-    window.history.pushState(null, "", `/ads?${params.toString()}`);
+    window.history.pushState(null, "", `/oglasi?${params.toString()}`);
     setIsLocationModalOpen(false);
   };
 

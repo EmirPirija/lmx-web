@@ -18,6 +18,7 @@ const Checkauth = (WrappedComponent) => {
       const privateRoutes = [
         "/profile",
         "/ad-listing",
+        "/objavi-oglas",
         "/notifications",
         "/chat",
         "/user-subscription",

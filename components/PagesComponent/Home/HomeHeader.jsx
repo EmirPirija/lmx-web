@@ -282,7 +282,7 @@ const HomeHeader = () => {
     }
 
     if (IsFreeAdListing) {
-      navigate("/ad-listing");
+      navigate("/objavi-oglas");
       return;
     }
 
@@ -290,10 +290,10 @@ const HomeHeader = () => {
       setIsAdListingClicked(true);
       const res = await getLimitsApi.getLimits({ package_type: "item_listing" });
       if (res?.data?.error === false) {
-        navigate("/ad-listing");
+        navigate("/objavi-oglas");
       } else {
         toast.error("Za kreiranje oglasa moraš kupiti plan. Idi na Planove i cijene.");
-        navigate("/subscription");
+        navigate("/pretplata");
       }
     } catch (error) {
       console.log(error);
@@ -372,10 +372,10 @@ const HomeHeader = () => {
   const isAllUsersActive = pathname.startsWith("/svi-korisnici");
 
   const isOnHome = pathname === "/";
-  const isAdsPage = pathname === "/ads" || pathname.startsWith("/ads/");
-  const isDetailRoute = pathname.startsWith("/ad-details/") || pathname.startsWith("/my-listing/");
+  const isAdsPage = pathname === "/oglasi" || pathname.startsWith("/oglasi/");
+  const isDetailRoute = pathname.startsWith("/oglas/") || pathname.startsWith("/my-listing/");
   const isListingWizardRoute =
-    pathname === "/ad-listing" || pathname.startsWith("/edit-listing/");
+    pathname === "/objavi-oglas" || pathname.startsWith("/edit-listing/");
   const isAdsMobileManagedHeader =
     !isLargeScreen && isAdsPage && adsMobileHeaderState.enabled;
   const shouldHideMobileHeader =

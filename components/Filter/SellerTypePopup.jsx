@@ -61,8 +61,8 @@ const SellerTypePopup = ({ onClose }) => {
 
   const pushUrl = (params) => {
     if (params.has("page")) params.set("page", "1");
-    const url = `/ads?${params.toString()}`;
-    if (pathname.startsWith("/ads")) {
+    const url = `/oglasi?${params.toString()}`;
+    if (pathname.startsWith("/oglasi")) {
       window.history.pushState(null, "", url);
       return;
     }

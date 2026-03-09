@@ -33,7 +33,7 @@ const ExtraDetailsFilter = ({ customFields }) => {
       newSearchParams.delete(fieldId.toString());
     }
 
-    window.history.pushState(null, "", `/ads?${newSearchParams.toString()}`);
+    window.history.pushState(null, "", `/oglasi?${newSearchParams.toString()}`);
   };
 
   const handleRadioChange = (fieldId, value) => {
@@ -46,7 +46,7 @@ const ExtraDetailsFilter = ({ customFields }) => {
       newSearchParams.set(fieldId.toString(), value);
     }
 
-    window.history.pushState(null, "", `/ads?${newSearchParams.toString()}`);
+    window.history.pushState(null, "", `/oglasi?${newSearchParams.toString()}`);
   };
 
   const handleDropdownChange = (fieldId, value) => {
@@ -56,7 +56,7 @@ const ExtraDetailsFilter = ({ customFields }) => {
     } else {
       newSearchParams.delete(fieldId.toString());
     }
-    window.history.pushState(null, "", `/ads?${newSearchParams.toString()}`);
+    window.history.pushState(null, "", `/oglasi?${newSearchParams.toString()}`);
   };
 
   if (!customFields || customFields.length === 0) {

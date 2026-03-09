@@ -73,7 +73,7 @@ const AddListingPlanCard = ({ pckg, handlePurchasePackage }) => {
             {pckg?.duration === "unlimited" ? "∞" : pckg?.duration}
           </div>
           <div className={`text-xs uppercase tracking-wide ${isActive ? 'text-white/80' : 'text-gray-600'}`}>
-            {"Dana"}
+            {"dana"}
           </div>
         </div>
         <div className={`p-3 rounded-lg text-center ${isActive ? 'bg-white/10' : 'bg-gray-50'}`}>

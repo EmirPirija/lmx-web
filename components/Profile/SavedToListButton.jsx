@@ -285,7 +285,7 @@ export default function SavedToListButton({ sellerId, sellerName, className }) {
           })
         ) : (
           <div className="p-3 text-sm text-slate-500 dark:text-slate-400">
-            Još nemaš listi. Kreiraj prvu ispod.
+            Još nemaš nijednu listu. Kreiraj prvu ispod.
           </div>
         )}
       </div>

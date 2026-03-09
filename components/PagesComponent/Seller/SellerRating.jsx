@@ -71,7 +71,7 @@ const SellerRating = ({
   if (!reviews || reviews.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12">
-        <NoData name="recenzije" />
+        <NoData name="recenzija" />
         <p className="mt-4 text-gray-500 text-center">
           Ovaj prodavač još nema nijednu recenziju.
         </p>

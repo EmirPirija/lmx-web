@@ -295,8 +295,8 @@ const CategoryPopup = ({ onClose, extraDetails }) => {
       if (category?.slug) saveRecentCategory(category.slug);
 
       const nextQuery = newSearchParams.toString();
-      const nextUrl = `/ads${nextQuery ? `?${nextQuery}` : ""}`;
-      if (pathname?.startsWith("/ads")) {
+      const nextUrl = `/oglasi${nextQuery ? `?${nextQuery}` : ""}`;
+      if (pathname?.startsWith("/oglasi")) {
         window.history.pushState(null, "", nextUrl);
       } else {
         navigate(nextUrl);

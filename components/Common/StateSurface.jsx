@@ -13,7 +13,7 @@ import {
 const VARIANT_MAP = {
   empty: {
     title: "Nema rezultata",
-    description: "Pokušaj prilagoditi filtere ili provjeri ponovo malo kasnije.",
+    description: "Pokušajte prilagoditi filtere ili provjerite ponovo malo kasnije.",
     icon: SearchX,
     iconTone:
       "bg-slate-100 text-slate-600 dark:bg-slate-800/90 dark:text-slate-200",
@@ -31,7 +31,7 @@ const VARIANT_MAP = {
   },
   error: {
     title: "Došlo je do greške",
-    description: "Nismo uspjeli završiti zahtjev. Pokušaj ponovo.",
+    description: "Nismo uspjeli završiti zahtjev. Pokušajte ponovo.",
     icon: AlertCircle,
     iconTone:
       "bg-rose-100 text-rose-600 dark:bg-rose-900/40 dark:text-rose-200",

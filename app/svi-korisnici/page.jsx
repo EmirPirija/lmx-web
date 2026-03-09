@@ -1070,7 +1070,10 @@ const SviKorisniciPage = () => {
                 ))}
               </div>
             ) : users.length === 0 ? (
-              <NoData name="Nema korisnika koji odgovaraju pretrazi." />
+              <NoData
+                name="korisnika"
+                title="Nema korisnika koji odgovaraju pretrazi."
+              />
             ) : (
               <div
                 className={cn(

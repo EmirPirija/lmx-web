@@ -22,7 +22,7 @@ const DatePostedFilter = () => {
     } else {
       newSearchParams.set("date_posted", optionValue);
     }
-    window.history.pushState(null, "", `/ads?${newSearchParams.toString()}`);
+    window.history.pushState(null, "", `/oglasi?${newSearchParams.toString()}`);
   };
 
   return (
