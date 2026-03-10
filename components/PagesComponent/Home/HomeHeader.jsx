@@ -31,6 +31,7 @@ import { CategoryData, getIsCatLoading } from "@/redux/reducer/categorySlice.js"
 import { getCityData } from "@/redux/reducer/locationSlice";
 import { useAdaptiveMobileDock } from "@/components/Layout/AdaptiveMobileDock";
 import { cn } from "@/lib/utils";
+import { useMembershipOnboarding } from "@/hooks/useMembershipOnboarding";
 
 import ProfileDropdown from "./ProfileDropdown.jsx";
 import HeaderCategories from "./HeaderCategories.jsx";
@@ -121,6 +122,7 @@ const AllUsersIcon = ({ className = "" }) => (
 
 const HomeHeader = () => {
   const { navigate } = useNavigate();
+  const { startOnboarding } = useMembershipOnboarding();
   const { signOut } = FirebaseData();
   const pathname = usePathname();
   const dispatch = useDispatch();
@@ -943,13 +945,24 @@ const HomeHeader = () => {
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2 pr-1">
                         {primaryHeaderQuickLinks.map((link) => (
-                          <CustomLink
-                            key={`desktop-quick-link-${link.id}`}
-                            href={link.href}
-                            className={quickLinkChipClass}
-                          >
-                            {link.label}
-                          </CustomLink>
+                          link?.membershipTier ? (
+                            <button
+                              key={`desktop-quick-link-${link.id}`}
+                              type="button"
+                              onClick={() => startOnboarding(link.membershipTier)}
+                              className={quickLinkChipClass}
+                            >
+                              {link.label}
+                            </button>
+                          ) : (
+                            <CustomLink
+                              key={`desktop-quick-link-${link.id}`}
+                              href={link.href}
+                              className={quickLinkChipClass}
+                            >
+                              {link.label}
+                            </CustomLink>
+                          )
                         ))}
 
                         {overflowHeaderQuickLinks.length > 0 && (
@@ -969,18 +982,32 @@ const HomeHeader = () => {
                               className="w-60 rounded-2xl border border-slate-200/80 bg-white/95 p-1 dark:border-slate-700 dark:bg-slate-900/95"
                             >
                               {overflowHeaderQuickLinks.map((link) => (
-                                <DropdownMenuItem
-                                  asChild
-                                  key={`desktop-overflow-link-${link.id}`}
-                                  className="rounded-xl"
-                                >
-                                  <CustomLink
-                                    href={link.href}
-                                    className="w-full rounded-xl px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-200"
+                                link?.membershipTier ? (
+                                  <DropdownMenuItem
+                                    key={`desktop-overflow-link-${link.id}`}
+                                    className="rounded-xl px-0"
+                                    onClick={() =>
+                                      startOnboarding(link.membershipTier)
+                                    }
                                   >
-                                    {link.label}
-                                  </CustomLink>
-                                </DropdownMenuItem>
+                                    <span className="w-full rounded-xl px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-200">
+                                      {link.label}
+                                    </span>
+                                  </DropdownMenuItem>
+                                ) : (
+                                  <DropdownMenuItem
+                                    asChild
+                                    key={`desktop-overflow-link-${link.id}`}
+                                    className="rounded-xl"
+                                  >
+                                    <CustomLink
+                                      href={link.href}
+                                      className="w-full rounded-xl px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-200"
+                                    >
+                                      {link.label}
+                                    </CustomLink>
+                                  </DropdownMenuItem>
+                                )
                               ))}
                             </DropdownMenuContent>
                           </DropdownMenu>

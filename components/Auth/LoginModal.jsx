@@ -185,12 +185,18 @@ const LoginModal = ({ IsLoginOpen, setIsRegisterModalOpen }) => {
   };
 
   const recaptchaClear = async () => {
-    clearRecaptchaVerifier({ containerId: "recaptcha-container" });
+    clearRecaptchaVerifier({
+      containerId: "recaptcha-container",
+      replaceContainer: true,
+    });
   };
 
   useEffect(() => {
     return () => {
-      clearRecaptchaVerifier({ containerId: "recaptcha-container" });
+      clearRecaptchaVerifier({
+        containerId: "recaptcha-container",
+        replaceContainer: true,
+      });
     };
   }, []);
 

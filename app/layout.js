@@ -55,6 +55,11 @@ export const generateMetadata = async () => {
   return {
     metadataBase: new URL(siteUrl),
     ...metadata,
+    icons: {
+      icon: "/assets/lmx-watermark.png",
+      shortcut: "/assets/lmx-watermark.png",
+      apple: "/assets/lmx-watermark.png",
+    },
     verification: googleVerification
       ? {
           google: googleVerification,

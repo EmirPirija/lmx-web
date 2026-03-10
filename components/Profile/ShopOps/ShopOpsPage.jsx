@@ -1,11 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSelector } from "react-redux";
 import { shopOpsApi } from "@/utils/api";
 import { toast } from "@/utils/toastBs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { userSignUpData } from "@/redux/reducer/authSlice";
+import { resolveMembership } from "@/lib/membership";
+import { isPromoFreeAccessEnabled } from "@/lib/promoMode";
+import { useMembershipOnboarding } from "@/hooks/useMembershipOnboarding";
 import {
   AlertTriangle,
   Box,
@@ -56,6 +61,19 @@ const resolveStockState = (item) => {
 };
 
 export default function ShopOpsPage() {
+  const userData = useSelector(userSignUpData);
+  const cachedMembership = useSelector(
+    (state) => state?.Membership?.userMembership?.data || null,
+  );
+  const { startOnboarding } = useMembershipOnboarding();
+  const promoEnabled = isPromoFreeAccessEnabled();
+  const membership = useMemo(
+    () =>
+      resolveMembership(userData, cachedMembership, cachedMembership?.membership),
+    [cachedMembership, userData],
+  );
+  const hasShopAccess = promoEnabled || membership.isShop;
+
   const [thresholdInput, setThresholdInput] = useState("");
   const [inventoryLoading, setInventoryLoading] = useState(true);
   const [inventoryData, setInventoryData] = useState({ summary: null, items: [] });
@@ -136,9 +154,10 @@ export default function ShopOpsPage() {
   }, []);
 
   useEffect(() => {
+    if (!hasShopAccess) return;
     fetchInventory();
     fetchDomain();
-  }, [fetchDomain, fetchInventory]);
+  }, [fetchDomain, fetchInventory, hasShopAccess]);
 
   const summary = inventoryData?.summary || {};
   const inventoryItems = inventoryData?.items || [];
@@ -224,6 +243,41 @@ export default function ShopOpsPage() {
       setDomainVerifying(false);
     }
   };
+
+  if (!hasShopAccess) {
+    return (
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+        <div className="mx-auto max-w-2xl text-center">
+          <div className="mx-auto inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-200">
+            <Store className="h-7 w-7" />
+          </div>
+          <h2 className="mt-4 text-2xl font-bold text-slate-900 dark:text-slate-100">
+            Shop operacije su dostupne za LMX Shop članove
+          </h2>
+          <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+            Aktivirajte LMX Shop da biste upravljali zalihama, pragovima i custom domenom.
+          </p>
+          <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
+            <Button
+              type="button"
+              className="h-11 rounded-full"
+              onClick={() => startOnboarding("shop")}
+            >
+              Aktiviraj LMX Shop
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="h-11 rounded-full"
+              onClick={() => startOnboarding("pro")}
+            >
+              Pogledaj LMX Pro
+            </Button>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <div className="space-y-6">

@@ -74,6 +74,7 @@ import {
 import {
   clearRecaptchaVerifier,
   ensureRecaptchaVerifier,
+  isFirebaseDomainConfigurationError,
   isRecaptchaRecoverableError,
 } from "./recaptchaManager";
 
@@ -532,7 +533,10 @@ const RegisterModal = ({ IsRegisterModalOpen, setIsRegisterModalOpen }) => {
   };
 
   const recaptchaClear = async () => {
-    clearRecaptchaVerifier({ containerId: "recaptcha-container" });
+    clearRecaptchaVerifier({
+      containerId: "recaptcha-container",
+      replaceContainer: true,
+    });
   };
 
   const OnHide = async ({ preserveSession = false } = {}) => {
@@ -571,7 +575,10 @@ const RegisterModal = ({ IsRegisterModalOpen, setIsRegisterModalOpen }) => {
   useEffect(() => {
     return () => {
       cleanupObjectUrls();
-      clearRecaptchaVerifier({ containerId: "recaptcha-container" });
+      clearRecaptchaVerifier({
+        containerId: "recaptcha-container",
+        replaceContainer: true,
+      });
     };
   }, []);
 
@@ -642,19 +649,32 @@ const RegisterModal = ({ IsRegisterModalOpen, setIsRegisterModalOpen }) => {
       });
       if (response?.data?.error === false) {
         toast.success("OTP poslan");
+        const debugOtp = String(
+          response?.data?.data?.dev_otp_preview || "",
+        ).trim();
+        if (debugOtp) {
+          toast.info(`DEV OTP: ${debugOtp}`);
+        }
         setStep("otp");
         setResendTimer(60);
       } else {
         toast.error(response?.data?.message || "Slanje OTP koda nije uspjelo.");
       }
     } catch (error) {
-      console.error("Greška pri slanju OTP-a:", error);
-      toast.error("Slanje OTP koda nije uspjelo.");
+      toast.error(
+        error?.response?.data?.message ||
+          error?.message ||
+          "Slanje OTP koda nije uspjelo.",
+      );
     }
   };
 
-  const sendOtpWithFirebase = async (phoneE164) => {
-    const requestOtp = async (forceRecreate = true) => {
+  const sendOtpWithFirebase = async ({
+    phoneE164,
+    localNumber,
+    countryCodeDigits,
+  }) => {
+    const requestOtp = async (forceRecreate = false) => {
       const appVerifier = generateRecaptcha({ forceRecreate });
       if (!appVerifier) {
         handleFirebaseAuthError("auth/recaptcha-not-enabled");
@@ -664,7 +684,7 @@ const RegisterModal = ({ IsRegisterModalOpen, setIsRegisterModalOpen }) => {
     };
 
     try {
-      let confirmation = await requestOtp(true);
+      let confirmation = await requestOtp(false);
       if (!confirmation) {
         return;
       }
@@ -701,8 +721,40 @@ const RegisterModal = ({ IsRegisterModalOpen, setIsRegisterModalOpen }) => {
             return;
           }
         } catch (retryError) {
+          if (isFirebaseDomainConfigurationError(retryError)) {
+            try {
+              setConfirmationResult(null);
+              toast.info(
+                "Firebase verifikacija nije dostupna. Prelazimo na rezervni OTP kanal.",
+              );
+              await sendOtpWithTwillio({
+                phoneE164,
+                localNumber,
+                countryCodeDigits,
+              });
+              return;
+            } catch (_) {
+              // final handler below
+            }
+          }
           handleFirebaseAuthError(retryError);
           return;
+        }
+      }
+      if (isFirebaseDomainConfigurationError(error)) {
+        try {
+          setConfirmationResult(null);
+          toast.info(
+            "Firebase verifikacija nije dostupna. Prelazimo na rezervni OTP kanal.",
+          );
+          await sendOtpWithTwillio({
+            phoneE164,
+            localNumber,
+            countryCodeDigits,
+          });
+          return;
+        } catch (_) {
+          // final handler below
         }
       }
       handleFirebaseAuthError(error);
@@ -740,7 +792,11 @@ const RegisterModal = ({ IsRegisterModalOpen, setIsRegisterModalOpen }) => {
           countryCodeDigits: phonePayload.countryCode,
         });
       } else {
-        await sendOtpWithFirebase(phoneE164);
+        await sendOtpWithFirebase({
+          phoneE164,
+          localNumber: phonePayload.local,
+          countryCodeDigits: phonePayload.countryCode,
+        });
       }
     } finally {
       setIsBusy(false);

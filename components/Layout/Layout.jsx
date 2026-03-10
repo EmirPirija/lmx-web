@@ -16,14 +16,28 @@ import { settingsData } from "@/redux/reducer/settingSlice";
 import { getMaintenanceMessageSetting } from "@/lib/backendControls";
 import { runtimeMaintenanceState } from "@/redux/reducer/runtimeConfigSlice";
 import RuntimeAnnouncementBar from "./RuntimeAnnouncementBar";
+import { userSignUpData } from "@/redux/reducer/authSlice";
+import { useNavigate } from "@/components/Common/useNavigate";
+import { resolveMembership } from "@/lib/membership";
+import {
+  clearMembershipOnboardingIntent,
+  normalizeMembershipTier,
+  readMembershipOnboardingIntent,
+  resolveMembershipOnboardingTarget,
+} from "@/lib/membershipOnboarding";
 
 
 export default function Layout({ children }) {
   const { isLoading, isMaintenanceMode, isRedirectToLanding } =
     useClientLayoutLogic();
+  const { navigate } = useNavigate();
   const pathname = usePathname();
   const systemSettings = useSelector(settingsData);
   const runtimeMaintenance = useSelector(runtimeMaintenanceState);
+  const userData = useSelector(userSignUpData);
+  const membershipData = useSelector(
+    (state) => state?.Membership?.userMembership?.data || null,
+  );
   const isHomepageRoute = pathname === "/";
   const runtimeMaintenanceEnabled = Boolean(runtimeMaintenance?.enabled);
   const maintenanceMessage =
@@ -63,6 +77,31 @@ export default function Layout({ children }) {
       root.style.removeProperty("--lmx-scroll-wave");
     };
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!userData) return;
+
+    const intent = readMembershipOnboardingIntent();
+    if (!intent) return;
+
+    const requestedTier = normalizeMembershipTier(intent?.tier, "pro");
+    const resolvedMembership = resolveMembership(
+      userData,
+      membershipData,
+      membershipData?.membership,
+    );
+    const target = resolveMembershipOnboardingTarget({
+      requestedTier,
+      membership: resolvedMembership,
+    });
+    const targetPathname = String(target || "").split("?")[0];
+
+    clearMembershipOnboardingIntent();
+
+    if (window.location.pathname === targetPathname) return;
+    navigate(target, { scroll: false });
+  }, [membershipData, navigate, userData]);
 
   if (isLoading) {
     return <Loading />;

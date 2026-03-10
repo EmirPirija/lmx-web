@@ -1,11 +1,12 @@
 "use client";
 
-import Link from "next/link";
 import { useSelector } from "react-redux";
 
 import CustomImage from "../Common/CustomImage";
 import CustomLink from "@/components/Common/CustomLink";
 import { settingsData } from "@/redux/reducer/settingSlice";
+import { isPromoFreeAccessEnabled } from "@/lib/promoMode";
+import { useMembershipOnboarding } from "@/hooks/useMembershipOnboarding";
 import {
   BiPhoneCall,
   FaFacebook,
@@ -29,8 +30,16 @@ const FOOTER_PRIMARY_LINKS = [
 ];
 
 const FOOTER_PLATFORM_LINKS = [
-  { href: "/prodavnica", label: "Pokreni LMX Shop" },
-  { href: "/pro", label: "Postani PRO" },
+  {
+    href: "/membership/upgrade?tier=shop",
+    label: "Pokreni LMX Shop",
+    membershipTier: "shop",
+  },
+  {
+    href: "/membership/upgrade?tier=pro",
+    label: "Postani PRO",
+    membershipTier: "pro",
+  },
   { href: "/my-ads", label: "Moji oglasi" },
   { href: "/objavi-oglas", label: "Objavi oglas" },
 ];
@@ -51,6 +60,8 @@ const FOOTER_LEGAL_LINKS = [
 
 export default function Footer() {
   const settings = useSelector(settingsData);
+  const promoEnabled = isPromoFreeAccessEnabled();
+  const { startOnboarding } = useMembershipOnboarding();
   const currentYear = new Date().getFullYear();
 
   const companyName = settings?.company_name || "LMX";
@@ -73,7 +84,9 @@ export default function Footer() {
           <div className="grid gap-2.5 md:grid-cols-3">
             <div className="flex items-center gap-2 rounded-xl border border-emerald-200/80 bg-emerald-50/80 px-3 py-2.5 text-xs font-medium text-emerald-800 dark:border-emerald-700/60 dark:bg-emerald-900/20 dark:text-emerald-200">
               <ShieldCheck size={15} className="text-emerald-500 dark:text-emerald-300" />
-              Svi planovi su trenutno dostupni besplatno.
+              {promoEnabled
+                ? "Svi planovi su trenutno dostupni besplatno."
+                : "Objava oglasa je besplatna za sve korisnike."}
             </div>
             <CustomLink
               href="/objavi-oglas"
@@ -84,7 +97,9 @@ export default function Footer() {
             </CustomLink>
             <div className="flex items-center gap-2 rounded-xl border border-violet-200/80 bg-violet-50/80 px-3 py-2.5 text-xs font-medium text-violet-800 dark:border-violet-700/60 dark:bg-violet-900/20 dark:text-violet-200">
               <ShieldCheck size={15} className="text-violet-500 dark:text-violet-300" />
-              Bez obaveza i bez unosa kartice.
+              {promoEnabled
+                ? "Bez obaveza i bez unosa kartice."
+                : "PRO i SHOP otključavaju napredne alate za rast."}
             </div>
           </div>
         </section>
@@ -189,13 +204,24 @@ export default function Footer() {
             </h3>
             <nav className="mt-3 space-y-2.5">
               {FOOTER_PLATFORM_LINKS.map((link) => (
-                <CustomLink
-                  key={link.href}
-                  href={link.href}
-                  className="block text-sm text-slate-600 transition-colors hover:text-primary dark:text-slate-300"
-                >
-                  {link.label}
-                </CustomLink>
+                link?.membershipTier ? (
+                  <button
+                    key={link.href}
+                    type="button"
+                    onClick={() => startOnboarding(link.membershipTier)}
+                    className="block w-full text-left text-sm text-slate-600 transition-colors hover:text-primary dark:text-slate-300"
+                  >
+                    {link.label}
+                  </button>
+                ) : (
+                  <CustomLink
+                    key={link.href}
+                    href={link.href}
+                    className="block text-sm text-slate-600 transition-colors hover:text-primary dark:text-slate-300"
+                  >
+                    {link.label}
+                  </CustomLink>
+                )
               ))}
             </nav>
           </section>

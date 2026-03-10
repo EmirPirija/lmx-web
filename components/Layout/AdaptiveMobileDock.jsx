@@ -706,7 +706,7 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
                             onPointerDownCapture={beginDockInteraction}
                             onPointerUpCapture={endDockInteraction}
                             onPointerCancelCapture={endDockInteraction}
-                            onPointerLeaveCapture={endDockInteraction}
+                            onPointerLeave={endDockInteraction}
                           >
                             <motion.div
                               layoutId="adaptive-dock-nav-shell"
@@ -763,7 +763,7 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
                       onPointerDownCapture={beginDockInteraction}
                       onPointerUpCapture={endDockInteraction}
                       onPointerCancelCapture={endDockInteraction}
-                      onPointerLeaveCapture={endDockInteraction}
+                      onPointerLeave={endDockInteraction}
                     >
                       <motion.span
                         aria-hidden="true"

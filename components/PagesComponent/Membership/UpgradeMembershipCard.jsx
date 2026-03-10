@@ -14,10 +14,12 @@ import { toast } from "@/utils/toastBs";
 import { useRouter } from "next/navigation";
 import { extractApiData, resolveMembership, resolveMembershipActivity } from "@/lib/membership";
 import { getRealMembershipBenefits } from "@/lib/membershipBenefits";
+import { useMembershipOnboarding } from "@/hooks/useMembershipOnboarding";
 
 const UpgradeMembershipCard = () => {
   const dispatch = useDispatch();
   const router = useRouter();
+  const { startOnboarding } = useMembershipOnboarding();
   const { data: membership } = useSelector((state) => state.Membership.userMembership);
 
   useEffect(() => {
@@ -59,7 +61,7 @@ const UpgradeMembershipCard = () => {
   };
 
   const handleUpgradeClick = (tier) => {
-    router.push(`/membership/upgrade?tier=${tier.id}`);
+    startOnboarding(tier);
   };
 
   const resolvedMembership = useMemo(
@@ -147,7 +149,7 @@ const UpgradeMembershipCard = () => {
           {/* PRO Tier */}
           <div
             className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-amber-400 to-yellow-600 p-4 cursor-pointer hover:scale-105 transition-transform"
-            onClick={() => handleUpgradeClick({ id: 'pro', name: 'Pro' })}
+            onClick={() => handleUpgradeClick("pro")}
           >
             <div className="absolute top-0 right-0 -mt-4 -mr-4 h-20 w-20 rounded-full bg-white/10 blur-xl"></div>
             <div className="relative z-10">
@@ -164,7 +166,7 @@ const UpgradeMembershipCard = () => {
           {/* SHOP Tier */}
           <div
             className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 p-4 cursor-pointer hover:scale-105 transition-transform"
-            onClick={() => handleUpgradeClick({ id: 'shop', name: 'Shop' })}
+            onClick={() => handleUpgradeClick("shop")}
           >
             <div className="absolute top-0 right-0 -mt-4 -mr-4 h-20 w-20 rounded-full bg-white/10 blur-xl"></div>
             <div className="relative z-10">

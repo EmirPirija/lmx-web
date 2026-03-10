@@ -18,6 +18,7 @@ import {
   Sparkles,
   Store,
 } from "@/components/Common/UnifiedIconPack";
+import { useMembershipOnboarding } from "@/hooks/useMembershipOnboarding";
 
 const PLAN_FEATURES = {
   shop: [
@@ -59,6 +60,7 @@ const FAQ_ITEMS = [
 
 export default function PlansShowcase({ mode = "pricing" }) {
   const promoEnabled = isPromoFreeAccessEnabled();
+  const { startOnboarding } = useMembershipOnboarding();
   const isShop = mode === "shop";
   const isPro = mode === "pro";
   const activePlan = isShop ? "shop" : isPro ? "pro" : null;
@@ -104,13 +106,44 @@ export default function PlansShowcase({ mode = "pricing" }) {
               </p>
             ) : null}
             <div className="flex flex-wrap gap-2">
-              <Link
-                href="/objavi-oglas"
-                className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90"
-              >
-                <Sparkles className="h-4 w-4" />
-                Istraži funkcionalnosti
-              </Link>
+              {isShop ? (
+                <button
+                  type="button"
+                  onClick={() => startOnboarding("shop")}
+                  className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  Pokreni LMX Shop
+                </button>
+              ) : isPro ? (
+                <button
+                  type="button"
+                  onClick={() => startOnboarding("pro")}
+                  className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  Aktiviraj LMX Pro
+                </button>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => startOnboarding("shop")}
+                    className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90"
+                  >
+                    <Store className="h-4 w-4" />
+                    Pokreni Shop
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => startOnboarding("pro")}
+                    className="inline-flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-4 py-2 text-sm font-semibold text-primary transition hover:bg-primary/15"
+                  >
+                    <ShieldCheck className="h-4 w-4" />
+                    Postani PRO
+                  </button>
+                </>
+              )}
               <Link
                 href="/profile/integrations"
                 className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
@@ -151,6 +184,18 @@ export default function PlansShowcase({ mode = "pricing" }) {
                     </li>
                   ))}
                 </ul>
+                <button
+                  type="button"
+                  onClick={() => startOnboarding(plan)}
+                  className={cn(
+                    "mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold transition",
+                    plan === "pro"
+                      ? "bg-sky-600 text-white hover:bg-sky-700"
+                      : "bg-emerald-600 text-white hover:bg-emerald-700",
+                  )}
+                >
+                  {plan === "shop" ? "Aktiviraj LMX Shop" : "Aktiviraj LMX Pro"}
+                </button>
               </div>
             ))}
           </div>

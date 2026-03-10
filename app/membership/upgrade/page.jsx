@@ -21,6 +21,7 @@ import { userSignUpData } from "@/redux/reducer/authSlice";
 import { extractApiData, resolveMembership, resolveMembershipActivity } from "@/lib/membership";
 import { cn } from "@/lib/utils";
 import { getRealMembershipBenefits } from "@/lib/membershipBenefits";
+import { normalizeMembershipTier } from "@/lib/membershipOnboarding";
 import {
   getPromoBenefits,
   getPromoHeadline,
@@ -55,6 +56,7 @@ const MembershipUpgradePage = () => {
   const promoEnabled = isPromoFreeAccessEnabled();
 
   const hasFetchedTiers = useRef(false);
+  const redirectHandledRef = useRef(false);
 
   const fetchTiers = useCallback(async () => {
     dispatch(setMembershipTiersLoading(true));
@@ -188,6 +190,11 @@ const MembershipUpgradePage = () => {
   );
 
   const normalizedCurrentTier = resolvedMembership?.tier || "free";
+  const requestedTier = useMemo(
+    () => normalizeMembershipTier(tierParam, ""),
+    [tierParam],
+  );
+  const requestedTierLabel = requestedTier === "shop" ? "LMX Shop" : "LMX Pro";
   const membershipActivity = useMemo(
     () =>
       resolveMembershipActivity(...membershipResolverSources),
@@ -219,6 +226,31 @@ const MembershipUpgradePage = () => {
     if (Number.isNaN(parsedDate.getTime())) return "Datum nije postavljen";
     return parsedDate.toLocaleDateString("bs-BA");
   };
+
+  useEffect(() => {
+    if (promoEnabled || isMembershipResolving || redirectHandledRef.current) return;
+    if (!requestedTier) return;
+
+    if (requestedTier === "shop" && resolvedMembership.isShop) {
+      redirectHandledRef.current = true;
+      toast.info("LMX Shop je već aktivan na vašem računu.");
+      router.replace("/profile/shop-ops");
+      return;
+    }
+
+    if (requestedTier === "pro" && resolvedMembership.isPremium) {
+      redirectHandledRef.current = true;
+      toast.info("Već imate aktivno premium članstvo.");
+      router.replace("/membership/manage");
+    }
+  }, [
+    isMembershipResolving,
+    promoEnabled,
+    requestedTier,
+    resolvedMembership.isPremium,
+    resolvedMembership.isShop,
+    router,
+  ]);
 
   const handleUpgrade = async () => {
     if (promoEnabled) {
@@ -294,14 +326,67 @@ const MembershipUpgradePage = () => {
         <div className="mx-auto max-w-6xl">
           <div className="mb-7 text-center">
             <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
-              {promoEnabled ? "Promotivni Free Access režim" : "Odaberi plan članstva"}
+              {promoEnabled
+                ? "Promotivni Free Access režim"
+                : requestedTier
+                  ? `${requestedTierLabel} onboarding`
+                  : "Odaberi plan članstva"}
             </h1>
             <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
               {promoEnabled
                 ? "Svi planovi su trenutno besplatni i sve funkcionalnosti su otključane bez unosa kartice."
-                : "Odaberi LMX Pro ili LMX Shop plan i potvrdi nadogradnju."}
+                : requestedTier
+                  ? `Završi aktivaciju paketa ${requestedTierLabel} kroz jednostavne korake.`
+                  : "Odaberi LMX Pro ili LMX Shop plan i potvrdi nadogradnju."}
             </p>
           </div>
+
+          <div className="mb-6 rounded-2xl border border-cyan-200/70 bg-cyan-50/70 p-4 text-sm text-cyan-900 dark:border-cyan-500/35 dark:bg-cyan-500/10 dark:text-cyan-100">
+            <p className="font-semibold">
+              Objava oglasa je besplatna za sve korisnike.
+            </p>
+            <p className="mt-1 text-xs">
+              PRO i SHOP su nadogradnje za napredne alate: bolja vidljivost, analitika, zalihe, domena i operativne funkcije.
+            </p>
+          </div>
+
+          {!promoEnabled ? (
+            <div className="mb-6 grid gap-3 md:grid-cols-3">
+              <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900/70">
+                <p className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400">
+                  Korak 1
+                </p>
+                <p className="mt-1 text-sm font-semibold text-slate-900 dark:text-slate-100">
+                  Odaberi paket
+                </p>
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  Izaberi LMX Pro ili LMX Shop prema potrebama poslovanja.
+                </p>
+              </div>
+              <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900/70">
+                <p className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400">
+                  Korak 2
+                </p>
+                <p className="mt-1 text-sm font-semibold text-slate-900 dark:text-slate-100">
+                  Potvrdi aktivaciju
+                </p>
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  Završite checkout i aktivirajte odabrani paket.
+                </p>
+              </div>
+              <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900/70">
+                <p className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400">
+                  Korak 3
+                </p>
+                <p className="mt-1 text-sm font-semibold text-slate-900 dark:text-slate-100">
+                  Koristi premium alate
+                </p>
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  Nakon aktivacije dobijaš pristup naprednim funkcijama u profilu.
+                </p>
+              </div>
+            </div>
+          ) : null}
 
           {promoEnabled ? (
             <div className="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50/80 p-4 text-sm text-emerald-800 dark:border-emerald-500/35 dark:bg-emerald-500/10 dark:text-emerald-200">

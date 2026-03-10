@@ -190,6 +190,8 @@ const recordInternalProxyIncident = (error) => {
   const threshold = getProxyAlertThreshold();
   const cooldownMs = getProxyAlertCooldownMs();
   const status = Number(error?.response?.status || 0) || null;
+  const isTransientProxyFailure = !status || status >= 500;
+  if (!isTransientProxyFailure) return;
 
   internalProxyIncidentState.events.push({
     at: now,

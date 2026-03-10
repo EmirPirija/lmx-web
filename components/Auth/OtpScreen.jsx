@@ -1,11 +1,16 @@
-import { getAuth, signInWithPhoneNumber, signOut as firebaseSignOut } from "firebase/auth";
+import {
+  deleteUser as firebaseDeleteUser,
+  getAuth,
+  signInWithPhoneNumber,
+  signOut as firebaseSignOut,
+} from "firebase/auth";
 import useAutoFocus from "../Common/useAutoFocus";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { toast } from "@/utils/toastBs";
 import { handleFirebaseAuthError } from "@/utils";
-import { authApi, getOtpApi, userSignUpApi, verifyOtpApi } from "@/utils/api";
+import { getOtpApi, userSignUpApi, verifyOtpApi } from "@/utils/api";
 import { loadUpdateData } from "@/redux/reducer/authSlice";
 import { useSelector } from "react-redux";
 import {
@@ -18,6 +23,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "../Common/useNavigate";
 import { getCanonicalPhonePayload, maskPhoneForDebug } from "./phoneAuthUtils";
 import {
+  isFirebaseDomainConfigurationError,
   isRecaptchaRecoverableError,
 } from "./recaptchaManager";
 import {
@@ -43,6 +49,10 @@ const wait = (ms) =>
   new Promise((resolve) => {
     window.setTimeout(resolve, ms);
   });
+
+const TRUNK_ZERO_COUNTRY_CODES = new Set(["381", "382", "385", "386", "387"]);
+
+const digitsOnly = (value = "") => String(value || "").replace(/\D/g, "");
 
 const OtpScreen = ({
   generateRecaptcha,
@@ -70,6 +80,95 @@ const OtpScreen = ({
   const resolvePhonePayload = () =>
     getCanonicalPhonePayload(countryCode, formattedNumber);
 
+  const buildPhoneSignupPayloadCandidates = () => {
+    const payload = resolvePhonePayload();
+    const e164Raw = String(payload.e164 || "").trim();
+    const e164Digits = digitsOnly(e164Raw);
+    const stateCountryDigits = digitsOnly(countryCode);
+    const countryDigits =
+      payload.countryCode ||
+      stateCountryDigits ||
+      (e164Digits.startsWith("387") ? "387" : "");
+    const derivedLocalFromE164 =
+      countryDigits && e164Digits.startsWith(countryDigits)
+        ? e164Digits.slice(countryDigits.length)
+        : "";
+    const formattedDigits = digitsOnly(formattedNumber);
+    const baseLocal =
+      digitsOnly(payload.local) || formattedDigits || derivedLocalFromE164;
+
+    const localCandidates = new Set([
+      digitsOnly(payload.local),
+      formattedDigits,
+      derivedLocalFromE164,
+      baseLocal,
+    ].filter(Boolean));
+
+    if (countryDigits && TRUNK_ZERO_COUNTRY_CODES.has(countryDigits)) {
+      for (const local of [...localCandidates]) {
+        if (!local) continue;
+        if (local.startsWith("0")) {
+          const withoutLeadingZero = local.replace(/^0+/, "");
+          if (withoutLeadingZero) localCandidates.add(withoutLeadingZero);
+        } else {
+          localCandidates.add(`0${local}`);
+        }
+      }
+    }
+
+    const mobileCandidates = new Set(Array.from(localCandidates));
+    if (mobileCandidates.size === 0 && e164Digits) {
+      mobileCandidates.add(e164Digits);
+    }
+
+    return Array.from(mobileCandidates)
+      .map((mobileCandidate) => ({
+        mobile: String(mobileCandidate || "").trim(),
+        countryCode: countryDigits || stateCountryDigits || undefined,
+      }))
+      .filter((candidate) => Boolean(candidate.mobile))
+      .slice(0, 2);
+  };
+
+  const finalizeSuccessfulPhoneAuth = async (data, identifier) => {
+    loadUpdateData(data);
+    toast.success(data?.message || "Prijava je uspješna.");
+    await onAuthSuccess?.(data, {
+      method: "phone",
+      identifier,
+    });
+    if (
+      autoCloseOnSuccess &&
+      (data?.data?.email === "" || data?.data?.name === "")
+    ) {
+      navigate("/profile");
+    }
+    if (autoCloseOnSuccess) {
+      OnHide();
+    }
+  };
+
+  const cleanupFirebaseAfterBackendFailure = async ({
+    confirmedUser,
+    shouldDeleteUser = false,
+  } = {}) => {
+    try {
+      if (shouldDeleteUser && confirmedUser?.uid) {
+        const currentUser = auth.currentUser;
+        if (currentUser?.uid === confirmedUser.uid) {
+          await firebaseDeleteUser(currentUser);
+          return;
+        }
+      }
+    } catch (_) {
+      // fallback to sign-out below
+    }
+
+    try {
+      await firebaseSignOut(auth);
+    } catch (_) {}
+  };
+
   const submitPhoneSignupWithRetry = async (payload, maxAttempts = 2) => {
     let lastError = null;
 
@@ -86,6 +185,116 @@ const OtpScreen = ({
     }
 
     throw lastError || new Error("Backend auth sync failed");
+  };
+
+  const buildDirectPhoneSignupPayload = ({
+    userUid,
+    mobile,
+    countryCodeValue,
+    intent,
+  }) => ({
+    mobile: String(mobile || "").trim(),
+    firebase_id: userUid,
+    fcm_id: fetchFCM ? fetchFCM : "",
+    country_code: String(countryCodeValue || "").replace(/\D/g, "") || undefined,
+    type: "phone",
+    auth_intent: intent || authIntent,
+    region_code: regionCode?.toUpperCase() || "",
+  });
+
+  const buildSignupErrorFromResponse = (response) => {
+    const data = response?.data;
+    const error = new Error(
+      data?.message || "Prijava/registracija brojem nije uspjela.",
+    );
+    error.response = {
+      status: Number(response?.status || data?.code || 0),
+      data,
+    };
+    return error;
+  };
+
+  const isRecoverablePhoneSignupError = (error) => {
+    const status = Number(error?.response?.status || 0);
+    return (
+      isPhoneNotRegisteredError(error) ||
+      isPhoneAlreadyRegisteredError(error) ||
+      status === 404 ||
+      status === 409 ||
+      status === 422
+    );
+  };
+
+  const shouldRetryWithOppositeIntent = (intent, error) => {
+    const status = Number(error?.response?.status || 0);
+    if (intent === "register") {
+      return isPhoneAlreadyRegisteredError(error) || status === 409;
+    }
+    if (intent === "login") {
+      return isPhoneNotRegisteredError(error) || status === 404;
+    }
+    return false;
+  };
+
+  const submitPhoneSignupForIntent = async ({ userUid, intent }) => {
+    const candidates = buildPhoneSignupPayloadCandidates();
+    let lastError = null;
+
+    for (const candidate of candidates) {
+      try {
+        const response = await submitPhoneSignupWithRetry(
+          buildDirectPhoneSignupPayload({
+            userUid,
+            mobile: candidate.mobile,
+            countryCodeValue: candidate.countryCode,
+            intent,
+          }),
+        );
+
+        if (response?.data?.error === false) {
+          return response.data;
+        }
+
+        const softError = buildSignupErrorFromResponse(response);
+        if (isRecoverablePhoneSignupError(softError)) {
+          lastError = softError;
+          continue;
+        }
+        throw softError;
+      } catch (error) {
+        if (isRecoverablePhoneSignupError(error)) {
+          lastError = error;
+          continue;
+        }
+        throw error;
+      }
+    }
+
+    throw lastError || new Error("Prijava/registracija brojem nije uspjela.");
+  };
+
+  const syncPhoneSignupWithFallback = async ({ userUid, intent }) => {
+    try {
+      return await submitPhoneSignupForIntent({ userUid, intent });
+    } catch (primaryError) {
+      if (!shouldRetryWithOppositeIntent(intent, primaryError)) {
+        throw primaryError;
+      }
+
+      const oppositeIntent = intent === "register" ? "login" : "register";
+      try {
+        return await submitPhoneSignupForIntent({
+          userUid,
+          intent: oppositeIntent,
+        });
+      } catch (fallbackError) {
+        const fallbackStatus = Number(fallbackError?.response?.status || 0);
+        if (fallbackStatus && fallbackStatus !== 404 && fallbackStatus !== 409) {
+          throw fallbackError;
+        }
+        throw primaryError;
+      }
+    }
   };
 
   useEffect(() => {
@@ -133,7 +342,9 @@ const OtpScreen = ({
       } else {
         if (isPhoneNotRegisteredError(response?.data)) {
           if (authIntent === "login") {
-            toast.error("Broj nije registrovan. Prvo kreirajte račun.");
+            toast.error(
+              "Prijava brojem trenutno nije uspjela. Pokušaj ponovo.",
+            );
           } else {
             toast.error(
               response?.data?.message ||
@@ -160,109 +371,21 @@ const OtpScreen = ({
 
     try {
       const result = await confirmationResult.confirm(otp);
-      // Access user information from the result
       const user = result.user;
       confirmedUser = user;
-      const response = await submitPhoneSignupWithRetry({
-        mobile: phonePayload.local,
-        firebase_id: user.uid, // Accessing UID directly from the user object
-        fcm_id: fetchFCM ? fetchFCM : "",
-        country_code: phonePayload.countryCode,
-        type: "phone",
-        auth_intent: authIntent,
-        region_code: regionCode?.toUpperCase() || "",
+      const data = await syncPhoneSignupWithFallback({
+        userUid: user.uid,
+        intent: authIntent,
       });
-      const data = response.data;
-      if (data?.error === true) {
-        if (isPhoneNotRegisteredError(data)) {
-          if (authIntent === "login") {
-            toast.error("Broj nije registrovan. Prvo kreirajte račun.");
-          } else {
-            toast.error(
-              data?.message || "Registracija nije dovršena. Pokušaj ponovo.",
-            );
-          }
-        } else {
-          toast.error(data?.message || "Prijava/registracija nije uspjela.");
-        }
-        try {
-          await firebaseSignOut(auth);
-        } catch (_) {}
-        return;
-      }
-      loadUpdateData(data);
-      toast.success(data.message);
-      await onAuthSuccess?.(data, {
-        method: "phone",
-        identifier: phoneE164,
-      });
-      if (
-        autoCloseOnSuccess &&
-        (data?.data?.email === "" || data?.data?.name === "")
-      ) {
-        navigate("/profile");
-      }
-      if (autoCloseOnSuccess) {
-        OnHide();
-      }
+      await finalizeSuccessfulPhoneAuth(data, phoneE164);
     } catch (error) {
-      if (
-        authIntent === "register" &&
-        confirmedUser?.uid &&
-        isPhoneAlreadyRegisteredError(error)
-      ) {
-        try {
-          const fallbackLoginResponse = await submitPhoneSignupWithRetry({
-            mobile: phonePayload.local,
-            firebase_id: confirmedUser.uid,
-            fcm_id: fetchFCM ? fetchFCM : "",
-            country_code: phonePayload.countryCode,
-            type: "phone",
-            auth_intent: "login",
-            region_code: regionCode?.toUpperCase() || "",
-          });
-          const fallbackData = fallbackLoginResponse?.data;
-          if (fallbackData?.error === false) {
-            loadUpdateData(fallbackData);
-            toast.success(
-              fallbackData?.message ||
-                "Broj je već registrovan. Prijavili smo vas na postojeći račun.",
-            );
-            await onAuthSuccess?.(fallbackData, {
-              method: "phone",
-              identifier: phoneE164,
-            });
-            if (
-              autoCloseOnSuccess &&
-              (fallbackData?.data?.email === "" ||
-                fallbackData?.data?.name === "")
-            ) {
-              navigate("/profile");
-            }
-            if (autoCloseOnSuccess) {
-              OnHide();
-            }
-            return;
-          }
-        } catch (fallbackError) {
-          const fallbackMessage =
-            fallbackError?.response?.data?.message ||
-            fallbackError?.message ||
-            "Prijava postojećeg računa nije uspjela.";
-          toast.error(fallbackMessage);
-          try {
-            await firebaseSignOut(auth);
-          } catch (_) {}
-          return;
-        }
-      }
-
       const backendMessage = error?.response?.data?.message;
       if (backendMessage) {
         toast.error(backendMessage);
-        try {
-          await firebaseSignOut(auth);
-        } catch (_) {}
+        await cleanupFirebaseAfterBackendFailure({
+          confirmedUser,
+          shouldDeleteUser: authIntent === "register",
+        });
         return;
       }
 
@@ -270,9 +393,10 @@ const OtpScreen = ({
         toast.error(
           "Prijava trenutno nije dostupna. Backend autentifikacija kasni (504/timeout).",
         );
-        try {
-          await firebaseSignOut(auth);
-        } catch (_) {}
+        await cleanupFirebaseAfterBackendFailure({
+          confirmedUser,
+          shouldDeleteUser: authIntent === "register",
+        });
       } else {
         handleFirebaseAuthError(error);
       }
@@ -288,41 +412,12 @@ const OtpScreen = ({
       return;
     }
     setShowLoader(true);
-    if (otp_service_provider === "twilio") {
+    const shouldUseTwilioOtp =
+      otp_service_provider === "twilio" || !confirmationResult;
+    if (shouldUseTwilioOtp) {
       await verifyOTPWithTwillio();
     } else {
       await verifyOTPWithFirebase();
-    }
-  };
-
-  const ensurePhoneCanLogin = async (phoneE164, countryCodeDigits = "") => {
-    try {
-      const response = await authApi.resolveLoginIdentifier({
-        identifier: phoneE164,
-        identifier_type: "phone",
-        country_code:
-          countryCodeDigits || String(countryCode || "").replace(/\D/g, ""),
-      });
-      if (response?.data?.error === true) {
-        const apiError = new Error(
-          response?.data?.message || "Invalid Login Credentials",
-        );
-        apiError.apiCode = response?.data?.code;
-        apiError.apiReason = response?.data?.data?.reason;
-        throw apiError;
-      }
-      return true;
-    } catch (error) {
-      if (isPhoneNotRegisteredError(error)) {
-        toast.error("Broj nije registrovan. Prvo kreirajte račun.");
-      } else {
-        toast.error(
-          error?.response?.data?.message ||
-            error?.message ||
-            "Provjera broja nije uspjela.",
-        );
-      }
-      return false;
     }
   };
 
@@ -341,19 +436,29 @@ const OtpScreen = ({
       });
       if (response?.data?.error === false) {
         toast.success("OTP poslan");
+        const debugOtp = String(
+          response?.data?.data?.dev_otp_preview || "",
+        ).trim();
+        if (debugOtp) {
+          toast.info(`DEV OTP: ${debugOtp}`);
+        }
         setResendTimer(60); // Start the 60-second timer
       } else {
         toast.error("Slanje OTP koda nije uspjelo.");
       }
     } catch (error) {
-      console.log(error);
+      toast.error(
+        error?.response?.data?.message ||
+          error?.message ||
+          "Slanje OTP koda nije uspjelo.",
+      );
     } finally {
       setResendOtpLoader(false);
     }
   };
 
   const resendOtpWithFirebase = async (phoneE164) => {
-    const requestOtp = async (forceRecreate = true) => {
+    const requestOtp = async (forceRecreate = false) => {
       const appVerifier = generateRecaptcha({ forceRecreate });
       if (!appVerifier) {
         handleFirebaseAuthError("auth/recaptcha-not-enabled");
@@ -363,7 +468,7 @@ const OtpScreen = ({
     };
 
     try {
-      let confirmation = await requestOtp(true);
+      let confirmation = await requestOtp(false);
       if (!confirmation) {
         return;
       }
@@ -397,8 +502,42 @@ const OtpScreen = ({
             return;
           }
         } catch (retryError) {
+          if (isFirebaseDomainConfigurationError(retryError)) {
+            try {
+              setConfirmationResult(null);
+              toast.info(
+                "Firebase verifikacija nije dostupna. Prelazimo na rezervni OTP kanal.",
+              );
+              const phonePayload = resolvePhonePayload();
+              await resendOtpWithTwillio({
+                phoneE164,
+                localNumber: phonePayload.local,
+                countryCodeDigits: phonePayload.countryCode,
+              });
+              return;
+            } catch (_) {
+              // final handler below
+            }
+          }
           handleFirebaseAuthError(retryError);
           return;
+        }
+      }
+      if (isFirebaseDomainConfigurationError(error)) {
+        try {
+          setConfirmationResult(null);
+          toast.info(
+            "Firebase verifikacija nije dostupna. Prelazimo na rezervni OTP kanal.",
+          );
+          const phonePayload = resolvePhonePayload();
+          await resendOtpWithTwillio({
+            phoneE164,
+            localNumber: phonePayload.local,
+            countryCodeDigits: phonePayload.countryCode,
+          });
+          return;
+        } catch (_) {
+          // final handler below
         }
       }
       handleFirebaseAuthError(error);
@@ -412,17 +551,9 @@ const OtpScreen = ({
     setResendOtpLoader(true);
     const phonePayload = resolvePhonePayload();
     const phoneE164 = phonePayload.e164;
-    if (authIntent === "login") {
-      const canLogin = await ensurePhoneCanLogin(
-        phoneE164,
-        phonePayload.countryCode,
-      );
-      if (!canLogin) {
-        setResendOtpLoader(false);
-        return;
-      }
-    }
-    if (otp_service_provider === "twilio") {
+    const shouldUseTwilioOtp =
+      otp_service_provider === "twilio" || !confirmationResult;
+    if (shouldUseTwilioOtp) {
       await resendOtpWithTwillio({
         phoneE164,
         localNumber: phonePayload.local,

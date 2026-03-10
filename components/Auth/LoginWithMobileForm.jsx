@@ -14,7 +14,7 @@ import {
   setPersistence,
   signInWithPhoneNumber,
 } from "firebase/auth";
-import { authApi, getOtpApi } from "@/utils/api";
+import { getOtpApi } from "@/utils/api";
 import { useSelector } from "react-redux";
 import { getOtpServiceProvider } from "@/redux/reducer/settingSlice";
 import {
@@ -24,9 +24,9 @@ import {
 } from "@/components/Common/phoneInputTheme";
 import { getCanonicalPhonePayload, maskPhoneForDebug } from "./phoneAuthUtils";
 import {
+  isFirebaseDomainConfigurationError,
   isRecaptchaRecoverableError,
 } from "./recaptchaManager";
-import { isPhoneNotRegisteredError } from "./authPhoneErrors";
 
 const LoginWithMobileForm = ({
   generateRecaptcha,
@@ -87,13 +87,23 @@ const LoginWithMobileForm = ({
       });
       if (response?.data?.error === false) {
         toast.success("OTP poslan");
+        const debugOtp = String(
+          response?.data?.data?.dev_otp_preview || "",
+        ).trim();
+        if (debugOtp) {
+          toast.info(`DEV OTP: ${debugOtp}`);
+        }
         setIsOTPScreen(true);
         setResendTimer(60); // Start the 60-second timer
       } else {
         toast.error("Slanje OTP koda nije uspjelo.");
       }
     } catch (error) {
-      console.error("error", error);
+      toast.error(
+        error?.response?.data?.message ||
+          error?.message ||
+          "Slanje OTP koda nije uspjelo.",
+      );
     } finally {
       setLoginStates((prev) => ({
         ...prev,
@@ -102,8 +112,12 @@ const LoginWithMobileForm = ({
     }
   };
 
-  const sendOtpWithFirebase = async (phoneE164) => {
-    const requestOtp = async (forceRecreate = true) => {
+  const sendOtpWithFirebase = async ({
+    phoneE164,
+    countryCodeDigits,
+    localNumber,
+  }) => {
+    const requestOtp = async (forceRecreate = false) => {
       const appVerifier = generateRecaptcha({ forceRecreate });
       if (!appVerifier) {
         handleFirebaseAuthError("auth/recaptcha-not-enabled");
@@ -117,7 +131,7 @@ const LoginWithMobileForm = ({
         auth,
         rememberMe ? browserLocalPersistence : browserSessionPersistence,
       );
-      let confirmation = await requestOtp(true);
+      let confirmation = await requestOtp(false);
       if (!confirmation) {
         return;
       }
@@ -153,8 +167,40 @@ const LoginWithMobileForm = ({
             return;
           }
         } catch (retryError) {
+          if (isFirebaseDomainConfigurationError(retryError)) {
+            try {
+              setConfirmationResult(null);
+              toast.info(
+                "Firebase verifikacija nije dostupna. Prelazimo na rezervni OTP kanal.",
+              );
+              await sendOtpWithTwillio({
+                phoneE164,
+                countryCodeDigits,
+                localNumber,
+              });
+              return;
+            } catch (_) {
+              // final handler below
+            }
+          }
           handleFirebaseAuthError(retryError);
           return;
+        }
+      }
+      if (isFirebaseDomainConfigurationError(error)) {
+        try {
+          setConfirmationResult(null);
+          toast.info(
+            "Firebase verifikacija nije dostupna. Prelazimo na rezervni OTP kanal.",
+          );
+          await sendOtpWithTwillio({
+            phoneE164,
+            countryCodeDigits,
+            localNumber,
+          });
+          return;
+        } catch (_) {
+          // final handler below
         }
       }
       handleFirebaseAuthError(error);
@@ -178,36 +224,11 @@ const LoginWithMobileForm = ({
         localNumber,
       });
     } else {
-      await sendOtpWithFirebase(phoneE164);
-    }
-  };
-
-  const ensurePhoneCanLogin = async (phoneE164, countryCodeDigits = "") => {
-    try {
-      const response = await authApi.resolveLoginIdentifier({
-        identifier: phoneE164,
-        identifier_type: "phone",
-        country_code:
-          countryCodeDigits || String(countryCode || "").replace(/\D/g, ""),
+      await sendOtpWithFirebase({
+        phoneE164,
+        countryCodeDigits,
+        localNumber,
       });
-      if (response?.data?.error === true) {
-        const apiError = new Error(
-          response?.data?.message || "Invalid Login Credentials",
-        );
-        apiError.apiCode = response?.data?.code;
-        apiError.apiReason = response?.data?.data?.reason;
-        throw apiError;
-      }
-      return true;
-    } catch (error) {
-      const rawMessage =
-        error?.response?.data?.message || error?.message || "";
-      if (isPhoneNotRegisteredError(error)) {
-        toast.error("Broj nije registrovan. Prvo kreirajte račun.");
-      } else {
-        toast.error(rawMessage || "Provjera broja nije uspjela.");
-      }
-      return false;
     }
   };
 
@@ -216,21 +237,6 @@ const LoginWithMobileForm = ({
     const phonePayload = getCanonicalPhonePayload(countryCode, formattedNumber);
     const phoneE164 = phonePayload.e164;
     if (isValidPhoneNumber(phoneE164)) {
-      setLoginStates((prev) => ({
-        ...prev,
-        showLoader: true,
-      }));
-      const canLogin = await ensurePhoneCanLogin(
-        phoneE164,
-        phonePayload.countryCode,
-      );
-      if (!canLogin) {
-        setLoginStates((prev) => ({
-          ...prev,
-          showLoader: false,
-        }));
-        return;
-      }
       await sendOTP({
         phoneE164,
         countryCodeDigits: phonePayload.countryCode,

@@ -63,13 +63,15 @@ export const headerQuickLinks = [
     },
     {
         id: 6,
-        href: "/prodavnica",
+        href: "/membership/upgrade?tier=shop",
         label: "Pokreni LMX Shop",
+        membershipTier: "shop",
     },
     {
         id: 7,
-        href: "/pro",
+        href: "/membership/upgrade?tier=pro",
         label: "Postani PRO",
+        membershipTier: "pro",
     },
     {
         id: 2,

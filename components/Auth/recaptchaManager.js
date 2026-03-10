@@ -13,6 +13,21 @@ const getContainer = (containerId = DEFAULT_CONTAINER_ID) => {
   return document.getElementById(containerId);
 };
 
+const replaceContainerNode = (containerId = DEFAULT_CONTAINER_ID) => {
+  const container = getContainer(containerId);
+  if (!container) return null;
+
+  const parent = container.parentNode;
+  if (!parent) {
+    container.innerHTML = "";
+    return container;
+  }
+
+  const replacement = container.cloneNode(false);
+  parent.replaceChild(replacement, container);
+  return replacement;
+};
+
 const setGlobalVerifier = (verifier, containerId = "") => {
   if (!isBrowser()) return;
   window[GLOBAL_VERIFIER_KEY] = verifier || null;
@@ -60,6 +75,27 @@ export const isFirebaseInvalidAppCredentialError = (errorLike) => {
   );
 };
 
+export const isFirebaseDomainConfigurationError = (errorLike) => {
+  const code = String(getErrorCode(errorLike) || "").trim().toLowerCase();
+  const message = String(getErrorMessage(errorLike) || "").toLowerCase();
+
+  if (
+    code === "auth/invalid-app-credential" ||
+    code === "auth/unauthorized-domain" ||
+    code === "auth/auth-domain-config-required"
+  ) {
+    return true;
+  }
+
+  return (
+    message.includes("invalid-app-credential") ||
+    message.includes("unauthorized-domain") ||
+    message.includes("domain is not authorized") ||
+    message.includes("domain not whitelisted") ||
+    message.includes("auth domain")
+  );
+};
+
 export const isRecaptchaRecoverableError = (errorLike) => {
   const code = String(getErrorCode(errorLike) || "").trim().toLowerCase();
   const message = String(getErrorMessage(errorLike) || "").toLowerCase();
@@ -78,6 +114,7 @@ export const isRecaptchaRecoverableError = (errorLike) => {
 export const clearRecaptchaVerifier = ({
   containerId = DEFAULT_CONTAINER_ID,
   clearContainer = true,
+  replaceContainer = false,
 } = {}) => {
   if (!isBrowser()) return;
 
@@ -93,6 +130,11 @@ export const clearRecaptchaVerifier = ({
   setGlobalVerifier(null, "");
 
   if (!clearContainer) return;
+
+  if (replaceContainer) {
+    replaceContainerNode(containerId);
+    return;
+  }
 
   const container = getContainer(containerId);
   if (container) {
@@ -121,10 +163,15 @@ export const ensureRecaptchaVerifier = ({
   }
 
   if (existing && (forceRecreate || existingContainerId !== containerId)) {
-    clearRecaptchaVerifier({ containerId: existingContainerId || containerId });
+    clearRecaptchaVerifier({
+      containerId: existingContainerId || containerId,
+      replaceContainer: Boolean(forceRecreate),
+    });
   }
 
-  if (container.childElementCount > 0) {
+  if (container.childElementCount > 0 && forceRecreate) {
+    replaceContainerNode(containerId);
+  } else if (container.childElementCount > 0) {
     container.innerHTML = "";
   }
 
@@ -141,7 +188,10 @@ export const ensureRecaptchaVerifier = ({
     const message = String(error?.message || "");
     if (message.includes("already been rendered")) {
       try {
-        container.innerHTML = "";
+        clearRecaptchaVerifier({
+          containerId,
+          replaceContainer: true,
+        });
       } catch {
         // noop
       }

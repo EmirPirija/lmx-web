@@ -102,7 +102,7 @@ export const getProfileNavigationSections = ({
           href: "/profile/shop-ops",
           icon: Box,
           label: "Shop operacije",
-          description: "Zalihe, alerti i operativna pravila shopa",
+          description: "Zalihe, alerti i domena (LMX Shop)",
           match: "prefix",
         },
         {
