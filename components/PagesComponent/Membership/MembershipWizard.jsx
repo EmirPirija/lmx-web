@@ -1,868 +1,848 @@
 "use client";
 
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
+import { AnimatePresence, motion } from "framer-motion";
 import {
-  ArrowLeft,
   ArrowRight,
   Check,
   CheckCircle2,
   CreditCard,
   Crown,
-  Sparkles,
   Store,
-  Target,
-  TrendingUp,
-  Zap,
 } from "@/components/Common/UnifiedIconPack";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 import { toast } from "@/utils/toastBs";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { membershipApi } from "@/utils/api";
 import { setUserMembership } from "@/redux/reducer/membershipSlice";
-import { extractApiData, resolveMembership } from "@/lib/membership";
-import { userSignUpData } from "@/redux/reducer/authSlice";
+import { extractApiData } from "@/lib/membership";
 import {
-  getPromoBenefits,
-  getPromoHeadline,
+  getRealMembershipBenefits,
+  resolveMembershipTierSlug,
+} from "@/lib/membershipBenefits";
+import {
   isPromoFreeAccessEnabled,
+  getPromoHeadline,
+  getPromoSubhead,
 } from "@/lib/promoMode";
+import MembershipBadge from "@/components/Common/MembershipBadge";
 
-/* ─────────────────────────────────────────────
-   KONSTANTE
-───────────────────────────────────────────── */
+// ─── animation variants ───────────────────────────────────────────────────────
+
+const stepVariants = {
+  initial: { opacity: 0, y: 22, filter: "blur(4px)" },
+  animate: {
+    opacity: 1,
+    y: 0,
+    filter: "blur(0px)",
+    transition: { duration: 0.38, ease: [0.25, 0.46, 0.45, 0.94] },
+  },
+  exit: {
+    opacity: 0,
+    y: -16,
+    filter: "blur(4px)",
+    transition: { duration: 0.22, ease: "easeIn" },
+  },
+};
+
+const listVariants = {
+  animate: { transition: { staggerChildren: 0.055, delayChildren: 0.12 } },
+};
+
+const itemVariants = {
+  initial: { opacity: 0, x: -12 },
+  animate: { opacity: 1, x: 0, transition: { duration: 0.28, ease: "easeOut" } },
+};
+
+// ─── static data ──────────────────────────────────────────────────────────────
 
 const PAYMENT_OPTIONS = [
-  { value: "stripe", label: "Stripe (kartica)" },
+  { value: "stripe", label: "Kreditna / debitna kartica (Stripe)" },
   { value: "bank_transfer", label: "Bankovni prijenos" },
   { value: "paypal", label: "PayPal" },
 ];
 
-const SHOP_BENEFITS = [
-  "Izlog s tvojim artiklima i branding prodavača",
-  "Praćenje zaliha + automatski status „Nema na stanju"",
-  "Cijena po komadu i minimalna količina narudžbe",
-  "Interna šifra artikla (SKU) za lakše upravljanje",
-  "Osnovna analitika pregleda i interakcija",
-  "SHOP oznaka na profilu — veće povjerenje kupaca",
-];
+const TIER_META = {
+  shop: {
+    Icon: Store,
+    gradient: "from-sky-500 via-blue-600 to-indigo-600",
+    gradientSubtle:
+      "from-sky-50 to-indigo-50 dark:from-sky-950/40 dark:to-indigo-950/40",
+    ring: "ring-sky-400/50 dark:ring-sky-500/40",
+    badge:
+      "bg-sky-100 text-sky-700 border-sky-200 dark:bg-sky-500/20 dark:text-sky-200 dark:border-sky-700/40",
+    glow: "shadow-sky-500/25",
+    name: "LMX Shop",
+    tagline: "Vodite cijeli shop direktno s LMX platforme.",
+    description:
+      "LMX Shop je namijenjen prodavačima koji žele profesionalno upravljati asortimanom: zalihe, SKU šifre, računi kupcima i detaljne shop statistike.",
+  },
+  pro: {
+    Icon: Crown,
+    gradient: "from-amber-400 via-yellow-500 to-orange-500",
+    gradientSubtle:
+      "from-amber-50 to-orange-50 dark:from-amber-950/40 dark:to-orange-950/40",
+    ring: "ring-amber-400/50 dark:ring-amber-500/40",
+    badge:
+      "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-500/20 dark:text-amber-200 dark:border-amber-700/40",
+    glow: "shadow-amber-500/25",
+    name: "LMX Pro",
+    tagline: "Napredni alati i veća vidljivost vaših oglasa.",
+    description:
+      "LMX Pro daje vam detaljnu statistiku oglasa, PRO oznaku na profilu, filtere kupcima i prioritetni prikaz u pretrazi.",
+  },
+};
 
-const PRO_BENEFITS = [
-  "Sve Shop pogodnosti uključene",
-  "Prilagođena domena i napredni brending",
-  "Napredna ROI analitika i konverzije",
-  "Skupne akcije: pause, obnova, izdvajanje, obnova",
-  "SLA oznaka i istaknuta reputacija prodavača",
-  "PRO oznaka na profilu — premium vidljivost",
-];
+const STEPS = ["Dobrodošlica", "Plan", "Potvrda", "Aktivirano"];
 
-const PRO_GOALS = [
-  { id: "visibility", label: "Veća vidljivost", icon: Zap },
-  { id: "analytics", label: "ROI analitika", icon: TrendingUp },
-  { id: "domain", label: "Vlastita domena", icon: Target },
-  { id: "bulk", label: "Skupne akcije", icon: Sparkles },
-];
+// ─── step indicator ───────────────────────────────────────────────────────────
 
-/* ─────────────────────────────────────────────
-   UTILITY KOMPONENTE
-───────────────────────────────────────────── */
+const StepIndicator = ({ currentStep, tierMeta }) => (
+  <div className="mb-8 flex items-start justify-center gap-0">
+    {STEPS.map((label, index) => {
+      const stepNum = index + 1;
+      const isCompleted = currentStep > stepNum;
+      const isActive = currentStep === stepNum;
 
-function StepIndicator({ steps, currentStep }) {
-  return (
-    <div className="mb-8 flex items-center justify-center gap-0">
-      {steps.map((label, idx) => {
-        const stepNum = idx + 1;
-        const isDone = stepNum < currentStep;
-        const isActive = stepNum === currentStep;
-        return (
-          <React.Fragment key={label}>
-            <div className="flex flex-col items-center gap-1.5">
-              <div
-                className={cn(
-                  "flex h-8 w-8 items-center justify-center rounded-full border-2 text-xs font-bold transition-all duration-300",
-                  isDone
-                    ? "border-primary bg-primary text-white"
-                    : isActive
-                      ? "border-primary bg-white text-primary dark:bg-slate-900"
-                      : "border-slate-200 bg-white text-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-500"
-                )}
-              >
-                {isDone ? <Check size={14} /> : stepNum}
-              </div>
-              <span
-                className={cn(
-                  "hidden text-[10px] font-semibold uppercase tracking-wide sm:block",
-                  isActive
-                    ? "text-primary"
-                    : isDone
-                      ? "text-slate-500"
-                      : "text-slate-400 dark:text-slate-600"
-                )}
-              >
-                {label}
-              </span>
-            </div>
-            {idx < steps.length - 1 && (
-              <div
-                className={cn(
-                  "mb-5 h-0.5 w-12 transition-all duration-300 sm:w-16",
-                  isDone ? "bg-primary" : "bg-slate-200 dark:bg-slate-700"
-                )}
-              />
-            )}
-          </React.Fragment>
-        );
-      })}
-    </div>
-  );
-}
-
-function BenefitList({ benefits, tierColor = "emerald" }) {
-  const colorMap = {
-    emerald: "text-emerald-500",
-    indigo: "text-indigo-500",
-    amber: "text-amber-500",
-  };
-  return (
-    <ul className="space-y-2.5">
-      {benefits.map((benefit) => (
-        <li key={benefit} className="flex items-start gap-2.5 text-sm text-slate-700 dark:text-slate-200">
-          <CheckCircle2 className={cn("mt-0.5 h-4 w-4 shrink-0", colorMap[tierColor])} />
-          {benefit}
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-function TierBadgePreview({ tier }) {
-  if (tier === "shop") {
-    return (
-      <span className="inline-flex items-center gap-1 rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-bold tracking-wide text-indigo-700 dark:border-indigo-700/45 dark:bg-indigo-900/25 dark:text-indigo-300">
-        <Store size={11} />
-        SHOP
-      </span>
-    );
-  }
-  return (
-    <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-bold tracking-wide text-amber-700 dark:border-amber-700/45 dark:bg-amber-900/25 dark:text-amber-300">
-      <Crown size={11} />
-      PRO
-    </span>
-  );
-}
-
-/* ─────────────────────────────────────────────
-   WIZARD KORACI — SHOP
-───────────────────────────────────────────── */
-
-function ShopStep1({ onNext }) {
-  return (
-    <div className="space-y-6">
-      <div className="text-center space-y-3">
-        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-50 dark:bg-indigo-900/25">
-          <Store className="h-8 w-8 text-indigo-600 dark:text-indigo-400" />
-        </div>
-        <h2 className="text-2xl font-black text-slate-900 dark:text-slate-100">
-          Dobrodošao u LMX Shop
-        </h2>
-        <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto">
-          LMX Shop ti daje sve alate za ozbiljnu online prodaju — zalihe, analitiku, SKU i SHOP oznaku na profilu.
-        </p>
-      </div>
-
-      <div className="rounded-2xl border border-indigo-100 bg-indigo-50/60 p-5 dark:border-indigo-800/40 dark:bg-indigo-900/15">
-        <p className="mb-3 text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
-          Šta dobijaš
-        </p>
-        <BenefitList benefits={SHOP_BENEFITS} tierColor="indigo" />
-      </div>
-
-      <div className="rounded-xl border border-slate-100 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900/60">
-        <p className="text-xs text-slate-500 dark:text-slate-400">
-          Svi oglasi su i dalje besplatni. Shop je nadogradnja za napredne alate prodaje.
-        </p>
-      </div>
-
-      <Button
-        size="lg"
-        className="h-12 w-full rounded-full bg-indigo-600 hover:bg-indigo-700"
-        onClick={onNext}
-      >
-        Kreni dalje
-        <ArrowRight className="ml-2 h-4 w-4" />
-      </Button>
-    </div>
-  );
-}
-
-function ShopStep2({ formData, onChange, onNext, onBack }) {
-  return (
-    <div className="space-y-6">
-      <div className="space-y-1.5">
-        <h2 className="text-xl font-black text-slate-900 dark:text-slate-100">
-          Podesi shop profil
-        </h2>
-        <p className="text-sm text-slate-500 dark:text-slate-400">
-          Ove informacije pomažu kupcima da te prepoznaju i kontaktiraju.
-        </p>
-      </div>
-
-      <div className="space-y-4">
-        <div>
-          <label className="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-slate-300">
-            Naziv shopa / ime prodavača
-          </label>
-          <input
-            type="text"
-            value={formData.shopName}
-            onChange={(e) => onChange("shopName", e.target.value)}
-            placeholder="npr. Moda by Amra"
-            className="h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
-          />
-        </div>
-
-        <div>
-          <label className="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-slate-300">
-            Tip prodavača
-          </label>
-          <div className="grid grid-cols-2 gap-3">
-            {[
-              { value: "individual", label: "Privatna osoba" },
-              { value: "company", label: "Firma / Obrt" },
-            ].map((opt) => (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => onChange("sellerType", opt.value)}
-                className={cn(
-                  "h-11 rounded-xl border text-sm font-semibold transition-all",
-                  formData.sellerType === opt.value
-                    ? "border-indigo-400 bg-indigo-50 text-indigo-700 dark:border-indigo-500 dark:bg-indigo-900/30 dark:text-indigo-300"
-                    : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300"
-                )}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div>
-          <label className="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-slate-300">
-            Kratki opis shopa{" "}
-            <span className="text-xs font-normal text-slate-400">(opciono)</span>
-          </label>
-          <textarea
-            value={formData.description}
-            onChange={(e) => onChange("description", e.target.value)}
-            placeholder="Prodajem ručno rađenu odjeću i modni nakit..."
-            rows={3}
-            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
-          />
-        </div>
-      </div>
-
-      <div className="flex gap-3">
-        <Button variant="outline" className="h-12 flex-1 rounded-full" onClick={onBack}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Nazad
-        </Button>
-        <Button
-          size="lg"
-          className="h-12 flex-1 rounded-full bg-indigo-600 hover:bg-indigo-700"
-          onClick={onNext}
-        >
-          Nastavi
-          <ArrowRight className="ml-2 h-4 w-4" />
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-/* ─────────────────────────────────────────────
-   WIZARD KORACI — PRO
-───────────────────────────────────────────── */
-
-function ProStep1({ onNext }) {
-  return (
-    <div className="space-y-6">
-      <div className="text-center space-y-3">
-        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-50 dark:bg-amber-900/25">
-          <Crown className="h-8 w-8 text-amber-600 dark:text-amber-400" />
-        </div>
-        <h2 className="text-2xl font-black text-slate-900 dark:text-slate-100">
-          Postani LMX Pro
-        </h2>
-        <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto">
-          LMX Pro je za ozbiljne prodavače koji žele naprednu analitiku, vlastitu domenu i alate za skaliranje prodaje.
-        </p>
-      </div>
-
-      <div className="rounded-2xl border border-amber-100 bg-amber-50/60 p-5 dark:border-amber-800/40 dark:bg-amber-900/15">
-        <p className="mb-3 text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">
-          Sve što dobijaš
-        </p>
-        <BenefitList benefits={PRO_BENEFITS} tierColor="amber" />
-      </div>
-
-      <div className="rounded-xl border border-slate-100 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900/60">
-        <p className="text-xs text-slate-500 dark:text-slate-400">
-          Pro uključuje sve Shop funkcionalnosti plus napredne Pro-only alate.
-        </p>
-      </div>
-
-      <Button
-        size="lg"
-        className="h-12 w-full rounded-full bg-amber-500 hover:bg-amber-600"
-        onClick={onNext}
-      >
-        Kreni dalje
-        <ArrowRight className="ml-2 h-4 w-4" />
-      </Button>
-    </div>
-  );
-}
-
-function ProStep2({ formData, onChange, onNext, onBack }) {
-  return (
-    <div className="space-y-6">
-      <div className="space-y-1.5">
-        <h2 className="text-xl font-black text-slate-900 dark:text-slate-100">
-          Šta je tvoj primarni cilj?
-        </h2>
-        <p className="text-sm text-slate-500 dark:text-slate-400">
-          Odaberi fokus i prilagodićemo ti onboarding. Možeš odabrati više opcija.
-        </p>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3">
-        {PRO_GOALS.map(({ id, label, icon: Icon }) => {
-          const isSelected = formData.goals.includes(id);
-          return (
-            <button
-              key={id}
-              type="button"
-              onClick={() => {
-                const newGoals = isSelected
-                  ? formData.goals.filter((g) => g !== id)
-                  : [...formData.goals, id];
-                onChange("goals", newGoals);
-              }}
+      return (
+        <React.Fragment key={label}>
+          <div className="flex flex-col items-center gap-1.5">
+            <motion.div
+              animate={
+                isActive
+                  ? { scale: [1, 1.12, 1], transition: { duration: 0.4 } }
+                  : {}
+              }
               className={cn(
-                "flex flex-col items-center gap-2 rounded-2xl border p-4 text-sm font-semibold transition-all",
-                isSelected
-                  ? "border-amber-400 bg-amber-50 text-amber-700 dark:border-amber-500 dark:bg-amber-900/30 dark:text-amber-300"
-                  : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300"
+                "flex h-8 w-8 items-center justify-center rounded-full border-2 text-xs font-bold transition-all duration-300",
+                isCompleted
+                  ? "border-emerald-500 bg-emerald-500 text-white shadow-sm shadow-emerald-500/30"
+                  : isActive
+                  ? "border-primary bg-primary text-primary-foreground shadow-md shadow-primary/30"
+                  : "border-slate-200 bg-white text-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-500"
               )}
             >
-              <Icon className={cn("h-6 w-6", isSelected ? "text-amber-500" : "text-slate-400")} />
+              {isCompleted ? <Check size={13} strokeWidth={2.5} /> : stepNum}
+            </motion.div>
+            <span
+              className={cn(
+                "hidden text-[11px] font-medium sm:block transition-colors duration-200",
+                isActive
+                  ? "text-primary"
+                  : isCompleted
+                  ? "text-emerald-600 dark:text-emerald-400"
+                  : "text-slate-400 dark:text-slate-500"
+              )}
+            >
               {label}
-            </button>
-          );
-        })}
+            </span>
+          </div>
+
+          {index < STEPS.length - 1 && (
+            <div className="relative mx-1 mb-4 h-0.5 w-8 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700 sm:w-14">
+              <motion.div
+                className="absolute inset-y-0 left-0 rounded-full bg-emerald-500"
+                initial={{ width: 0 }}
+                animate={{ width: isCompleted ? "100%" : "0%" }}
+                transition={{ duration: 0.5, ease: "easeOut" }}
+              />
+            </div>
+          )}
+        </React.Fragment>
+      );
+    })}
+  </div>
+);
+
+// ─── step 1: welcome ──────────────────────────────────────────────────────────
+
+const StepWelcome = ({ tier, meta, onNext }) => {
+  const { Icon, gradient, gradientSubtle, name, tagline, description } = meta;
+  const benefits = getRealMembershipBenefits(tier);
+
+  return (
+    <motion.div
+      key="step-welcome"
+      variants={stepVariants}
+      initial="initial"
+      animate="animate"
+      exit="exit"
+      className="mx-auto w-full max-w-2xl"
+    >
+      {/* hero card */}
+      <div
+        className={cn(
+          "relative overflow-hidden rounded-2xl bg-gradient-to-br p-6 text-white shadow-xl sm:p-8",
+          gradient,
+          "shadow-lg"
+        )}
+      >
+        <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-3xl" />
+        <div className="pointer-events-none absolute bottom-0 left-0 h-28 w-28 rounded-full bg-white/5 blur-2xl" />
+
+        <div className="relative z-10">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-5">
+            <span className="inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/20 backdrop-blur-sm">
+              <Icon size={30} />
+            </span>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">
+                {tier === "shop" ? "LMX Shop paket" : "LMX Pro paket"}
+              </p>
+              <h2 className="mt-0.5 text-2xl font-extrabold tracking-tight sm:text-3xl">
+                {name}
+              </h2>
+              <p className="mt-1 text-sm text-white/85">{tagline}</p>
+            </div>
+          </div>
+
+          <p className="relative mt-5 text-sm leading-relaxed text-white/90">
+            {description}
+          </p>
+
+          <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-3 py-1.5 text-xs font-medium backdrop-blur-sm">
+            <CheckCircle2 size={13} />
+            Objava oglasa je besplatna za sve korisnike — {name} je nadogradnja za profesionalce
+          </div>
+        </div>
       </div>
 
-      <p className="text-center text-xs text-slate-400">
-        Izbor nije obavezan — možeš nastaviti bez odabira.
-      </p>
+      {/* benefits */}
+      <div
+        className={cn(
+          "mt-4 rounded-2xl border bg-gradient-to-br p-5 sm:p-6",
+          gradientSubtle,
+          "border-slate-200/80 dark:border-slate-700/60"
+        )}
+      >
+        <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+          Šta dobijate uz {name}
+        </p>
+        <motion.ul
+          variants={listVariants}
+          initial="initial"
+          animate="animate"
+          className="grid gap-2.5 sm:grid-cols-2"
+        >
+          {benefits.map((benefit, i) => (
+            <motion.li
+              key={i}
+              variants={itemVariants}
+              className="flex items-start gap-2.5"
+            >
+              <span className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300">
+                <Check size={12} strokeWidth={2.5} />
+              </span>
+              <span className="text-sm leading-snug text-slate-700 dark:text-slate-200">
+                {benefit}
+              </span>
+            </motion.li>
+          ))}
+        </motion.ul>
+      </div>
 
-      <div className="flex gap-3">
-        <Button variant="outline" className="h-12 flex-1 rounded-full" onClick={onBack}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
+      <div className="mt-5 flex justify-end">
+        <Button size="lg" className="h-12 rounded-full px-8 text-base" onClick={onNext}>
+          Nastavi
+          <ArrowRight size={18} className="ml-1" />
+        </Button>
+      </div>
+    </motion.div>
+  );
+};
+
+// ─── step 2: plan selection ───────────────────────────────────────────────────
+
+const StepSelectPlan = ({ tier, tiers, selectedTier, onSelectTier, onNext, onBack }) => {
+  const promoEnabled = isPromoFreeAccessEnabled();
+
+  const displayTiers = useMemo(() => {
+    if (!Array.isArray(tiers) || tiers.length === 0) return [];
+    const filtered = tiers.filter((t) => resolveMembershipTierSlug(t) === tier);
+    return filtered.length > 0 ? filtered : tiers;
+  }, [tiers, tier]);
+
+  return (
+    <motion.div
+      key="step-plan"
+      variants={stepVariants}
+      initial="initial"
+      animate="animate"
+      exit="exit"
+      className="mx-auto w-full max-w-2xl"
+    >
+      <div className="mb-5">
+        <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100 sm:text-2xl">
+          Odaberite paket
+        </h2>
+        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+          Pregledajte dostupne opcije i odaberite paket koji odgovara vašim potrebama.
+        </p>
+      </div>
+
+      {promoEnabled && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-5 rounded-xl border border-emerald-200 bg-emerald-50/80 px-4 py-3 text-sm dark:border-emerald-500/30 dark:bg-emerald-500/10"
+        >
+          <p className="font-semibold text-emerald-800 dark:text-emerald-200">
+            {getPromoHeadline()}
+          </p>
+          <p className="mt-0.5 text-xs text-emerald-700 dark:text-emerald-300">
+            {getPromoSubhead()}
+          </p>
+        </motion.div>
+      )}
+
+      <motion.div
+        variants={listVariants}
+        initial="initial"
+        animate="animate"
+        className="space-y-3"
+      >
+        {displayTiers.map((t) => {
+          const slug = resolveMembershipTierSlug(t);
+          const meta = TIER_META[slug] || TIER_META.pro;
+          const { Icon, gradient, ring, badge, glow } = meta;
+          const isSelected = selectedTier?.id === t?.id;
+          const benefits = getRealMembershipBenefits(slug);
+
+          return (
+            <motion.div
+              key={t?.id}
+              variants={itemVariants}
+              role="button"
+              tabIndex={0}
+              onClick={() => onSelectTier(t)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  onSelectTier(t);
+                }
+              }}
+              className={cn(
+                "group relative cursor-pointer overflow-hidden rounded-2xl border transition-all duration-300",
+                isSelected
+                  ? cn(
+                      "border-transparent ring-2 ring-offset-2 ring-offset-white dark:ring-offset-slate-950",
+                      ring,
+                      "shadow-lg",
+                      glow
+                    )
+                  : "border-slate-200 bg-white hover:border-slate-300 hover:shadow-md dark:border-slate-700 dark:bg-slate-900 dark:hover:border-slate-600"
+              )}
+            >
+              {/* gradient header */}
+              <div className={cn("flex items-center gap-3 bg-gradient-to-r p-4 text-white sm:gap-4 sm:p-5", gradient)}>
+                <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
+                  <Icon size={22} />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="font-bold leading-tight">{t?.name || meta.name}</p>
+                  <p className="mt-0.5 truncate text-xs text-white/80">
+                    {t?.description || meta.tagline}
+                  </p>
+                </div>
+                <div className="shrink-0 text-right">
+                  {promoEnabled ? (
+                    <span className="rounded-full border border-white/30 bg-white/15 px-3 py-1 text-sm font-bold">
+                      Besplatno
+                    </span>
+                  ) : (
+                    <div>
+                      <p className="text-xl font-extrabold tabular-nums">
+                        {t?.price ? `${t.price} EUR` : "0 EUR"}
+                      </p>
+                      <p className="text-xs text-white/70">
+                        / {t?.duration_days || 30} dana
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* benefits */}
+              <div className="p-4 sm:p-5">
+                <ul className="grid gap-2 sm:grid-cols-2">
+                  {benefits.slice(0, 4).map((b, i) => (
+                    <li
+                      key={i}
+                      className="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-200"
+                    >
+                      <Check
+                        size={13}
+                        strokeWidth={2.5}
+                        className="mt-0.5 shrink-0 text-emerald-600 dark:text-emerald-400"
+                      />
+                      <span className="leading-snug">{b}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                <div className="mt-4 flex items-center justify-between gap-3">
+                  <span
+                    className={cn(
+                      "rounded-full border px-3 py-1 text-xs font-semibold",
+                      badge
+                    )}
+                  >
+                    {isSelected ? "Odabran plan" : "Dostupan plan"}
+                  </span>
+
+                  <AnimatePresence>
+                    {isSelected && (
+                      <motion.span
+                        initial={{ scale: 0, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0, opacity: 0 }}
+                        transition={{ type: "spring", stiffness: 400, damping: 20 }}
+                        className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-emerald-500 text-white shadow-sm"
+                      >
+                        <Check size={14} strokeWidth={2.5} />
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </div>
+            </motion.div>
+          );
+        })}
+      </motion.div>
+
+      <div className="mt-6 flex items-center justify-between gap-3">
+        <Button variant="outline" className="h-11 rounded-full px-6" onClick={onBack}>
           Nazad
         </Button>
         <Button
           size="lg"
-          className="h-12 flex-1 rounded-full bg-amber-500 hover:bg-amber-600"
+          className="h-12 rounded-full px-8"
           onClick={onNext}
+          disabled={!selectedTier}
         >
           Nastavi
-          <ArrowRight className="ml-2 h-4 w-4" />
+          <ArrowRight size={17} className="ml-1" />
         </Button>
       </div>
-    </div>
+    </motion.div>
   );
-}
+};
 
-/* ─────────────────────────────────────────────
-   ZAJEDNIČKI KORAK — PLAĆANJE
-───────────────────────────────────────────── */
+// ─── step 3: confirm ──────────────────────────────────────────────────────────
 
-function PaymentStep({ tier, tiers, paymentMethod, onPaymentChange, onSubmit, onBack, isProcessing }) {
+const StepConfirm = ({
+  tier,
+  selectedTier,
+  paymentMethod,
+  onPaymentMethodChange,
+  onSubmit,
+  isProcessing,
+  onBack,
+}) => {
   const promoEnabled = isPromoFreeAccessEnabled();
-
-  const matchedTier = useMemo(() => {
-    if (!Array.isArray(tiers) || tiers.length === 0) return null;
-    return (
-      tiers.find((t) =>
-        [t?.slug, t?.tier, t?.name]
-          .map((v) => String(v ?? "").toLowerCase())
-          .some((v) => v === tier || v.includes(tier))
-      ) || tiers[0]
-    );
-  }, [tiers, tier]);
-
-  const isShop = tier === "shop";
-  const accentColor = isShop ? "indigo" : "amber";
-  const tierLabel = isShop ? "LMX Shop" : "LMX Pro";
+  const slug = selectedTier ? resolveMembershipTierSlug(selectedTier) : tier;
+  const meta = TIER_META[slug] || TIER_META.pro;
+  const { Icon, gradient, gradientSubtle } = meta;
+  const benefits = getRealMembershipBenefits(slug);
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-1.5">
-        <h2 className="text-xl font-black text-slate-900 dark:text-slate-100">
-          Potvrda i plaćanje
+    <motion.div
+      key="step-confirm"
+      variants={stepVariants}
+      initial="initial"
+      animate="animate"
+      exit="exit"
+      className="mx-auto w-full max-w-xl"
+    >
+      <div className="mb-5">
+        <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100 sm:text-2xl">
+          Potvrda aktivacije
         </h2>
-        <p className="text-sm text-slate-500 dark:text-slate-400">
-          Provjeri detalje i završi aktivaciju paketa {tierLabel}.
+        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+          Pregledajte detalje paketa i potvrdite aktivaciju.
         </p>
       </div>
 
-      {/* Sažetak paketa */}
+      {/* plan summary */}
       <div
         className={cn(
-          "rounded-2xl border p-5",
-          isShop
-            ? "border-indigo-100 bg-indigo-50/60 dark:border-indigo-800/40 dark:bg-indigo-900/15"
-            : "border-amber-100 bg-amber-50/60 dark:border-amber-800/40 dark:bg-amber-900/15"
+          "relative mb-5 overflow-hidden rounded-2xl bg-gradient-to-br p-5 text-white shadow-lg sm:p-6",
+          gradient
         )}
       >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            {isShop ? (
-              <Store className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-            ) : (
-              <Crown className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+        <div className="pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full bg-white/10 blur-3xl" />
+        <div className="relative z-10 flex items-center gap-4">
+          <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/20 backdrop-blur-sm">
+            <Icon size={26} />
+          </span>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-widest text-white/70">
+              Odabrani plan
+            </p>
+            <p className="mt-0.5 truncate text-xl font-extrabold">
+              {selectedTier?.name || meta.name}
+            </p>
+            {selectedTier?.description && (
+              <p className="mt-0.5 truncate text-xs text-white/75">
+                {selectedTier.description}
+              </p>
             )}
-            <div>
-              <p className="font-bold text-slate-900 dark:text-slate-100">{tierLabel}</p>
-              <p className="text-xs text-slate-500">
-                {matchedTier?.duration_days || 30} dana • automatska obnova
-              </p>
-            </div>
           </div>
-          <TierBadgePreview tier={tier} />
-        </div>
-
-        <div className="mt-4 border-t border-slate-200/70 pt-4 dark:border-slate-700/50">
           {promoEnabled ? (
-            <div>
-              <p className="text-lg font-black text-emerald-600 dark:text-emerald-400">
-                Besplatno
-              </p>
-              <p className="text-xs text-slate-500">{getPromoHeadline()}</p>
+            <div className="shrink-0 rounded-xl border border-white/30 bg-white/15 px-3 py-2 text-center backdrop-blur-sm">
+              <p className="text-sm font-extrabold">Besplatno</p>
             </div>
           ) : (
-            <div>
-              <p className="text-lg font-black text-slate-900 dark:text-slate-100">
-                {matchedTier?.price ? `${matchedTier.price} EUR` : "Kontaktiraj nas"}
+            <div className="shrink-0 rounded-xl border border-white/30 bg-white/15 px-3 py-2 text-center backdrop-blur-sm">
+              <p className="text-xl font-extrabold tabular-nums">
+                {selectedTier?.price ? `${selectedTier.price} EUR` : "0 EUR"}
               </p>
-              <p className="text-xs text-slate-500">
-                po {matchedTier?.duration_days || 30} dana
+              <p className="text-xs text-white/70">
+                / {selectedTier?.duration_days || 30} dana
               </p>
             </div>
           )}
         </div>
       </div>
 
-      {/* Badge preview */}
-      <div className="rounded-xl border border-slate-100 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900/60">
-        <p className="mb-2 text-xs font-semibold text-slate-500 dark:text-slate-400">
-          Tvoj badge nakon aktivacije
+      {/* benefits checklist */}
+      <div
+        className={cn(
+          "mb-5 rounded-2xl border bg-gradient-to-br p-4 sm:p-5",
+          gradientSubtle,
+          "border-slate-200/80 dark:border-slate-700/60"
+        )}
+      >
+        <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+          Što je uključeno
         </p>
-        <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-200 dark:bg-slate-700">
-            <span className="text-xs font-bold text-slate-500">TI</span>
-          </div>
-          <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-            Tvoje ime
-          </span>
-          <TierBadgePreview tier={tier} />
-        </div>
+        <motion.ul
+          variants={listVariants}
+          initial="initial"
+          animate="animate"
+          className="space-y-2"
+        >
+          {benefits.map((b, i) => (
+            <motion.li
+              key={i}
+              variants={itemVariants}
+              className="flex items-start gap-2.5 text-sm text-slate-700 dark:text-slate-200"
+            >
+              <Check
+                size={13}
+                strokeWidth={2.5}
+                className="mt-0.5 shrink-0 text-emerald-600 dark:text-emerald-400"
+              />
+              <span className="leading-snug">{b}</span>
+            </motion.li>
+          ))}
+        </motion.ul>
       </div>
 
-      {/* Plaćanje */}
-      {!promoEnabled ? (
-        <div>
-          <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-300">
+      {/* payment */}
+      {promoEnabled ? (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="mb-5 rounded-xl border border-emerald-200 bg-emerald-50/80 px-4 py-3 text-sm dark:border-emerald-500/30 dark:bg-emerald-500/10"
+        >
+          <p className="font-semibold text-emerald-800 dark:text-emerald-200">
+            Promotivni režim — nema plaćanja ni unosa kartice.
+          </p>
+          <p className="mt-0.5 text-xs text-emerald-700 dark:text-emerald-300">
+            Klikom na dugme ispod potvrđujete besplatnu aktivaciju paketa.
+          </p>
+        </motion.div>
+      ) : (
+        <div className="mb-5">
+          <label
+            htmlFor="wizard-payment-method"
+            className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300"
+          >
             Način plaćanja
           </label>
-          <div className="space-y-2">
-            {PAYMENT_OPTIONS.map((opt) => (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => onPaymentChange(opt.value)}
-                className={cn(
-                  "flex h-12 w-full items-center gap-3 rounded-xl border px-4 text-sm font-semibold transition-all",
-                  paymentMethod === opt.value
-                    ? isShop
-                      ? "border-indigo-400 bg-indigo-50 text-indigo-700 dark:border-indigo-500 dark:bg-indigo-900/30 dark:text-indigo-300"
-                      : "border-amber-400 bg-amber-50 text-amber-700 dark:border-amber-500 dark:bg-amber-900/30 dark:text-amber-300"
-                    : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300"
-                )}
-              >
-                <CreditCard className="h-4 w-4 shrink-0" />
-                {opt.label}
-                {paymentMethod === opt.value && (
-                  <Check className="ml-auto h-4 w-4" />
-                )}
-              </button>
-            ))}
-          </div>
-        </div>
-      ) : (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-medium text-emerald-800 dark:border-emerald-500/35 dark:bg-emerald-500/10 dark:text-emerald-200">
-          Promotivni period: nema plaćanja. Aktivacija je besplatna bez unosa kartice.
-          <div className="mt-1.5 flex flex-wrap gap-1">
-            {getPromoBenefits().slice(0, 3).map((b) => (
-              <span key={b} className="rounded-full border border-emerald-200 bg-white/80 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 dark:border-emerald-500/35 dark:bg-slate-900/60 dark:text-emerald-200">
-                {b}
-              </span>
-            ))}
+          <div className="relative">
+            <CreditCard className="pointer-events-none absolute left-3.5 top-3 h-4 w-4 text-slate-400" />
+            <select
+              id="wizard-payment-method"
+              value={paymentMethod}
+              onChange={(e) => onPaymentMethodChange(e.target.value)}
+              className={cn(
+                "h-11 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-4 text-sm text-slate-900",
+                "outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20",
+                "dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:border-primary"
+              )}
+            >
+              {PAYMENT_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
       )}
 
-      <div className="flex gap-3">
-        <Button variant="outline" className="h-12 flex-1 rounded-full" onClick={onBack} disabled={isProcessing}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
+      <div className="flex items-center justify-between gap-3">
+        <Button
+          variant="outline"
+          className="h-11 rounded-full px-6"
+          onClick={onBack}
+          disabled={isProcessing}
+        >
           Nazad
         </Button>
         <Button
           size="lg"
-          className={cn(
-            "h-12 flex-1 rounded-full",
-            isShop ? "bg-indigo-600 hover:bg-indigo-700" : "bg-amber-500 hover:bg-amber-600"
-          )}
+          className="h-12 flex-1 rounded-full text-base sm:flex-none sm:px-10"
           onClick={onSubmit}
           disabled={isProcessing}
         >
-          {isProcessing ? (
-            "Aktivacija..."
-          ) : promoEnabled ? (
-            `Aktiviraj besplatno`
-          ) : (
-            `Aktiviraj ${tierLabel}`
-          )}
+          {isProcessing
+            ? "Obrada..."
+            : promoEnabled
+            ? "Aktiviraj besplatno"
+            : "Potvrdi i aktiviraj"}
         </Button>
       </div>
-    </div>
+    </motion.div>
   );
-}
+};
 
-/* ─────────────────────────────────────────────
-   KORAK USPJEHA
-───────────────────────────────────────────── */
+// ─── step 4: success ──────────────────────────────────────────────────────────
 
-function SuccessStep({ tier, onContinue }) {
-  const isShop = tier === "shop";
+const StepSuccess = ({ tier, selectedTier }) => {
+  const router = useRouter();
+  const slug = selectedTier ? resolveMembershipTierSlug(selectedTier) : tier;
+  const meta = TIER_META[slug] || TIER_META.pro;
+  const { Icon, gradient, name } = meta;
 
   return (
-    <div className="space-y-6 text-center">
-      <div className="space-y-4">
-        <div
-          className={cn(
-            "mx-auto flex h-20 w-20 items-center justify-center rounded-full",
-            isShop
-              ? "bg-indigo-100 dark:bg-indigo-900/30"
-              : "bg-amber-100 dark:bg-amber-900/30"
-          )}
-        >
-          {isShop ? (
-            <Store className="h-10 w-10 text-indigo-600 dark:text-indigo-400" />
-          ) : (
-            <Crown className="h-10 w-10 text-amber-600 dark:text-amber-400" />
-          )}
-        </div>
+    <motion.div
+      key="step-success"
+      variants={stepVariants}
+      initial="initial"
+      animate="animate"
+      exit="exit"
+      className="mx-auto w-full max-w-lg text-center"
+    >
+      {/* success icon */}
+      <motion.div
+        initial={{ scale: 0, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ type: "spring", stiffness: 300, damping: 18, delay: 0.1 }}
+        className="mb-5 inline-flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100 shadow-lg shadow-emerald-500/20 dark:bg-emerald-500/20"
+      >
+        <CheckCircle2 size={44} className="text-emerald-600 dark:text-emerald-400" />
+      </motion.div>
 
-        <div className="space-y-2">
-          <h2 className="text-2xl font-black text-slate-900 dark:text-slate-100">
-            {isShop ? "Shop je aktivan!" : "PRO je aktivan!"}
-          </h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
-            {isShop
-              ? "Sada možeš upravljati zalihama, SKU-ovima i pratiti analitiku prodaje."
-              : "Sada imaš pristup naprednoj analitici, domeni i skupnim alatima."}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2, duration: 0.35 }}
+      >
+        <h2 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 sm:text-3xl">
+          Dobrodošli u {name}!
+        </h2>
+        <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+          Vaše članstvo je uspješno aktivirano. Badge se odmah pojavljuje na vašem profilu.
+        </p>
+      </motion.div>
+
+      {/* badge preview card */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ delay: 0.32, duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
+        className={cn(
+          "my-6 inline-flex w-full items-center gap-4 rounded-2xl bg-gradient-to-br p-5 text-white shadow-xl sm:p-6",
+          gradient
+        )}
+      >
+        <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/20 backdrop-blur-sm">
+          <Icon size={26} />
+        </span>
+        <div className="flex-1 text-left">
+          <p className="text-xs font-semibold uppercase tracking-widest text-white/70">
+            Vaš badge
           </p>
-        </div>
-      </div>
-
-      {/* Badge prikaz */}
-      <div className="mx-auto max-w-xs rounded-2xl border border-slate-100 bg-slate-50 p-5 dark:border-slate-800 dark:bg-slate-900/60">
-        <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
-          Tvoj profil sada izgleda ovako
-        </p>
-        <div className="flex items-center justify-center gap-2">
-          <div
-            className={cn(
-              "flex h-10 w-10 items-center justify-center rounded-full",
-              isShop
-                ? "bg-indigo-100 dark:bg-indigo-900/40"
-                : "bg-amber-100 dark:bg-amber-900/40"
-            )}
-          >
-            {isShop ? (
-              <Store className="h-5 w-5 text-indigo-600" />
-            ) : (
-              <Crown className="h-5 w-5 text-amber-600" />
-            )}
+          <div className="mt-1 flex items-center gap-2.5">
+            <span className="text-xl font-extrabold">{name}</span>
+            <MembershipBadge tier={slug} size="sm" uppercase />
           </div>
-          <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-            Tvoje ime
-          </span>
-          <TierBadgePreview tier={tier} />
         </div>
-      </div>
+      </motion.div>
 
-      {/* Sljedeći koraci */}
-      <div
-        className={cn(
-          "rounded-2xl border p-4 text-left",
-          isShop
-            ? "border-indigo-100 bg-indigo-50/60 dark:border-indigo-800/40 dark:bg-indigo-900/15"
-            : "border-amber-100 bg-amber-50/60 dark:border-amber-800/40 dark:bg-amber-900/15"
-        )}
+      {/* actions */}
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.45, duration: 0.3 }}
+        className="grid gap-3 sm:grid-cols-2"
       >
-        <p className="mb-2.5 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-          Preporučeni sljedeći koraci
-        </p>
-        <ul className="space-y-2 text-sm text-slate-700 dark:text-slate-200">
-          {isShop ? (
-            <>
-              <li className="flex items-start gap-2">
-                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-indigo-500" />
-                Uključi praćenje zaliha u Shop operacijama
-              </li>
-              <li className="flex items-start gap-2">
-                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-indigo-500" />
-                Objavi ili uredi oglase s cijenama po komadu
-              </li>
-              <li className="flex items-start gap-2">
-                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-indigo-500" />
-                Provjeri Shop analitiku pregleda
-              </li>
-            </>
-          ) : (
-            <>
-              <li className="flex items-start gap-2">
-                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
-                Podesi prilagođenu domenu u postavkama
-              </li>
-              <li className="flex items-start gap-2">
-                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
-                Istraži naprednu ROI analitiku
-              </li>
-              <li className="flex items-start gap-2">
-                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
-                Koristi skupne akcije za upravljanje oglasima
-              </li>
-            </>
-          )}
-        </ul>
-      </div>
-
-      <Button
-        size="lg"
-        className={cn(
-          "h-12 w-full rounded-full",
-          isShop ? "bg-indigo-600 hover:bg-indigo-700" : "bg-amber-500 hover:bg-amber-600"
-        )}
-        onClick={onContinue}
-      >
-        {isShop ? "Otvori Shop operacije" : "Upravljaj Pro članstvom"}
-        <ArrowRight className="ml-2 h-4 w-4" />
-      </Button>
-    </div>
+        <Button
+          size="lg"
+          className="h-12 rounded-full"
+          onClick={() => router.push("/membership/manage")}
+        >
+          Upravljaj članstvom
+        </Button>
+        <Button
+          size="lg"
+          variant="outline"
+          className="h-12 rounded-full"
+          onClick={() =>
+            router.push(slug === "shop" ? "/profile/shop-ops" : "/my-ads")
+          }
+        >
+          {slug === "shop" ? "Otvori Shop" : "Moji oglasi"}
+        </Button>
+      </motion.div>
+    </motion.div>
   );
-}
+};
 
-/* ─────────────────────────────────────────────
-   GLAVNI WIZARD
-───────────────────────────────────────────── */
+// ─── main wizard ──────────────────────────────────────────────────────────────
 
-export default function MembershipWizard({ tier = "shop", tiers = [], currentMembership = null }) {
-  const router = useRouter();
+const MembershipWizard = ({ tier = "shop", tiers = [], currentMembership }) => {
   const dispatch = useDispatch();
-  const userData = useSelector(userSignUpData);
-  const promoEnabled = isPromoFreeAccessEnabled();
-
-  const isShop = tier === "shop";
-
-  // Koraci ovisno o tieru
-  const shopSteps = ["Uvod", "Profil", "Plaćanje", "Aktivno"];
-  const proSteps = ["Uvod", "Ciljevi", "Plaćanje", "Aktivno"];
-  const steps = isShop ? shopSteps : proSteps;
-
-  const [currentStep, setCurrentStep] = useState(1);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState("stripe");
-
-  // Podaci forme
-  const [shopForm, setShopForm] = useState({
-    shopName: userData?.name || "",
-    sellerType: "individual",
-    description: "",
-  });
-
-  const [proForm, setProForm] = useState({
-    goals: [],
-  });
-
-  const handleShopFormChange = useCallback((field, value) => {
-    setShopForm((prev) => ({ ...prev, [field]: value }));
-  }, []);
-
-  const handleProFormChange = useCallback((field, value) => {
-    setProForm((prev) => ({ ...prev, [field]: value }));
-  }, []);
-
-  const goNext = useCallback(() => setCurrentStep((s) => s + 1), []);
-  const goBack = useCallback(() => setCurrentStep((s) => s - 1), []);
-
-  // Pronađi pravi tier iz liste
-  const matchedTier = useMemo(() => {
+  const [step, setStep] = useState(1);
+  const [selectedTier, setSelectedTier] = useState(() => {
     if (!Array.isArray(tiers) || tiers.length === 0) return null;
     return (
-      tiers.find((t) =>
-        [t?.slug, t?.tier, t?.name]
-          .map((v) => String(v ?? "").toLowerCase())
-          .some((v) => v === tier || v.includes(tier))
-      ) || tiers[0]
+      tiers.find((t) => resolveMembershipTierSlug(t) === tier) ||
+      tiers[0] ||
+      null
     );
-  }, [tiers, tier]);
+  });
+  const [paymentMethod, setPaymentMethod] = useState("stripe");
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  const handleSubmit = useCallback(async () => {
+  const meta = TIER_META[tier] || TIER_META.pro;
+
+  const syncedTier = useMemo(() => {
+    if (selectedTier) return selectedTier;
+    if (!Array.isArray(tiers) || tiers.length === 0) return null;
+    return (
+      tiers.find((t) => resolveMembershipTierSlug(t) === tier) ||
+      tiers[0] ||
+      null
+    );
+  }, [selectedTier, tier, tiers]);
+
+  const handleSubmit = async () => {
+    const promoEnabled = isPromoFreeAccessEnabled();
+
     if (promoEnabled) {
-      toast.success("Promotivni režim: sve funkcionalnosti su aktivne.");
-      if (isShop) {
-        router.push("/profile/shop-ops");
-      } else {
-        router.push("/membership/manage");
-      }
+      toast.success(
+        "Promotivni režim je aktivan — sve funkcionalnosti su besplatno dostupne."
+      );
+      dispatch(setUserMembership({ tier, is_active: true }));
+      setStep(4);
       return;
     }
 
-    if (!matchedTier?.id) {
-      toast.error("Greška: plan nije pronađen. Pokušaj osvježiti stranicu.");
+    if (!syncedTier?.id) {
+      toast.error("Odaberite plan prije nastavka.");
       return;
     }
 
     setIsProcessing(true);
     try {
       const res = await membershipApi.upgradeMembership({
-        tier_id: matchedTier.id,
+        tier_id: syncedTier.id,
         payment_method: paymentMethod,
       });
 
-      if (res?.data?.error === false || res?.data?.success) {
-        const membershipRes = await membershipApi.getUserMembership().catch(() => null);
-        if (membershipRes) {
+      if (res?.data?.error === false) {
+        try {
+          const membershipRes = await membershipApi.getUserMembership();
           const payload = extractApiData(membershipRes);
-          dispatch(setUserMembership(payload));
+          dispatch(
+            setUserMembership(
+              payload && typeof payload === "object" ? payload : null
+            )
+          );
+        } catch {
+          // silent refresh failure
         }
-        toast.success(`${isShop ? "LMX Shop" : "LMX Pro"} je uspješno aktiviran!`);
-        setCurrentStep(steps.length); // Success korak
+        toast.success("Članstvo je uspješno aktivirano!");
+        setStep(4);
         return;
       }
 
-      toast.error(res?.data?.message || "Aktivacija nije uspjela. Pokušaj ponovo.");
-    } catch (error) {
-      console.error("Greška pri aktivaciji:", error);
-      toast.error("Greška pri aktivaciji. Pokušaj ponovo.");
+      toast.error(
+        res?.data?.message || "Aktivacija nije uspjela. Pokušajte ponovo."
+      );
+    } catch {
+      toast.error("Greška pri aktivaciji članstva.");
     } finally {
       setIsProcessing(false);
     }
-  }, [dispatch, isShop, matchedTier, paymentMethod, promoEnabled, router, steps.length]);
-
-  const handleContinueAfterSuccess = useCallback(() => {
-    if (isShop) {
-      router.push("/profile/shop-ops");
-    } else {
-      router.push("/membership/manage");
-    }
-  }, [isShop, router]);
-
-  // Render step content
-  const renderStep = () => {
-    const totalSteps = steps.length;
-    const isLastBeforeSuccess = currentStep === totalSteps - 1;
-    const isSuccessStep = currentStep === totalSteps;
-
-    if (isSuccessStep) {
-      return <SuccessStep tier={tier} onContinue={handleContinueAfterSuccess} />;
-    }
-
-    if (isShop) {
-      if (currentStep === 1) return <ShopStep1 onNext={goNext} />;
-      if (currentStep === 2)
-        return (
-          <ShopStep2
-            formData={shopForm}
-            onChange={handleShopFormChange}
-            onNext={goNext}
-            onBack={goBack}
-          />
-        );
-      if (isLastBeforeSuccess)
-        return (
-          <PaymentStep
-            tier={tier}
-            tiers={tiers}
-            paymentMethod={paymentMethod}
-            onPaymentChange={setPaymentMethod}
-            onSubmit={handleSubmit}
-            onBack={goBack}
-            isProcessing={isProcessing}
-          />
-        );
-    } else {
-      if (currentStep === 1) return <ProStep1 onNext={goNext} />;
-      if (currentStep === 2)
-        return (
-          <ProStep2
-            formData={proForm}
-            onChange={handleProFormChange}
-            onNext={goNext}
-            onBack={goBack}
-          />
-        );
-      if (isLastBeforeSuccess)
-        return (
-          <PaymentStep
-            tier={tier}
-            tiers={tiers}
-            paymentMethod={paymentMethod}
-            onPaymentChange={setPaymentMethod}
-            onSubmit={handleSubmit}
-            onBack={goBack}
-            isProcessing={isProcessing}
-          />
-        );
-    }
-
-    return null;
   };
 
-  const isSuccessStep = currentStep === steps.length;
-
   return (
-    <div className="mx-auto max-w-xl">
-      {!isSuccessStep && (
-        <StepIndicator steps={steps} currentStep={currentStep} />
-      )}
-      <div
-        className={cn(
-          "rounded-3xl border bg-white p-6 shadow-sm dark:bg-slate-950 sm:p-8",
-          isShop
-            ? "border-indigo-100 dark:border-indigo-900/30"
-            : "border-amber-100 dark:border-amber-900/30"
-        )}
+    <div className="mx-auto w-full max-w-3xl px-0">
+      {/* heading */}
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35 }}
+        className="mb-2 text-center"
       >
-        {renderStep()}
-      </div>
+        <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100 sm:text-3xl">
+          {meta.name} onboarding
+        </h1>
+        <p className="mt-1.5 text-sm text-slate-500 dark:text-slate-400">
+          Završite aktivaciju u nekoliko jednostavnih koraka.
+        </p>
+      </motion.div>
+
+      <StepIndicator currentStep={step} tierMeta={meta} />
+
+      <AnimatePresence mode="wait">
+        {step === 1 && (
+          <StepWelcome
+            tier={tier}
+            meta={meta}
+            onNext={() => setStep(2)}
+          />
+        )}
+
+        {step === 2 && (
+          <StepSelectPlan
+            tier={tier}
+            tiers={tiers}
+            selectedTier={syncedTier}
+            onSelectTier={setSelectedTier}
+            onNext={() => setStep(3)}
+            onBack={() => setStep(1)}
+          />
+        )}
+
+        {step === 3 && (
+          <StepConfirm
+            tier={tier}
+            selectedTier={syncedTier}
+            paymentMethod={paymentMethod}
+            onPaymentMethodChange={setPaymentMethod}
+            onSubmit={handleSubmit}
+            isProcessing={isProcessing}
+            onBack={() => setStep(2)}
+          />
+        )}
+
+        {step === 4 && (
+          <StepSuccess
+            tier={tier}
+            selectedTier={syncedTier}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
-}
+};
+
+export default MembershipWizard;
