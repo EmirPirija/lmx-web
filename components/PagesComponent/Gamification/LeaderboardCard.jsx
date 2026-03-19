@@ -11,6 +11,8 @@ import {
 } from "@/components/Common/UnifiedIconPack";
 
 import UserAvatarMedia from "@/components/Common/UserAvatar";
+import MembershipBadge from "@/components/Common/MembershipBadge";
+import { resolveMembership } from "@/lib/membership";
 import { cn } from "@/lib/utils";
 
 const RankMark = ({ rank }) => {
@@ -69,6 +71,8 @@ export default function LeaderboardCard({ user, rank }) {
     user?.verification_status === "verified" ||
     user?.verification === "verified";
 
+  const resolvedMembership = resolveMembership(user);
+
   const points = Number(user?.total_points || 0);
   const periodPoints = Number(user?.period_points || 0);
 
@@ -99,10 +103,13 @@ export default function LeaderboardCard({ user, rank }) {
         </div>
 
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <p className="truncate text-sm font-bold text-slate-900 dark:text-white">
               {user?.name || "Korisnik"}
             </p>
+            {resolvedMembership.isPremium && (
+              <MembershipBadge tier={resolvedMembership.tier} size="xs" uppercase />
+            )}
             {isVerified ? <Pill tone="emerald">Verifikovan</Pill> : null}
           </div>
 

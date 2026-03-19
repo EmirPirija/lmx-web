@@ -17,6 +17,8 @@ import {
   IoBagHandleOutline,
   ShoppingBag,
 } from "@/components/Common/UnifiedIconPack";
+import MembershipBadge from "@/components/Common/MembershipBadge";
+import { resolveMembership } from "@/lib/membership";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const formatDate = (dateString) => {
@@ -38,6 +40,7 @@ const PurchaseCard = ({ purchase, onViewReceipt }) => {
   const hasReceipt = Boolean(purchase?.receipt_url);
   const itemName = purchase?.item?.name || "Kupljeni artikal";
   const sellerName = purchase?.seller?.name || "Nepoznat prodavač";
+  const sellerMembership = resolveMembership(purchase?.seller);
 
   return (
     <article className="group overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg dark:border-slate-800 dark:bg-slate-900">
@@ -70,6 +73,9 @@ const PurchaseCard = ({ purchase, onViewReceipt }) => {
               <MdStorefront size={16} className="text-slate-400 dark:text-slate-500" />
               <span>Od:</span>
               <span className="truncate font-semibold text-slate-700 dark:text-slate-200">{sellerName}</span>
+              {sellerMembership.isPremium && (
+                <MembershipBadge tier={sellerMembership.tier} size="xs" uppercase />
+              )}
             </p>
             <p className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
               <MdCalendarToday size={14} className="text-slate-400 dark:text-slate-500" />

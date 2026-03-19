@@ -21,6 +21,8 @@ import { setIsLoginOpen } from "@/redux/reducer/globalStateSlice";
 import { itemQuestionsApi } from "@/utils/api";
 import { useItemTracking } from "@/hooks/useItemTracking";
 import UserAvatarMedia from "@/components/Common/UserAvatar";
+import MembershipBadge from "@/components/Common/MembershipBadge";
+import { resolveMembership } from "@/lib/membership";
 import { cn } from "@/lib/utils";
 import { resolveSellerPublicQuestionsEngine } from "@/lib/seller-settings-engine";
 import { formatDistanceToNow } from "date-fns";
@@ -69,6 +71,7 @@ const QuestionItem = ({ question, isSeller, currentUserId, onAnswer, onLike, onD
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="font-semibold text-slate-800 dark:text-slate-100 text-sm">{question.user?.name || "Korisnik"}</span>
+              {(() => { const m = resolveMembership(question.user); return m.isPremium ? <MembershipBadge tier={m.tier} size="xs" uppercase /> : null; })()}
               {question.user?.is_verified === 1 && <MdVerified className="text-blue-500 text-sm" />}
               <span className="text-xs text-slate-400 dark:text-slate-500">{formatTimeAgo(question.created_at)}</span>
               {isMyQuestion && <span className="text-xs bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded-full font-medium">Tvoje pitanje</span>}

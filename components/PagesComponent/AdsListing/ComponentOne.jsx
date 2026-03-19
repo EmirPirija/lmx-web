@@ -22,6 +22,8 @@ import CustomImage from "@/components/Common/CustomImage";
 import UserAvatarMedia from "@/components/Common/UserAvatar";
 import CategorySemanticIcon from "@/components/Common/CategorySemanticIcon";
 import { resolveAvatarUrl } from "@/utils/avatar";
+import MembershipBadge from "@/components/Common/MembershipBadge";
+import { resolveMembership } from "@/lib/membership";
 
 const INTERNAL_PROXY_BASE_PATH = String(
   process.env.NEXT_PUBLIC_INTERNAL_PROXY_BASE_PATH || "/internal-api",
@@ -202,6 +204,7 @@ CategoryListItem.displayName = "CategoryListItem";
 // USER CARD (Compact List Style)
 // ═══════════════════════════════════════════════════════════════════
 const UserListItem = memo(({ user, onClick }) => {
+  const membership = resolveMembership(user);
   return (
     <motion.button
       variants={itemVariants}
@@ -226,7 +229,12 @@ const UserListItem = memo(({ user, onClick }) => {
         />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-gray-800 dark:text-slate-100 truncate">{user?.name}</p>
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <p className="text-sm font-semibold text-gray-800 dark:text-slate-100 truncate">{user?.name}</p>
+          {membership.isPremium && (
+            <MembershipBadge tier={membership.tier} size="xs" uppercase />
+          )}
+        </div>
         <div className="flex items-center gap-2">
           {user?.average_rating && (
             <div className="flex items-center gap-1 text-amber-500">

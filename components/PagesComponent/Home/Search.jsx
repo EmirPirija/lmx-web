@@ -28,6 +28,8 @@ import {
   IconStarFilled,
 } from "@/components/Common/UnifiedIconPack";
 import UserAvatarMedia from "@/components/Common/UserAvatar";
+import MembershipBadge from "@/components/Common/MembershipBadge";
+import { resolveMembership } from "@/lib/membership";
 
 const ReelViewerModal = dynamic(
   () => import("@/components/PagesComponent/Seller/ReelViewerModal"),
@@ -1093,6 +1095,7 @@ const Search = ({
                           const seller = storySeller?.seller || {};
                           const sellerName =
                             seller?.name || seller?.shop_name || "Prodavač";
+                          const sellerMembership = resolveMembership(seller);
 
                           return (
                             <button
@@ -1132,6 +1135,11 @@ const Search = ({
                               <span className="mt-1 block max-w-[56px] truncate text-center text-[11px] font-medium text-slate-600 dark:text-slate-300">
                                 {sellerName}
                               </span>
+                              {sellerMembership.isPremium && (
+                                <span className="mt-0.5 flex justify-center">
+                                  <MembershipBadge tier={sellerMembership.tier} size="xs" uppercase />
+                                </span>
+                              )}
                             </button>
                           );
                         })}
