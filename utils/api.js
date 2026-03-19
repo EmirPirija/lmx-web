@@ -2960,10 +2960,11 @@ export const membershipApi = {
   },
 
   // Upgrade na Pro ili Shop membership
-  upgradeMembership: ({ tier_id, payment_method } = {}) => {
+  upgradeMembership: ({ tier_id, payment_method, is_promo } = {}) => {
     const formData = new FormData();
     if (tier_id) formData.append("tier_id", tier_id);
     if (payment_method) formData.append("payment_method", payment_method);
+    if (is_promo !== undefined) formData.append("is_promo", is_promo);
 
     return Api.post(UPGRADE_MEMBERSHIP, formData, {
       headers: {

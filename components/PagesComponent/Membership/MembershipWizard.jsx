@@ -735,15 +735,6 @@ const MembershipWizard = ({ tier = "shop", tiers = [], currentMembership }) => {
   const handleSubmit = async () => {
     const promoEnabled = isPromoFreeAccessEnabled();
 
-    if (promoEnabled) {
-      toast.success(
-        "Promotivni režim je aktivan — sve funkcionalnosti su besplatno dostupne."
-      );
-      dispatch(setUserMembership({ tier, is_active: true }));
-      setStep(4);
-      return;
-    }
-
     if (!syncedTier?.id) {
       toast.error("Odaberite plan prije nastavka.");
       return;
@@ -753,7 +744,8 @@ const MembershipWizard = ({ tier = "shop", tiers = [], currentMembership }) => {
     try {
       const res = await membershipApi.upgradeMembership({
         tier_id: syncedTier.id,
-        payment_method: paymentMethod,
+        payment_method: promoEnabled ? "promo" : paymentMethod,
+        is_promo: promoEnabled ? 1 : 0,
       });
 
       if (res?.data?.error === false) {
@@ -768,7 +760,11 @@ const MembershipWizard = ({ tier = "shop", tiers = [], currentMembership }) => {
         } catch {
           // silent refresh failure
         }
-        toast.success("Članstvo je uspješno aktivirano!");
+        toast.success(
+          promoEnabled
+            ? "Članstvo aktivirano besplatno!"
+            : "Članstvo je uspješno aktivirano!"
+        );
         setStep(4);
         return;
       }
