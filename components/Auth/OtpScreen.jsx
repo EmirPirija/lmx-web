@@ -341,14 +341,41 @@ const OtpScreen = ({
     try {
       const phonePayload = resolvePhonePayload();
       const PhoneNumber = phonePayload.e164;
-      const response = await verifyOtpApi.verifyOtp({
-        number: PhoneNumber,
-        otp: otp,
-        intent: authIntent,
-        mobile: phonePayload.local,
-        country_code: phonePayload.countryCode,
-        region_code: regionCode?.toUpperCase() || "",
-      });
+
+      const doVerify = (intent) =>
+        verifyOtpApi.verifyOtp({
+          number: PhoneNumber,
+          otp: otp,
+          intent,
+          mobile: phonePayload.local,
+          country_code: phonePayload.countryCode,
+          region_code: regionCode?.toUpperCase() || "",
+        });
+
+      let response = await doVerify(authIntent);
+
+      // Ako je korisnik već registrovan a pokušava registraciju → auto-login
+      if (
+        response?.data?.error !== false &&
+        authIntent === "register" &&
+        isPhoneAlreadyRegisteredError(response?.data)
+      ) {
+        response = await doVerify("login");
+      }
+
+      // Ako je korisnik nije registrovan a pokušava login → obavijesti
+      if (
+        response?.data?.error !== false &&
+        authIntent === "login" &&
+        isPhoneNotRegisteredError(response?.data)
+      ) {
+        toast.error(
+          response?.data?.message ||
+            "Broj nije registrovan. Kreirajte račun prvo.",
+        );
+        return;
+      }
+
       if (response?.data?.error === false) {
         const authPayload = response?.data;
         loadUpdateData(authPayload);
@@ -367,22 +394,10 @@ const OtpScreen = ({
           OnHide();
         }
       } else {
-        if (isPhoneNotRegisteredError(response?.data)) {
-          if (authIntent === "login") {
-            toast.error(
-              "Prijava brojem trenutno nije uspjela. Pokušaj ponovo.",
-            );
-          } else {
-            toast.error(
-              response?.data?.message ||
-                "Registracija nije dovršena. Pokušaj ponovo.",
-            );
-          }
-        } else if (isPhoneAlreadyRegisteredError(response?.data)) {
-          toast.info("Broj je već registrovan. Nastavi prijavu.");
-        } else {
-          toast.error(response?.data?.message);
-        }
+        toast.error(
+          response?.data?.message ||
+            "Verifikacija OTP koda nije uspjela. Pokušaj ponovo.",
+        );
       }
     } catch (error) {
       toast.error(
@@ -410,6 +425,25 @@ const OtpScreen = ({
       });
       await finalizeSuccessfulPhoneAuth(data, phoneE164);
     } catch (error) {
+      // Ako je greška "broj već registrovan" a mi smo u register modu,
+      // syncPhoneSignupWithFallback već pokušava auto-login, dakle ova greška
+      // znači da ni login nije uspio — obavijesti korisnika bez brisanja Firebase usera
+      const isAlreadyRegistered = isPhoneAlreadyRegisteredError(error);
+      const isNotRegistered = isPhoneNotRegisteredError(error);
+
+      if (isAlreadyRegistered || isNotRegistered) {
+        const msg = isAlreadyRegistered
+          ? "Broj je već registrovan ali prijava nije uspjela. Pokušaj ponovo."
+          : "Broj nije registrovan. Kreirajte račun prvo.";
+        toast.error(error?.response?.data?.message || msg);
+        // Ne brišemo Firebase korisnika — samo odjavljujemo sesiju
+        await cleanupFirebaseAfterBackendFailure({
+          confirmedUser,
+          shouldDeleteUser: false,
+        });
+        return;
+      }
+
       const backendMessage = error?.response?.data?.message;
       if (backendMessage) {
         toast.error(backendMessage);
@@ -507,10 +541,6 @@ const OtpScreen = ({
         toast.error("Slanje OTP koda nije potvrđeno. Pokušaj ponovo.");
         return;
       }
-      console.info("[Auth][Firebase] OTP resend accepted", {
-        phone: maskPhoneForDebug(phoneE164),
-        verificationId: confirmation?.verificationId || null,
-      });
       setConfirmationResult(confirmation);
       toast.success("OTP poslan");
       setResendTimer(60);
@@ -523,10 +553,6 @@ const OtpScreen = ({
               toast.error("Slanje OTP koda nije potvrđeno. Pokušaj ponovo.");
               return;
             }
-            console.info("[Auth][Firebase] OTP resend accepted after retry", {
-              phone: maskPhoneForDebug(phoneE164),
-              verificationId: retriedConfirmation?.verificationId || null,
-            });
             setConfirmationResult(retriedConfirmation);
             toast.success("OTP poslan");
             setResendTimer(60);
