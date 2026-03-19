@@ -651,12 +651,6 @@ const RegisterModal = ({ IsRegisterModalOpen, setIsRegisterModalOpen }) => {
       });
       if (response?.data?.error === false) {
         toast.success("OTP poslan");
-        const debugOtp = String(
-          response?.data?.data?.dev_otp_preview || "",
-        ).trim();
-        if (debugOtp) {
-          toast.info(`DEV OTP: ${debugOtp}`);
-        }
         setStep("otp");
         setResendTimer(60);
       } else {
@@ -695,10 +689,6 @@ const RegisterModal = ({ IsRegisterModalOpen, setIsRegisterModalOpen }) => {
         return;
       }
 
-      console.info("[Auth][Firebase] OTP request accepted", {
-        phone: maskPhoneForDebug(phoneE164),
-        verificationId: confirmation?.verificationId || null,
-      });
       setConfirmationResult(confirmation);
       toast.success("OTP poslan");
       setResendTimer(60);
@@ -791,6 +781,26 @@ const RegisterModal = ({ IsRegisterModalOpen, setIsRegisterModalOpen }) => {
     otpSendInFlightRef.current = true;
     setIsBusy(true);
     try {
+      // Pre-check: block already-registered numbers before sending OTP
+      try {
+        const phoneOwner = await resolveIdentifierOwner({
+          identifier: phoneE164,
+          identifierType: "phone",
+        });
+        if (phoneOwner) {
+          toast.error(
+            "Ovaj broj telefona je već registrovan. Prijavite se umjesto registracije.",
+          );
+          return;
+        }
+      } catch (resolveError) {
+        if (resolveError?.code === "RATE_LIMIT") {
+          toast.error("Previše pokušaja. Sačekajte kratko i pokušajte ponovo.");
+          return;
+        }
+        // On unexpected errors, allow OTP send to proceed so registration isn't blocked
+      }
+
       if (otp_service_provider === "twilio") {
         await sendOtpWithTwillio({
           phoneE164,

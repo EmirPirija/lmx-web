@@ -501,12 +501,6 @@ const OtpScreen = ({
       });
       if (response?.data?.error === false) {
         toast.success("OTP poslan");
-        const debugOtp = String(
-          response?.data?.data?.dev_otp_preview || "",
-        ).trim();
-        if (debugOtp) {
-          toast.info(`DEV OTP: ${debugOtp}`);
-        }
         setResendTimer(60); // Start the 60-second timer
       } else {
         toast.error("Slanje OTP koda nije uspjelo.");
