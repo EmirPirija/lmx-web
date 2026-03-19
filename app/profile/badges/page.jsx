@@ -43,6 +43,14 @@ const StatCard = ({ label, value, sub }) => (
   </div>
 );
 
+const StatCardSkeleton = () => (
+  <div className="rounded-3xl border border-slate-200/70 dark:border-slate-800 bg-white dark:bg-slate-900/60 p-4 sm:p-5 shadow-sm space-y-2">
+    <Skeleton className="h-3 w-24 rounded-md" />
+    <Skeleton className="h-8 w-16 rounded-lg" />
+    <Skeleton className="h-3 w-36 rounded-md" />
+  </div>
+);
+
 const missionStatusClass = (status) => {
   if (status === "completed") {
     return "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300";
@@ -169,10 +177,21 @@ const BadgesPage = () => {
       <UserLevel userPoints={userPoints} showProgress={true} />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        <StatCard label="Sedmični rang" value={ranks?.weekly ? `#${ranks.weekly}` : "—"} sub="Pozicija ove sedmice" />
-        <StatCard label="Mjesečni rang" value={ranks?.monthly ? `#${ranks.monthly}` : "—"} sub="Pozicija ovog mjeseca" />
-        <StatCard label="Ukupni rang" value={ranks?.all_time ? `#${ranks.all_time}` : "—"} sub="Ukupni poredak" />
-        <StatCard label="Niz aktivnosti" value={`${overview?.streak_days || 0} dana`} sub="Kontinuirana aktivnost" />
+        {overviewLoading ? (
+          <>
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+          </>
+        ) : (
+          <>
+            <StatCard label="Sedmični rang" value={ranks?.weekly ? `#${ranks.weekly}` : "—"} sub="Pozicija ove sedmice" />
+            <StatCard label="Mjesečni rang" value={ranks?.monthly ? `#${ranks.monthly}` : "—"} sub="Pozicija ovog mjeseca" />
+            <StatCard label="Ukupni rang" value={ranks?.all_time ? `#${ranks.all_time}` : "—"} sub="Ukupni poredak" />
+            <StatCard label="Niz aktivnosti" value={`${overview?.streak_days || 0} dana`} sub="Kontinuirana aktivnost" />
+          </>
+        )}
       </div>
 
       <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-3">
@@ -224,7 +243,24 @@ const BadgesPage = () => {
 
           <div className="mt-3 space-y-2.5">
             {overviewLoading ? (
-              <div className="text-sm text-slate-500 dark:text-slate-300">Učitavam misije...</div>
+              <>
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="rounded-2xl border border-slate-200/70 dark:border-slate-700/70 bg-slate-50 dark:bg-slate-800/50 p-3 space-y-2">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-start gap-2.5 flex-1 min-w-0">
+                        <Skeleton className="h-7 w-7 rounded-xl flex-shrink-0" />
+                        <div className="flex-1 space-y-1.5">
+                          <Skeleton className="h-4 w-3/4 rounded-md" />
+                          <Skeleton className="h-3 w-full rounded-md" />
+                        </div>
+                      </div>
+                      <Skeleton className="h-5 w-16 rounded-full flex-shrink-0" />
+                    </div>
+                    <Skeleton className="h-1.5 w-full rounded-full" />
+                    <Skeleton className="h-3 w-32 rounded-md" />
+                  </div>
+                ))}
+              </>
             ) : missions.length ? (
               missions.slice(0, 4).map((mission) => {
                 const MissionIcon = missionIconByText(mission);
@@ -272,20 +308,24 @@ const BadgesPage = () => {
           <p className="mt-1 text-xs text-slate-500 dark:text-slate-300">Biraj stil koji najbolje odgovara tvom profilu.</p>
 
           <div className="mt-3 grid grid-cols-8 gap-2">
-            {avatarOptions.slice(0, 16).map((avatar) => (
-              <div
-                key={avatar.id}
-                className={cn(
-                  "h-10 w-10 rounded-xl border flex items-center justify-center",
-                  avatar.is_premium
-                    ? "border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-900/20"
-                    : "border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800"
-                )}
-                title={avatar.label}
-              >
-                <LmxAvatarSvg avatarId={avatar.id} className="w-6 h-6" />
-              </div>
-            ))}
+            {overviewLoading
+              ? Array.from({ length: 16 }).map((_, i) => (
+                  <Skeleton key={i} className="h-10 w-10 rounded-xl" />
+                ))
+              : avatarOptions.slice(0, 16).map((avatar) => (
+                  <div
+                    key={avatar.id}
+                    className={cn(
+                      "h-10 w-10 rounded-xl border flex items-center justify-center",
+                      avatar.is_premium
+                        ? "border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-900/20"
+                        : "border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800"
+                    )}
+                    title={avatar.label}
+                  >
+                    <LmxAvatarSvg avatarId={avatar.id} className="w-6 h-6" />
+                  </div>
+                ))}
           </div>
         </div>
       </div>

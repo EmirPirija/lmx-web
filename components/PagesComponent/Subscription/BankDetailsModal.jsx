@@ -38,7 +38,7 @@ const BankDetailsModal = ({ packageId, bankDetails }) => {
         toast.error(res?.data?.message);
       }
     } catch (error) {
-      console.log("Failed to confirm Payment", error);
+
     } finally {
       setIsConfirmingPayment(false);
     }

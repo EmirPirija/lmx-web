@@ -124,7 +124,7 @@ const MapLocation = ({
           }
         },
         (error) => {
-          console.log(error);
+
           toast.error("Dozvola za lokaciju nije odobrena.");
           setIsFetchingLocation(false);
         }

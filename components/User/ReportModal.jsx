@@ -30,7 +30,7 @@ const ReportModal = ({
       const { data } = response?.data;
       setReasons(data?.data);
     } catch (error) {
-      console.log(error);
+
     }
   };
 
@@ -63,7 +63,7 @@ const ReportModal = ({
         handleClose();
       }
     } catch (error) {
-      console.log(error);
+
     } finally {
       setIsSubmitting(false);
     }

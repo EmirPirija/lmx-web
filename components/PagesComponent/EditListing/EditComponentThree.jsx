@@ -275,7 +275,6 @@ const compressAndWatermarkImage = async (file) => {
   if (!isFileLike(file)) return file;
 
   const originalSizeKB = (file.size / 1024).toFixed(2);
-  console.log(`📸 [Image Start] ${file.name} | Size: ${originalSizeKB} KB`);
 
   const opts = {
     maxSize: 1920,
@@ -381,9 +380,6 @@ const compressAndWatermarkImage = async (file) => {
 
   const compressedSizeKB = (outBlob.size / 1024).toFixed(2);
   const reduction = ((1 - outBlob.size / file.size) * 100).toFixed(1);
-  console.log(
-    `✅ [Image Done] ${file.name} | New Size: ${compressedSizeKB} KB | Saved: ${reduction}%`,
-  );
 
   const newName = (file.name || "image")
     .replace(/\.(png|jpe?g|webp|heic|heif)$/i, "")
@@ -794,7 +790,6 @@ const EditComponentThree = ({
     if (!file) return;
     if (!file.type?.startsWith("video/")) return toast.error("Pogrešan format");
 
-    console.log(`🎥 [Video Upload Start] ${file.name}`);
 
     if (file.size > 50 * 1024 * 1024) return toast.error("Video max 50MB");
 

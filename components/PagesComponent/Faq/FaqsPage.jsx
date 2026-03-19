@@ -59,7 +59,6 @@ const FaqsPage = () => {
       const incoming = Array.isArray(res?.data?.data) ? res.data.data : [];
       setFaqs(incoming);
     } catch (error) {
-      console.log("error", error);
       setFaqs([]);
     } finally {
       setLoading(false);

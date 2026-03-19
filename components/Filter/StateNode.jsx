@@ -71,7 +71,7 @@ const StateNode = ({ state, country }) => {
         expanded: true,
       }));
     } catch (error) {
-      console.log(error);
+
     } finally {
       setCities((prev) => ({
         ...prev,

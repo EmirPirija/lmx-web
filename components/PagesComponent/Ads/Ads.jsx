@@ -1023,7 +1023,6 @@ const Ads = () => {
         setExtraDetails({});
       }
     } catch (error) {
-      console.log(error);
     }
   };
 
@@ -1059,7 +1058,6 @@ const Ads = () => {
       const categoryIds = data.map((category) => category.id).join(",");
       await getCustomFieldsData(categoryIds);
     } catch (error) {
-      console.log(error);
     }
   };
 
@@ -1259,7 +1257,6 @@ const Ads = () => {
       ) {
         return;
       }
-      console.log(error);
     } finally {
       if (itemsAbortControllerRef.current === controller) {
         itemsAbortControllerRef.current = null;

@@ -224,7 +224,6 @@ const SellerLsitings = ({
       setCurrentPage(current);
       setHasMore(current < last);
     } catch (error) {
-      console.log(error);
     } finally {
       setIsSellerItemsLoading(false);
       setIsSellerItemLoadMore(false);

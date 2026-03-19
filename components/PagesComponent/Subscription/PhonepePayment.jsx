@@ -25,7 +25,7 @@ const PhonepePayment = ({ selectedPackage }) => {
         platform_type: "web",
       });
       if (res.data.error) {
-        console.log("Error in payment intent response:", res.data.message);
+
         toast.error(res.data.message);
         return;
       }

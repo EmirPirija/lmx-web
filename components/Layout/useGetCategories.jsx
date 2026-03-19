@@ -72,7 +72,7 @@ const useGetCategories = () => {
           setHasFetchedCategories(true);
         }
       } catch (error) {
-        console.log(error);
+
       } finally {
         dispatch(setIsCatLoading(false));
         dispatch(setIsCatLoadMore(false));

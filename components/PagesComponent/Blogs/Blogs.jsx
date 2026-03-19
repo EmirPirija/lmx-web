@@ -45,7 +45,7 @@ const Blogs = () => {
         console.error(res?.data?.message);
       }
     } catch (error) {
-      console.log(error);
+
     } finally {
       setIsLoading(false);
       setIsLoadMore(false);

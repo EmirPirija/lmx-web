@@ -51,7 +51,7 @@ const LocationTree = () => {
 
 
     } catch (error) {
-      console.log(error);
+
     } finally {
       setCountries((prev) => ({
         ...prev,

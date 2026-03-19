@@ -26,7 +26,6 @@ const OurBlogs = () => {
       const res = await getBlogsApi.getBlogs();
       setBlogs(res?.data?.data?.data);
     } catch (error) {
-      console.log(error);
     } finally {
       setIsLoading(false);
     }

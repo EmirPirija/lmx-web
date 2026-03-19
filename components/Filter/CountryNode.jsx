@@ -74,7 +74,7 @@ const CountryNode = ({ country }) => {
         expanded: true,
       }));
     } catch (error) {
-      console.log(error);
+
     } finally {
       setStates((prev) => ({
         ...prev,

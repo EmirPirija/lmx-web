@@ -92,7 +92,7 @@ const SearchAutocomplete = ({
             });
           }
         } catch (error) {
-          console.log("error", error);
+
           setAutoState({ suggestions: [], loading: false, show: true });
         }
       } else {

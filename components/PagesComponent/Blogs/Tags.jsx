@@ -24,7 +24,7 @@ const Tags = ({ tag, langCode }) => {
       const res = await getBlogTagsApi.getBlogs();
       setBlogTags(res?.data?.data);
     } catch (error) {
-      console.log(error);
+
     } finally {
       setIsLoading(false);
     }

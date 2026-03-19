@@ -116,7 +116,7 @@ const AdsStatusChangeCards = ({
         setProductDetails((prev) => ({ ...prev, status: "resubmitted" }));
       }
     } catch (error) {
-      console.log(error);
+
       toast.error(error.message);
     }
   };
@@ -142,7 +142,7 @@ const AdsStatusChangeCards = ({
         toast.error(res?.data?.message || "Greška pri ažuriranju statusa");
       }
     } catch (error) {
-      console.log("error", error);
+
       toast.error("Došlo je do greške");
     } finally {
       setIsChangingStatus(false);

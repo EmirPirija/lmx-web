@@ -65,7 +65,7 @@ const CityNode = ({ city, country, state }) => {
         expanded: true,
       }));
     } catch (error) {
-      console.log(error);
+
     } finally {
       setAreas((prev) => ({
         ...prev,

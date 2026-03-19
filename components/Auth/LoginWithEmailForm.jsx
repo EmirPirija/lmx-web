@@ -281,7 +281,6 @@ const LoginWithEmailForm = ({
         console.error("Prijava nije završena:", error);
       }
     } catch (error) {
-      console.log("Error code:", error?.code);
       handleFirebaseAuthError(error);
     } finally {
       setLoginStates((prev) => ({ ...prev, showLoader: false }));
@@ -311,7 +310,6 @@ const LoginWithEmailForm = ({
         toast.success("Provjeri e-mail za reset lozinke.");
       })
       .catch((error) => {
-        console.log("error", error);
         handleFirebaseAuthError(error);
       });
   };

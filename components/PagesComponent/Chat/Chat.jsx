@@ -111,7 +111,7 @@ const Chat = () => {
 
   // === WEBSOCKET HANDLER ===
   const handleWebSocketMessage = useCallback((data) => {
-    // console.log('📨 WebSocket message received:', data);
+    //
     
     switch (data.type) {
       case 'typing':

@@ -249,7 +249,6 @@ const compressAndWatermarkImage = async (file) => {
   if (!isFileLike(file)) return file;
 
   const originalSizeKB = (file.size / 1024).toFixed(2);
-  console.log(`📸 [Image Start] ${file.name} | Size: ${originalSizeKB} KB`);
 
   const opts = {
     maxSize: 1920,
@@ -355,9 +354,6 @@ const compressAndWatermarkImage = async (file) => {
 
   const compressedSizeKB = (outBlob.size / 1024).toFixed(2);
   const reduction = ((1 - outBlob.size / file.size) * 100).toFixed(1);
-  console.log(
-    `✅ [Image Done] ${file.name} | New Size: ${compressedSizeKB} KB | Saved: ${reduction}%`,
-  );
 
   const newName = (file.name || "image")
     .replace(/\.(png|jpe?g|webp|heic|heif)$/i, "")
@@ -729,7 +725,6 @@ const ComponentFour = ({
     if (!file.type?.startsWith("video/"))
       return toast.error("Neispravan format videa.");
 
-    console.log(`🎥 [Video Upload Start] ${file.name}`);
 
     if (file.size > 50 * 1024 * 1024)
       return toast.error("Video može imati najviše 50 MB.");

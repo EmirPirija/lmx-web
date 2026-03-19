@@ -320,7 +320,7 @@ const SendMessage = ({
     } else {
       startRecording();
       if (error) {
-        console.log(error);
+
         switch (error) {
           case "permission_denied":
             toast.error("Mikrofon je odbijen. Uključi dozvolu.");

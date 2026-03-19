@@ -168,7 +168,7 @@ const SoldOutModal = ({
       });
       setBuyers(res?.data?.data || []);
     } catch (error) {
-      console.log(error);
+
     } finally {
       setIsLoading(false);
     }

@@ -1522,7 +1522,6 @@ export const addItemApi = {
     // ✅ schedule
     if (scheduled_at) {
       formData.append("scheduled_at", scheduled_at);
-      console.log("FORMDATA: scheduled_at", scheduled_at);
     }
 
     // ✅ izvuci available_now iz bilo čega (top-level ili iz custom_fields)
@@ -1765,8 +1764,7 @@ export const addItemApi = {
     }
 
     // debug (ako želiš)
-    // for (const [k, v] of formData.entries()) console.log("FORMDATA:", k, v);
-
+    // for (const [k, v] of formData.entries())
     return Api.post(ADD_ITEM, formData, {
       headers: { "Content-Type": "multipart/form-data" },
     });

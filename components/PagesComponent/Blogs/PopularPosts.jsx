@@ -20,7 +20,7 @@ const PopularPosts = ({ langCode }) => {
       const res = await getBlogsApi.getBlogs({ sort_by: "popular" });
       setPopulerBlogs(res?.data?.data?.data);
     } catch (error) {
-      console.log(error);
+
     } finally {
       setIsPopularPostLoading(false);
     }

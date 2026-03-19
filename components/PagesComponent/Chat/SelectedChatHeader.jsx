@@ -145,7 +145,6 @@ const SelectedChatHeader = ({
         toast.error(response?.data?.message);
       }
     } catch (error) {
-      console.log(error);
     }
   };
 
@@ -161,7 +160,6 @@ const SelectedChatHeader = ({
         toast.error(response?.data?.message);
       }
     } catch (error) {
-      console.log(error);
     }
   };
 

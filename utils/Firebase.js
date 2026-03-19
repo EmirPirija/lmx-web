@@ -19,7 +19,6 @@ import {
 const isFirebaseDebugEnabled = process.env.NODE_ENV !== "production";
 const firebaseDebugLog = (...args) => {
   if (isFirebaseDebugEnabled) {
-    console.log(...args);
   }
 };
 

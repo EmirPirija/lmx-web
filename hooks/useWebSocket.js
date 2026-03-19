@@ -4,7 +4,6 @@ import Pusher from 'pusher-js';
 const isWebSocketDebugEnabled = process.env.NODE_ENV !== 'production';
 const wsDebugLog = (...args) => {
   if (isWebSocketDebugEnabled) {
-    console.log(...args);
   }
 };
 

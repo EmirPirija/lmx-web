@@ -661,12 +661,7 @@ const ComponentThree = ({
         },
       };
   
-      console.log("[EXTRA_DETAILS_WRITE]", {
-        fieldId,
-        value,
-        langId,
-        updatedForLang: updated[langId],
-      });
+
   
       return updated;
     });

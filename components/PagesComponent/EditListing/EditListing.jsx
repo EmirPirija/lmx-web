@@ -1190,7 +1190,6 @@ const EditListing = ({ id }) => {
         });
       setSelectedCategoryPath(categoryResponse?.data?.data);
     } catch (error) {
-      console.log("Error fetching category path:", error);
     }
   };
 
@@ -1211,7 +1210,6 @@ const EditListing = ({ id }) => {
       setExtraDetails(tempExtraDetails);
       setLangId(defaultLangId);
     } catch (error) {
-      console.log("Error fetching custom fields:", error);
     }
   };
 
@@ -1404,7 +1402,6 @@ const EditListing = ({ id }) => {
         setDraftHydrated(true);
       }
     } catch (error) {
-      console.log(error);
     } finally {
       setDraftHydrated(true);
       if (latestListingFetchRef.current === fetchToken) {
@@ -2079,7 +2076,6 @@ const EditListing = ({ id }) => {
         toast.error(res?.data?.message);
       }
     } catch (error) {
-      console.log(error);
       toast.error(
         error?.response?.data?.message ||
           "Došlo je do greške pri izmjeni oglasa. Pokušajte ponovo.",

@@ -20,7 +20,6 @@ const QuickAnswers = () => {
       const res = await getFaqApi.getFaq();
       setFaqs(res?.data?.data);
     } catch (error) {
-      console.log(error);
     }
   };
 

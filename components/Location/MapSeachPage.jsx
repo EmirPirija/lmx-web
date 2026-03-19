@@ -110,7 +110,6 @@ const MapSearchPage = () => {
     // Uncomment to enable dynamic loading as user pans the map
     // fetchAds(bounds);
     
-    console.log("Map bounds changed:", bounds);
   }, []);
 
   const handleFilterChange = (newFilters) => {

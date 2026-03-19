@@ -35,7 +35,7 @@ const JobApplicationCard = ({
         toast.error(res?.data?.message);
       }
     } catch (error) {
-      console.log(error);
+
     } finally {
       setProcessing(false);
     }

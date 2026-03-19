@@ -68,7 +68,7 @@ const UploadReceiptModal = ({
         toast.error(res?.data?.message);
       }
     } catch (error) {
-      console.log("Failed To Upload Receipt", error);
+
     } finally {
       setIsUploading(false);
     }

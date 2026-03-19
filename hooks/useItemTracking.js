@@ -6,7 +6,6 @@ import { getAppStore } from "@/redux/store/storeRef";
 const isTrackingDebugEnabled = process.env.NODE_ENV !== "production";
 const trackingDebugLog = (...args) => {
   if (isTrackingDebugEnabled) {
-    console.log(...args);
   }
 };
 

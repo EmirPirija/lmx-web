@@ -391,7 +391,6 @@ const UserVerification = () => {
 
       setTranslations(translationsToSet);
     } catch (error) {
-      console.log(error);
     } finally {
       setVerificationLoading(false);
     }
@@ -982,7 +981,6 @@ const UserVerification = () => {
           navigate("/profile");
         }
       } catch (error) {
-        console.log(error);
       } finally {
         setIsVerifying(false);
       }

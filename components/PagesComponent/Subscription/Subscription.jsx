@@ -78,7 +78,7 @@ const Subscription = () => {
       const { data } = res.data;
       setPackageSettings(data);
     } catch (error) {
-      console.log(error);
+
     } finally {
       setIsLoading(false);
     }
@@ -90,7 +90,7 @@ const Subscription = () => {
       const res = await getPackageApi.getPackage({ type: "item_listing" });
       setListingPackages(res?.data?.data);
     } catch (error) {
-      console.log(error);
+
     } finally {
       setIsListingPackagesLoading(false);
     }
@@ -102,7 +102,7 @@ const Subscription = () => {
       const res = await getPackageApi.getPackage({ type: "advertisement" });
       setAdPackages(res.data?.data);
     } catch (error) {
-      console.log(error);
+
     } finally {
       setIsAdPackagesLoading(false);
     }
@@ -139,7 +139,7 @@ const Subscription = () => {
       }
     } catch (error) {
       toast.error(error?.response?.data?.message || "Aktivacija paketa nije uspjela.");
-      console.log(error);
+
     }
   };
 

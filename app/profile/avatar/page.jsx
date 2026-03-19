@@ -7,7 +7,6 @@ const AvatarPage = () => {
   const handleAvatarUpdated = (data) => {
     // Ovdje možeš osvježiti user state u Reduxu ako je potrebno
     // npr. dispatch(updateUserAvatar(data.image_url));
-    console.log("Avatar updated:", data);
   };
 
   return (

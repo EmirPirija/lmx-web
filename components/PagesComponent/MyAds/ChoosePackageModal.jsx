@@ -42,7 +42,7 @@ const ChoosePackageModal = ({
       const { data } = res?.data;
       setItemPackages(data || []);
     } catch (error) {
-      console.log(error);
+
     } finally {
       setIsLoading(false);
     }

@@ -107,7 +107,6 @@ const AdsMapPage = () => {
     // fetchAds(bounds);
     
     // Or just log for now
-    console.log("Map bounds changed:", bounds);
   };
 
   const handleFilterChange = (newFilters) => {

@@ -191,7 +191,6 @@ const ContactUs = () => {
         } else {
           toast.error(errorMessage);
         }
-        console.log(error);
       } finally {
         setIsLoading(false);
       }

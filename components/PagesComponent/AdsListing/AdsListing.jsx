@@ -932,7 +932,6 @@ const AdsListing = () => {
       } catch (error) {
         const name = error?.name;
         if (name !== "CanceledError" && name !== "AbortError") {
-          console.log("category fetch error", error);
         }
       } finally {
         if (!append) setCategoriesLoading(false);
@@ -1116,7 +1115,6 @@ const AdsListing = () => {
 
         setExtraDetails(initializedDetails);
       } catch (error) {
-        console.log(error);
         setCustomFields([]);
         if (defaultLangId) {
           setExtraDetails({ [defaultLangId]: {} });
@@ -1154,8 +1152,7 @@ const AdsListing = () => {
             const updatedPath = res?.data?.data;
             if (updatedPath?.length > 0) setCategoryPath(updatedPath);
           })
-          .catch((err) => console.log("Error updating category path:", err));
-      }
+          .catch((err) =>      }
     }
   }, [CurrentLanguage?.id]);
 
@@ -1175,7 +1172,6 @@ const AdsListing = () => {
           nextPath = resolvedPath;
         }
       } catch (error) {
-        console.log("Error resolving category path:", error);
       }
     }
 

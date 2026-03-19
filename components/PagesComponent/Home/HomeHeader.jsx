@@ -298,7 +298,6 @@ const HomeHeader = () => {
         navigate("/pretplata");
       }
     } catch (error) {
-      console.log(error);
     } finally {
       setIsAdListingClicked(false);
     }

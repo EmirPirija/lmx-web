@@ -63,7 +63,6 @@ const BlogDetailPage = ({ slug }) => {
       );
       setRelatedBlogs(res?.data?.other_blogs);
     } catch (error) {
-      console.log(error);
     } finally {
       setIsLoading(false);
     }

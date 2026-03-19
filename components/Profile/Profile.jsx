@@ -49,6 +49,7 @@ import {
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";
 import { Switch } from "../ui/switch";
+import ProfileSkeleton from "@/components/Profile/ProfileSkeleton";
 
 import { loadUpdateUserData, userSignUpData } from "@/redux/reducer/authSlice";
 import { Fcmtoken, settingsData } from "@/redux/reducer/settingSlice";
@@ -1339,16 +1340,7 @@ export default function Profile() {
 
   // Loading
   if (isLoading) {
-    return (
-      <div className="min-h-[40vh] flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-3" />
-          <p className="text-sm text-slate-600 dark:text-slate-300">
-            Učitavanje profila...
-          </p>
-        </div>
-      </div>
-    );
+    return <ProfileSkeleton />;
   }
 
   return (

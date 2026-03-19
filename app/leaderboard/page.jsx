@@ -8,6 +8,7 @@ import { toast } from "@/utils/toastBs";
 
 import Layout from "@/components/Layout/Layout";
 import LeaderboardCard from "@/components/PagesComponent/Gamification/LeaderboardCard";
+import LeaderboardCardSkeleton, { HeroBadgeSkeleton } from "@/components/PagesComponent/Gamification/LeaderboardCardSkeleton";
 import { Skeleton } from "@/components/ui/skeleton";
 import { gamificationApi } from "@/utils/api";
 import { updateMetadata } from "@/utils";
@@ -125,9 +126,19 @@ export default function LeaderboardPage() {
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Prodaja, kupovina, reel performanse i momentum score na jednom mjestu.</p>
 
           <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <HeroBadge icon={Medal} label="Broj rangiranih" value={hero.totalUsers.toLocaleString("bs-BA")} tone="amber" />
-            <HeroBadge icon={Rocket} label="Najviše bodova" value={hero.topPoints.toLocaleString("bs-BA")} tone="sky" />
-            <HeroBadge icon={Flame} label="Najduži niz" value={`${hero.topStreak} dana`} tone="rose" />
+            {loading ? (
+              <>
+                <HeroBadgeSkeleton />
+                <HeroBadgeSkeleton />
+                <HeroBadgeSkeleton />
+              </>
+            ) : (
+              <>
+                <HeroBadge icon={Medal} label="Broj rangiranih" value={hero.totalUsers.toLocaleString("bs-BA")} tone="amber" />
+                <HeroBadge icon={Rocket} label="Najviše bodova" value={hero.topPoints.toLocaleString("bs-BA")} tone="sky" />
+                <HeroBadge icon={Flame} label="Najduži niz" value={`${hero.topStreak} dana`} tone="rose" />
+              </>
+            )}
           </div>
         </motion.div>
 
@@ -152,8 +163,8 @@ export default function LeaderboardPage() {
         <div className="mt-4">
           {loading ? (
             <div className="space-y-3">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <Skeleton key={i} className="h-20 rounded-2xl" />
+              {Array.from({ length: 8 }).map((_, i) => (
+                <LeaderboardCardSkeleton key={i} />
               ))}
             </div>
           ) : error ? (

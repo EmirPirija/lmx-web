@@ -1694,7 +1694,6 @@ const ProductDetailCard = ({
         if (onFavoriteToggle) onFavoriteToggle(!productDetails?.is_liked);
       }
     } catch (error) {
-      console.log(error);
       toast.error("Greška pri ažuriranju omiljenih");
     }
   };

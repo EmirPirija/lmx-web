@@ -57,7 +57,7 @@ const LanguageDropdown = () => {
         toast.error(res?.data?.message);
       }
     } catch (error) {
-      console.log(error);
+
     }
   };
 
@@ -112,7 +112,7 @@ const LanguageDropdown = () => {
         toast.error(res?.data?.message);
       }
     } catch (error) {
-      console.log(error);
+
     }
   };
 

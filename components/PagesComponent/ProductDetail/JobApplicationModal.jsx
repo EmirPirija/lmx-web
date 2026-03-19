@@ -69,7 +69,6 @@ const JobApplicationModal = ({
         }
       }
     } catch (error) {
-      console.log(error);
     } finally {
       setReceivedApplications((prev) => ({
         ...prev,

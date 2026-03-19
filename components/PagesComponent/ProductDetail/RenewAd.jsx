@@ -66,7 +66,7 @@ const RenewAd = ({
       const activePackage = data?.find(p => p.is_active);
       setRenewId(activePackage?.id || data?.[0]?.id || "");
     } catch (error) {
-      console.log(error);
+
       toast.error("Greška pri učitavanju paketa." || "Greška pri učitavanju paketa");
     } finally {
       setIsLoadingPackages(false);
