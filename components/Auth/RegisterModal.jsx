@@ -66,7 +66,7 @@ import {
   LMX_PHONE_DEFAULT_COUNTRY,
   resolveLmxPhoneDialCode,
 } from "@/components/Common/phoneInputTheme";
-import { getCanonicalPhonePayload, maskPhoneForDebug } from "./phoneAuthUtils";
+import { getCanonicalPhonePayload } from "./phoneAuthUtils";
 import {
   isLocationComplete,
   resolveLocationSelection,
@@ -290,7 +290,7 @@ const isSameResolvedUser = ({ payload, currentUserId, currentEmail }) => {
   return false;
 };
 
-const resolveIdentifierOwner = async ({ identifier, identifierType } = {}) => {
+const resolveIdentifierOwner = async ({ identifier, identifierType, countryCode } = {}) => {
   const normalizedIdentifier = String(identifier || "").trim();
   if (!normalizedIdentifier) return null;
 
@@ -298,6 +298,7 @@ const resolveIdentifierOwner = async ({ identifier, identifierType } = {}) => {
     const response = await authApi.resolveLoginIdentifier({
       identifier: normalizedIdentifier,
       identifier_type: identifierType || undefined,
+      country_code: countryCode || undefined,
     });
 
     const payload = response?.data?.data;
@@ -702,10 +703,6 @@ const RegisterModal = ({ IsRegisterModalOpen, setIsRegisterModalOpen }) => {
               toast.error("Slanje OTP koda nije potvrđeno. Pokušaj ponovo.");
               return;
             }
-            console.info("[Auth][Firebase] OTP request accepted after retry", {
-              phone: maskPhoneForDebug(phoneE164),
-              verificationId: retriedConfirmation?.verificationId || null,
-            });
             setConfirmationResult(retriedConfirmation);
             toast.success("OTP poslan");
             setResendTimer(60);
@@ -781,11 +778,14 @@ const RegisterModal = ({ IsRegisterModalOpen, setIsRegisterModalOpen }) => {
     otpSendInFlightRef.current = true;
     setIsBusy(true);
     try {
-      // Pre-check: block already-registered numbers before sending OTP
+      // Pre-check: block already-registered numbers before sending OTP.
+      // Always pass country_code separately so the backend can correctly split
+      // the E164 number into country prefix + local number for DB matching.
       try {
         const phoneOwner = await resolveIdentifierOwner({
           identifier: phoneE164,
           identifierType: "phone",
+          countryCode: phonePayload.countryCode,
         });
         if (phoneOwner) {
           toast.error(
@@ -798,7 +798,7 @@ const RegisterModal = ({ IsRegisterModalOpen, setIsRegisterModalOpen }) => {
           toast.error("Previše pokušaja. Sačekajte kratko i pokušajte ponovo.");
           return;
         }
-        // On unexpected errors, allow OTP send to proceed so registration isn't blocked
+        // On unexpected errors allow OTP to proceed so registration isn't blocked
       }
 
       if (otp_service_provider === "twilio") {

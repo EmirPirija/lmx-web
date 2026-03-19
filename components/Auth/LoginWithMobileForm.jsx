@@ -22,7 +22,7 @@ import {
   LMX_PHONE_INPUT_PROPS,
   resolveLmxPhoneDialCode,
 } from "@/components/Common/phoneInputTheme";
-import { getCanonicalPhonePayload, maskPhoneForDebug } from "./phoneAuthUtils";
+import { getCanonicalPhonePayload } from "./phoneAuthUtils";
 import {
   isFirebaseDomainConfigurationError,
   isRecaptchaRecoverableError,
@@ -135,10 +135,6 @@ const LoginWithMobileForm = ({
         toast.error("Slanje OTP koda nije potvrđeno. Pokušaj ponovo.");
         return;
       }
-      console.info("[Auth][Firebase] OTP request accepted", {
-        phone: maskPhoneForDebug(phoneE164),
-        verificationId: confirmation?.verificationId || null,
-      });
       setConfirmationResult(confirmation);
       toast.success("OTP poslan");
       setResendTimer(60);
@@ -152,10 +148,6 @@ const LoginWithMobileForm = ({
               toast.error("Slanje OTP koda nije potvrđeno. Pokušaj ponovo.");
               return;
             }
-            console.info("[Auth][Firebase] OTP request accepted after retry", {
-              phone: maskPhoneForDebug(phoneE164),
-              verificationId: retriedConfirmation?.verificationId || null,
-            });
             setConfirmationResult(retriedConfirmation);
             toast.success("OTP poslan");
             setResendTimer(60);
