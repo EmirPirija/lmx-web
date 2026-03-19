@@ -87,7 +87,7 @@ const LoginWithEmailForm = ({
     if (PHONE_IDENTIFIER_REGEX.test(normalized.replace(/\s+/g, ""))) {
       return "phone";
     }
-    return "username";
+    return "email_username";
   };
 
   const resolveEmailFromIdentifier = async (rawIdentifier) => {
@@ -99,8 +99,9 @@ const LoginWithEmailForm = ({
 
     const identifierType = inferIdentifierType(normalizedIdentifier);
     if (
-      identifierType === "username" &&
-      !USERNAME_IDENTIFIER_REGEX.test(normalizedIdentifier)
+      identifierType === "email_username" &&
+      !USERNAME_IDENTIFIER_REGEX.test(normalizedIdentifier) &&
+      !EMAIL_REGEX.test(normalizedIdentifier)
     ) {
       toast.error(
         "Korisničko ime mora imati 3-30 znakova (slova, brojevi, ., _, -).",

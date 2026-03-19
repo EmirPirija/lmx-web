@@ -725,7 +725,7 @@ const ProductCard = ({ item, isLoading, onClick, trackingParams }) => {
     <CustomLink
       href={productLink}
       className={cn(
-        "group relative flex h-full w-full flex-col overflow-hidden",
+        "group lmx-listing-card-shell relative flex w-full flex-col overflow-hidden",
         "bg-white rounded-xl border border-slate-100 dark:bg-slate-900 dark:border-slate-800",
         "transition-all duration-200",
         "hover:shadow-sm",
@@ -738,7 +738,7 @@ const ProductCard = ({ item, isLoading, onClick, trackingParams }) => {
       {/* MEDIJ */}
       <div
         className={cn(
-          "relative overflow-visible",
+          "relative z-10 overflow-visible",
           "rounded-t-xl",
           "touch-pan-y",
         )}
@@ -747,7 +747,7 @@ const ProductCard = ({ item, isLoading, onClick, trackingParams }) => {
         onTouchEnd={handleTouchEnd}
         onTouchCancel={handleTouchCancel}
       >
-        <div className="relative aspect-[4/3] bg-slate-50 dark:bg-slate-950">
+        <div className="lmx-listing-card-media relative aspect-[4/3] bg-slate-50 dark:bg-slate-950">
           <div className="absolute inset-0 w-full h-full">
             {slides[currentSlide].type === "image" ? (
               <CustomImage
@@ -769,7 +769,7 @@ const ProductCard = ({ item, isLoading, onClick, trackingParams }) => {
                     alt="LMX logo"
                   />
                   <p className="max-w-[80%] text-center text-sm leading-tight text-slate-500">
-                    Oglas bez slike
+                    Fotografija uskoro dostupna
                   </p>
                 </div>
               ) : (
@@ -959,19 +959,19 @@ const ProductCard = ({ item, isLoading, onClick, trackingParams }) => {
       {/* SADRŽAJ */}
       <div
         className={cn(
-          "flex flex-col gap-2 p-3 flex-1",
+          "lmx-listing-card-content relative z-0 flex flex-col gap-2 p-3 flex-1",
           !isViewMoreSlide ? "pt-5" : null,
         )}
       >
         <div className="flex items-start justify-between gap-2">
-          <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-slate-900 transition-colors group-hover:text-primary dark:text-slate-100">
+          <h3 className="lmx-listing-card-title line-clamp-2 text-sm font-semibold leading-snug text-slate-900 transition-colors group-hover:text-primary dark:text-slate-100">
             {translated_item?.name || item?.name}
           </h3>
         </div>
 
         {Array.isArray(metaValues) && metaValues.length > 0 ? (
-          <div className="flex flex-wrap gap-1">
-            {metaValues.map((attr, index) => (
+          <div className="lmx-listing-card-meta flex flex-wrap gap-1">
+            {metaValues.slice(0, 3).map((attr, index) => (
               <span key={`${attr}-${index}`} className={META_CHIP_CLASS}>
                 {attr}
               </span>
@@ -979,7 +979,7 @@ const ProductCard = ({ item, isLoading, onClick, trackingParams }) => {
           </div>
         ) : null}
 
-        <div className="mt-auto flex flex-col-reverse justify-between gap-2 pt-2 sm:flex-row">
+        <div className="lmx-listing-card-footer mt-auto flex flex-col-reverse justify-between gap-2 pt-2 sm:flex-row">
           {publishedAgo ? (
             <div className="flex min-w-0 items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
               <span className="truncate">{publishedAgo}</span>
@@ -1039,7 +1039,7 @@ ProductCard.displayName = "ProductCard";
 // Skeleton Loading Component
 export const ProductCardSkeleton = () => {
   return (
-    <div className="lmx-product-skeleton-card">
+    <div className="lmx-product-skeleton-card lmx-listing-card-shell">
       <div className="lmx-product-skeleton-block relative aspect-[4/3] w-full rounded-none" />
       <div className="p-2 flex flex-col gap-2.5">
         <div className="flex items-center justify-between">

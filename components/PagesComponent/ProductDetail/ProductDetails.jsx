@@ -407,10 +407,10 @@ const MobileStickyBar = ({
                 />
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <button
                   onClick={onPublicQuestionClick}
-                  className="inline-flex h-11 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-sky-200 bg-sky-50/90 px-3 text-sm font-semibold text-sky-700 transition-all duration-200 active:scale-95 dark:border-sky-900/40 dark:bg-sky-950/30 dark:text-sky-300"
+                  className="inline-flex h-11 min-w-[148px] flex-[1_1_44%] items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-sky-200 bg-sky-50/90 px-3 text-sm font-semibold text-sky-700 transition-all duration-200 active:scale-95 dark:border-sky-900/40 dark:bg-sky-950/30 dark:text-sky-300"
                   aria-label="Postavi javno pitanje"
                   title="Javno pitanje"
                 >
@@ -421,7 +421,7 @@ const MobileStickyBar = ({
                 <button
                   onClick={onChatClick}
                   disabled={disableContactActions}
-                  className="inline-flex h-11 min-w-0 flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-white shadow-[0_10px_24px_-18px_rgba(13,148,136,0.9)] transition-all duration-200 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex h-11 min-w-[128px] flex-[1_1_40%] items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-white shadow-[0_10px_24px_-18px_rgba(13,148,136,0.9)] transition-all duration-200 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <MdChat size={18} />
                   <span>Poruka</span>
@@ -472,35 +472,10 @@ const SkeletonLoader = () => (
   </div>
 );
 
-const DeferredQuestionsPlaceholder = () => (
-  <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-    <div className="mb-4 flex items-center gap-3">
-      <Skeleton className="h-10 w-10 rounded-xl" />
-      <div className="space-y-2">
-        <Skeleton className="h-5 w-44 rounded-md" />
-        <Skeleton className="h-3.5 w-32 rounded-md" />
-      </div>
-    </div>
-    <div className="space-y-3">
-      <Skeleton className="h-20 w-full rounded-xl" />
-      <Skeleton className="h-20 w-full rounded-xl" />
-    </div>
-  </div>
-);
-
-const DeferredCarouselPlaceholder = ({ title = "Učitavanje oglasa..." }) => (
-  <section className="flex flex-col gap-5">
-    <div>
-      <Skeleton className="h-7 w-72 rounded-md" />
-      <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{title}</p>
-    </div>
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-      {Array.from({ length: 4 }).map((_, index) => (
-        <Skeleton key={`deferred-card-skeleton-${index}`} className="h-64 w-full rounded-2xl" />
-      ))}
-    </div>
-  </section>
-);
+const isUnauthorizedError = (error) => {
+  const status = Number(error?.response?.status || 0);
+  return status === 401 || status === 403;
+};
 
 const FeaturedAdTriggerCard = ({
   onOpen,
@@ -633,9 +608,22 @@ const ProductDetails = ({ slug }) => {
       setDirectVideo(null);
       setGalleryImages([]);
 
-      const res = isMyListingPath
-        ? await getMyItemsApi.getMyItems({ slug, limit: 1, signal })
-        : await allItemApi.getItems({ slug, limit: 1 }, { signal });
+      let res = null;
+
+      if (isMyListingPath) {
+        try {
+          res = await getMyItemsApi.getMyItems({ slug, limit: 1, signal });
+        } catch (error) {
+          if (!isUnauthorizedError(error)) {
+            throw error;
+          }
+          // Session can expire while opening "Moji oglasi" links.
+          // Fallback to public endpoint so we avoid false "not found" states.
+          res = await allItemApi.getItems({ slug, limit: 1 }, { signal });
+        }
+      } else {
+        res = await allItemApi.getItems({ slug, limit: 1 }, { signal });
+      }
       let product = extractItemsFromResponse(res)?.[0];
 
       if (!product && !isMyListingPath) {
@@ -1074,9 +1062,9 @@ const ProductDetails = ({ slug }) => {
             {/* 6. PITANJA */}
             <DeferredSection
               rootMargin="240px 0px"
-              minHeight={220}
+              minHeight={0}
               idleTimeoutMs={450}
-              placeholder={<DeferredQuestionsPlaceholder />}
+              placeholder={null}
               className="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-400"
             >
               <ProductQuestions
@@ -1172,12 +1160,10 @@ const ProductDetails = ({ slug }) => {
         {!isMyListing && (
           <DeferredSection
             rootMargin="300px 0px"
-            minHeight={220}
+            minHeight={0}
             idleTimeoutMs={650}
-            placeholder={
-              <DeferredCarouselPlaceholder title="Učitavamo ostale oglase ovog prodavača..." />
-            }
-            className="mt-12 lg:mt-16 animate-in fade-in slide-in-from-bottom-8 duration-700"
+            placeholder={null}
+            className="animate-in fade-in slide-in-from-bottom-8 duration-700"
           >
             <SellerOtherAds
               productDetails={productDetails}
@@ -1190,12 +1176,10 @@ const ProductDetails = ({ slug }) => {
         {!isMyListing && (
           <DeferredSection
             rootMargin="360px 0px"
-            minHeight={220}
+            minHeight={0}
             idleTimeoutMs={800}
-            placeholder={
-              <DeferredCarouselPlaceholder title="Pripremamo povezane oglase..." />
-            }
-            className="mt-10 lg:mt-16 animate-in fade-in slide-in-from-bottom-8 duration-700"
+            placeholder={null}
+            className="animate-in fade-in slide-in-from-bottom-8 duration-700"
           >
             <SimilarProducts
               productDetails={productDetails}

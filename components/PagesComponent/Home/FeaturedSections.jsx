@@ -170,11 +170,11 @@ const FeaturedSections = ({ featuredData, setFeaturedData, allEmpty }) => {
                   onScroll={() => updateSectionScrollState(sectionKey)}
                   className="featured-scroll-track mt-6 overflow-x-auto overflow-y-hidden pb-0"
                 >
-                  <div className="flex flex-nowrap gap-1 sm:gap-1">
+                  <div className="lmx-horizontal-card-track flex flex-nowrap items-stretch gap-1 sm:gap-1">
                     {visibleItems.map((data) => (
                       <div
                         key={data?.id}
-                        className="w-1/2 flex-shrink-0 sm:w-1/3 lg:w-1/4 xl:w-1/6"
+                        className="lmx-horizontal-card-item w-1/2 flex-shrink-0 sm:w-1/3 lg:w-1/4 xl:w-1/6"
                       >
                         <ProductCard
                           item={data}

@@ -58,6 +58,24 @@ const FAQ_ITEMS = [
   },
 ];
 
+const ONBOARDING_STEPS = {
+  general: [
+    "Odaberi paket koji odgovara tvojoj prodaji.",
+    "Potvrdi aktivaciju i automatski otvori onboarding.",
+    "Dovrši ključne postavke i objavi prve oglase.",
+  ],
+  shop: [
+    "Potvrdi aktivaciju LMX Shop paketa.",
+    "U profilu uključi zalihe i cijenu po komadu.",
+    "Objavi ili uvezi artikle i kreni sa prodajom.",
+  ],
+  pro: [
+    "Aktiviraj LMX Pro paket jednim klikom.",
+    "Podesi domenu, branding i napredne alate.",
+    "Pokreni skupne akcije i optimizuj ROI iz analitike.",
+  ],
+};
+
 export default function PlansShowcase({ mode = "pricing" }) {
   const promoEnabled = isPromoFreeAccessEnabled();
   const { startOnboarding } = useMembershipOnboarding();
@@ -199,6 +217,33 @@ export default function PlansShowcase({ mode = "pricing" }) {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900 lg:p-8">
+        <div className="mb-4 flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-slate-100">
+          <Sparkles className="h-5 w-5 text-primary" />
+          {activePlan
+            ? `Kako aktivirati ${activePlan === "shop" ? "LMX Shop" : "LMX Pro"}`
+            : "Kako krenuti za manje od minute"}
+        </div>
+        <div className="grid gap-3 md:grid-cols-3">
+          {(activePlan
+            ? ONBOARDING_STEPS[activePlan]
+            : ONBOARDING_STEPS.general
+          ).map((step, index) => (
+            <div
+              key={step}
+              className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4 dark:border-slate-700 dark:bg-slate-800/50"
+            >
+              <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-primary/25 bg-primary/10 text-xs font-bold text-primary">
+                {index + 1}
+              </span>
+              <p className="mt-2 text-sm font-medium text-slate-800 dark:text-slate-100">
+                {step}
+              </p>
+            </div>
+          ))}
         </div>
       </section>
 

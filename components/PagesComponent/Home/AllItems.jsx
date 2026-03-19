@@ -195,13 +195,14 @@ const AllItems = ({ cityData, KmRange }) => {
           <AllItemsSkeleton />
         ) : AllItem && AllItem.length > 0 ? (
             AllItem?.map((item) => (
-            <ProductCard
-              key={item?.id}
-              item={item}
-              handleLike={handleLikeAllData}
-              trackingParams={{ ref: "featured", source_detail: "home" }}
-            />
-          ))
+              <div key={item?.id} className="lmx-home-grid-card-item">
+                <ProductCard
+                  item={item}
+                  handleLike={handleLikeAllData}
+                  trackingParams={{ ref: "featured", source_detail: "home" }}
+                />
+              </div>
+            ))
         ) : (
           <div className="col-span-full">
             <NoData name="oglasa" />

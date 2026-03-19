@@ -93,7 +93,7 @@ const BreadCrumb = ({ title2 }) => {
         }
       `}</style>
 
-      <div className="container py-2 sm:py-3">
+      <div className="w-full py-2 sm:py-3">
         <div className="w-full overflow-x-auto scrollbar-hide">
           <Breadcrumb>
             <BreadcrumbList className="flex min-w-max flex-nowrap items-center gap-1.5">

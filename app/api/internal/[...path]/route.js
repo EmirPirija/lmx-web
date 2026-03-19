@@ -39,6 +39,12 @@ const CACHE_PROFILE_BY_PREFIX = [
 const CACHE_CONTROL_NO_STORE = "no-store";
 const PROXY_MEMORY_CACHE_MAX_ENTRIES = 120;
 const proxyMemoryCache = new Map();
+const UPSTREAM_PATH_FALLBACKS = new Map([
+  ["auth/signup", "user-signup"],
+  ["auth/resolve-identifier", "resolve-login-identifier"],
+  ["auth/otp", "get-otp"],
+  ["auth/verify-otp", "verify-otp"],
+]);
 
 const createRequestId = () => {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
@@ -49,6 +55,15 @@ const createRequestId = () => {
 
 const normalizeSegment = (value) => String(value || "").replace(/^\/+|\/+$/g, "");
 const normalizePathLower = (value) => normalizeSegment(value).toLowerCase();
+
+const getUpstreamPathCandidates = (safePath) => {
+  const normalized = normalizePathLower(safePath);
+  const fallback = UPSTREAM_PATH_FALLBACKS.get(normalized);
+  if (!fallback || fallback === normalized) {
+    return [safePath];
+  }
+  return [safePath, fallback];
+};
 
 const extractSafePath = (params) => {
   const segments = Array.isArray(params?.path) ? params.path : [];
@@ -190,11 +205,16 @@ const proxy = async (request, paramsLike) => {
     );
   }
 
-  const upstreamUrl = new URL(`${backendBase}/${safePath}`);
   const incomingUrl = new URL(request.url);
-  incomingUrl.searchParams.forEach((value, key) => {
-    upstreamUrl.searchParams.append(key, value);
-  });
+  const pathCandidates = getUpstreamPathCandidates(safePath);
+  const buildUpstreamUrl = (pathValue) => {
+    const candidateUrl = new URL(`${backendBase}/${normalizeSegment(pathValue)}`);
+    incomingUrl.searchParams.forEach((value, key) => {
+      candidateUrl.searchParams.append(key, value);
+    });
+    return candidateUrl;
+  };
+  const upstreamUrl = buildUpstreamUrl(pathCandidates[0]);
 
   const method = String(request.method || "GET").toUpperCase();
   const hasBody = METHODS_WITH_BODY.has(method);
@@ -242,24 +262,44 @@ const proxy = async (request, paramsLike) => {
       }
     }
 
-    const upstreamResponse = await fetch(upstreamUrl.toString(), {
-      method,
-      headers: getForwardHeaders(
-        request,
-        requestId,
-        hasBody,
-        !shouldUseProxyCache,
-      ),
-      body,
-      cache: shouldUseProxyCache ? "force-cache" : "no-store",
-      next: shouldUseProxyCache
-        ? { revalidate: cacheMaxAgeSeconds }
-        : undefined,
-      signal: controller.signal,
-      redirect: "manual",
-    });
+    const requestHeaders = getForwardHeaders(
+      request,
+      requestId,
+      hasBody,
+      !shouldUseProxyCache,
+    );
+    let upstreamResponse = null;
+    let upstreamBody = null;
+    let resolvedUpstreamPath = pathCandidates[0];
 
-    const upstreamBody = await upstreamResponse.arrayBuffer();
+    for (let index = 0; index < pathCandidates.length; index += 1) {
+      const candidatePath = pathCandidates[index];
+      const candidateUrl = buildUpstreamUrl(candidatePath);
+      const candidateResponse = await fetch(candidateUrl.toString(), {
+        method,
+        headers: requestHeaders,
+        body,
+        cache: shouldUseProxyCache ? "force-cache" : "no-store",
+        next: shouldUseProxyCache
+          ? { revalidate: cacheMaxAgeSeconds }
+          : undefined,
+        signal: controller.signal,
+        redirect: "manual",
+      });
+      const candidateBody = await candidateResponse.arrayBuffer();
+      const isLastCandidate = index === pathCandidates.length - 1;
+      if (candidateResponse.status !== 404 || isLastCandidate) {
+        upstreamResponse = candidateResponse;
+        upstreamBody = candidateBody;
+        resolvedUpstreamPath = candidatePath;
+        break;
+      }
+    }
+
+    if (!upstreamResponse || !upstreamBody) {
+      throw new Error("UPSTREAM_EMPTY_RESPONSE");
+    }
+
     const responseHeaders = new Headers();
     const upstreamContentType = upstreamResponse.headers.get("content-type");
     if (upstreamContentType) {
@@ -273,6 +313,7 @@ const proxy = async (request, paramsLike) => {
     if (shouldUseProxyCache) {
       responseHeaders.set("x-proxy-cache", "MISS");
     }
+    responseHeaders.set("x-upstream-path", normalizeSegment(resolvedUpstreamPath));
 
     if (shouldUseProxyCache && proxyMemoryCacheKey) {
       const bodyBytes = new Uint8Array(upstreamBody);

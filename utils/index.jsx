@@ -680,8 +680,8 @@ export const handleFirebaseAuthError = (errorLike) => {
     normalizedMessage.includes("status code 504");
   const isFirebaseCode = resolvedCode.startsWith("auth/");
 
-  // Always log full auth failure details for production debugging.
-  console.error(isFirebaseCode ? "Firebase auth error" : "Auth flow error", {
+  // Log as warning to avoid noisy dev error overlays for handled auth failures.
+  console.warn(isFirebaseCode ? "Firebase auth error" : "Auth flow error", {
     code: resolvedCode || null,
     status: status || null,
     message: message || null,

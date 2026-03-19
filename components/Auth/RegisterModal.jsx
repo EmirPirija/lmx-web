@@ -436,6 +436,7 @@ const RegisterModal = ({ IsRegisterModalOpen, setIsRegisterModalOpen }) => {
   const objectUrlRef = useRef({ upload: "", studio: "", pendingUpload: "" });
   const uploadInputRef = useRef(null);
   const cropPreviewImgRef = useRef(null);
+  const otpSendInFlightRef = useRef(false);
 
   const countryCodeDigitsOnly = countryCode.replace(/\D/g, "");
   const startsWithCountryCode = number.startsWith(countryCodeDigitsOnly);
@@ -479,6 +480,7 @@ const RegisterModal = ({ IsRegisterModalOpen, setIsRegisterModalOpen }) => {
 
   const resetState = () => {
     cleanupObjectUrls();
+    otpSendInFlightRef.current = false;
 
     const defaultMethod = availableMethods.email
       ? "email"
@@ -674,8 +676,8 @@ const RegisterModal = ({ IsRegisterModalOpen, setIsRegisterModalOpen }) => {
     localNumber,
     countryCodeDigits,
   }) => {
-    const requestOtp = async (forceRecreate = false) => {
-      const appVerifier = generateRecaptcha({ forceRecreate });
+    const requestOtp = async () => {
+      const appVerifier = generateRecaptcha({ forceRecreate: true });
       if (!appVerifier) {
         handleFirebaseAuthError("auth/recaptcha-not-enabled");
         return null;
@@ -684,7 +686,7 @@ const RegisterModal = ({ IsRegisterModalOpen, setIsRegisterModalOpen }) => {
     };
 
     try {
-      let confirmation = await requestOtp(false);
+      let confirmation = await requestOtp();
       if (!confirmation) {
         return;
       }
@@ -704,7 +706,7 @@ const RegisterModal = ({ IsRegisterModalOpen, setIsRegisterModalOpen }) => {
     } catch (error) {
       if (isRecaptchaRecoverableError(error)) {
         try {
-          const retriedConfirmation = await requestOtp(true);
+          const retriedConfirmation = await requestOtp();
           if (retriedConfirmation) {
             if (!retriedConfirmation?.verificationId) {
               toast.error("Slanje OTP koda nije potvrđeno. Pokušaj ponovo.");
@@ -763,6 +765,9 @@ const RegisterModal = ({ IsRegisterModalOpen, setIsRegisterModalOpen }) => {
 
   const handleSendOtp = async (e) => {
     e.preventDefault();
+    if (isBusy || otpSendInFlightRef.current) {
+      return;
+    }
 
     const effectiveCountryCode =
       String(countryCode || "").trim() || DEFAULT_REGISTER_COUNTRY_CODE;
@@ -783,6 +788,7 @@ const RegisterModal = ({ IsRegisterModalOpen, setIsRegisterModalOpen }) => {
       setCountryCode(effectiveCountryCode);
     }
 
+    otpSendInFlightRef.current = true;
     setIsBusy(true);
     try {
       if (otp_service_provider === "twilio") {
@@ -799,6 +805,7 @@ const RegisterModal = ({ IsRegisterModalOpen, setIsRegisterModalOpen }) => {
         });
       }
     } finally {
+      otpSendInFlightRef.current = false;
       setIsBusy(false);
     }
   };
@@ -1004,7 +1011,7 @@ const RegisterModal = ({ IsRegisterModalOpen, setIsRegisterModalOpen }) => {
       try {
         let nameOwner = await resolveIdentifierOwner({
           identifier: normalizedProfileName,
-          identifierType: "username",
+          identifierType: "email_username",
         });
 
         if (

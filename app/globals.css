@@ -164,6 +164,12 @@
   --foreground-rgb: 0, 0, 0;
   --background-start-rgb: 250, 250, 252;
   --background-end-rgb: 255, 255, 255;
+  --lmx-card-radius-standard: 1rem;
+  --lmx-listing-card-min-height-mobile: 322px;
+  --lmx-listing-card-min-height-desktop: 356px;
+  --lmx-listing-card-title-min-height: 2.6rem;
+  --lmx-listing-card-meta-min-height: 1.4rem;
+  --lmx-listing-card-footer-min-height: 2.5rem;
   --adaptive-mobile-dock-space: 0px;
   --lmx-scroll-offset: 0px;
   --lmx-scroll-wave: 0px;
@@ -502,6 +508,107 @@
 
   .scrollbar-lmx::-webkit-scrollbar-thumb:hover {
     background-color: hsl(var(--primary));
+  }
+
+  .lmx-listing-card-shell {
+    border-radius: var(--lmx-card-radius-standard);
+    min-height: 0;
+    height: auto;
+  }
+
+  .lmx-listing-card-media {
+    border-top-left-radius: var(--lmx-card-radius-standard);
+    border-top-right-radius: var(--lmx-card-radius-standard);
+    overflow: visible;
+  }
+
+  .lmx-listing-card-content {
+    min-height: 0;
+  }
+
+  .lmx-listing-card-title {
+    min-height: 0;
+  }
+
+  .lmx-listing-card-meta {
+    min-height: 0;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .lmx-listing-card-footer {
+    min-height: 0;
+    align-items: flex-end;
+  }
+
+  .lmx-card-grid-standard {
+    display: grid;
+    align-items: start;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+  }
+
+  .lmx-horizontal-card-track {
+    align-items: stretch;
+  }
+
+  .lmx-horizontal-card-item,
+  .lmx-home-grid-card-item {
+    display: flex;
+    align-self: stretch;
+    height: var(--lmx-listing-card-min-height-mobile);
+    min-height: var(--lmx-listing-card-min-height-mobile);
+    max-height: var(--lmx-listing-card-min-height-mobile);
+  }
+
+  .lmx-horizontal-card-item .lmx-listing-card-shell,
+  .lmx-home-grid-card-item .lmx-listing-card-shell {
+    height: 100%;
+    min-height: 100%;
+    max-height: 100%;
+  }
+
+  .lmx-horizontal-card-item .lmx-listing-card-content,
+  .lmx-home-grid-card-item .lmx-listing-card-content {
+    height: 100%;
+    overflow: hidden;
+  }
+
+  .lmx-horizontal-card-item > *,
+  .lmx-home-grid-card-item > * {
+    flex: 1 1 auto;
+    width: 100%;
+    height: 100%;
+  }
+
+  .lmx-horizontal-card-item .lmx-listing-card-title,
+  .lmx-home-grid-card-item .lmx-listing-card-title {
+    min-height: 2.85rem;
+  }
+
+  .lmx-horizontal-card-item .lmx-listing-card-meta,
+  .lmx-home-grid-card-item .lmx-listing-card-meta {
+    min-height: 1.75rem;
+    max-height: 3.5rem;
+    overflow: hidden;
+  }
+
+  .lmx-horizontal-card-item .lmx-listing-card-footer,
+  .lmx-home-grid-card-item .lmx-listing-card-footer {
+    min-height: 2.25rem;
+  }
+
+  @media (min-width: 1024px) {
+    .lmx-horizontal-card-item,
+    .lmx-home-grid-card-item {
+      height: var(--lmx-listing-card-min-height-desktop);
+      min-height: var(--lmx-listing-card-min-height-desktop);
+      max-height: var(--lmx-listing-card-min-height-desktop);
+    }
+
+    .lmx-listing-card-shell {
+      min-height: 0;
+    }
   }
 }
 

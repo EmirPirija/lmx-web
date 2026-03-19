@@ -1611,7 +1611,7 @@ const MyAds = () => {
 
       {/* Ads Grid */}
       <div
-        className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 items-stretch gap-4 lg:gap-6"
+        className="lmx-card-grid-standard lg:grid-cols-3 2xl:grid-cols-4 lg:gap-6"
         style={{
           contentVisibility: "auto",
           containIntrinsicSize: "1200px",

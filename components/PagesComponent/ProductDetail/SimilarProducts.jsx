@@ -13,6 +13,8 @@ import { useSelector } from "react-redux";
 import { getIsRtl } from "@/redux/reducer/languageSlice";
 import { getCityData, getKilometerRange } from "@/redux/reducer/locationSlice";
 
+const carouselItemClassName = "basis-[78%] sm:basis-1/2 md:basis-1/3 xl:basis-1/4 flex";
+
 const SimilarProducts = ({ productDetails }) => {
   const [similarData, setSimilarData] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -80,26 +82,30 @@ const SimilarProducts = ({ productDetails }) => {
           direction: isRTL ? "rtl" : "ltr",
         }}
       >
-        <CarouselContent>
+        <CarouselContent className="lmx-horizontal-card-track">
           {isLoading
             ? Array.from({ length: 4 }).map((_, index) => (
                 <CarouselItem
                   key={`similar-skeleton-${index}`}
-                  className="basis-[82%] sm:basis-1/2 md:basis-1/3 xl:basis-1/4"
+                  className={`${carouselItemClassName} lmx-horizontal-card-item`}
                 >
-                  <ProductCardSkeleton />
+                  <div className="h-full w-full">
+                    <ProductCardSkeleton />
+                  </div>
                 </CarouselItem>
               ))
             : similarData?.map((item) => (
                 <CarouselItem
                   key={item.id}
-                  className="basis-[82%] sm:basis-1/2 md:basis-1/3 xl:basis-1/4"
+                  className={`${carouselItemClassName} lmx-horizontal-card-item`}
                 >
-                  <ProductCard
-                    item={item}
-                    handleLike={handleLikeAllData}
-                    trackingParams={{ ref: "similar" }}
-                  />
+                  <div className="h-full w-full">
+                    <ProductCard
+                      item={item}
+                      handleLike={handleLikeAllData}
+                      trackingParams={{ ref: "similar" }}
+                    />
+                  </div>
                 </CarouselItem>
               ))}
         </CarouselContent>

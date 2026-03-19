@@ -13,6 +13,12 @@ const getContainer = (containerId = DEFAULT_CONTAINER_ID) => {
   return document.getElementById(containerId);
 };
 
+const hasRenderedWidget = (container) => {
+  if (!(container instanceof HTMLElement)) return false;
+  if (container.childElementCount > 0) return true;
+  return String(container.innerHTML || "").trim() !== "";
+};
+
 const replaceContainerNode = (containerId = DEFAULT_CONTAINER_ID) => {
   const container = getContainer(containerId);
   if (!container) return null;
@@ -158,7 +164,7 @@ export const ensureRecaptchaVerifier = ({
   const existing = getGlobalVerifier();
   const existingContainerId = getGlobalContainerId();
 
-  if (existing && !forceRecreate) {
+  if (existing && !forceRecreate && existingContainerId === containerId) {
     return existing;
   }
 
@@ -169,19 +175,25 @@ export const ensureRecaptchaVerifier = ({
     });
   }
 
-  if (container.childElementCount > 0 && forceRecreate) {
+  // Keep DOM node lifecycle deterministic to avoid
+  // "reCAPTCHA has already been rendered in this element".
+  if (hasRenderedWidget(container)) {
     replaceContainerNode(containerId);
-  } else if (container.childElementCount > 0) {
-    container.innerHTML = "";
   }
 
-  const createVerifier = () =>
-    new RecaptchaVerifier(auth, containerId, {
+  const createVerifier = (targetContainer) =>
+    new RecaptchaVerifier(auth, targetContainer, {
       size: "invisible",
     });
 
   try {
-    const verifier = createVerifier();
+    const targetContainer = getContainer(containerId);
+    if (!targetContainer) {
+      console.error(`Container element '${containerId}' not found.`);
+      return null;
+    }
+
+    const verifier = createVerifier(targetContainer);
     setGlobalVerifier(verifier, containerId);
     return verifier;
   } catch (error) {
@@ -196,7 +208,12 @@ export const ensureRecaptchaVerifier = ({
         // noop
       }
       try {
-        const verifier = createVerifier();
+        const retryTargetContainer = getContainer(containerId);
+        if (!retryTargetContainer) {
+          console.error(`Container element '${containerId}' not found.`);
+          return null;
+        }
+        const verifier = createVerifier(retryTargetContainer);
         setGlobalVerifier(verifier, containerId);
         return verifier;
       } catch (retryError) {

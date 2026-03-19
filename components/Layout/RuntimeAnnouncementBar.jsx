@@ -88,6 +88,12 @@ export default function RuntimeAnnouncementBar() {
         return (
           <div
             key={announcement?.key || announcement?.id}
+            role="status"
+            aria-live={
+              String(announcement?.level || "").toLowerCase() === "critical"
+                ? "assertive"
+                : "polite"
+            }
             className={`w-full border rounded-xl px-4 py-3 ${style}`}
           >
             <div className="flex items-start justify-between gap-3">
@@ -112,7 +118,7 @@ export default function RuntimeAnnouncementBar() {
                   type="button"
                   onClick={() => handleDismiss(announcement)}
                   className="inline-flex items-center justify-center rounded-md border border-current/25 px-2 py-1 text-xs font-semibold"
-                  aria-label="Dismiss announcement"
+                  aria-label="Zatvori obavijest"
                 >
                   X
                 </button>

@@ -168,7 +168,8 @@ const emitInternalProxyAlert = (payload) => {
     );
   }
 
-  console.error("[ALERT][internal-proxy] incident spike detected", payload);
+  // Use warn to avoid false-positive "app error" overlays in dev tools.
+  console.warn("[ALERT][internal-proxy] incident spike detected", payload);
 
   const sentry = globalThis?.Sentry;
   if (sentry?.captureMessage) {

@@ -27,6 +27,7 @@ import {
   isFirebaseDomainConfigurationError,
   isRecaptchaRecoverableError,
 } from "./recaptchaManager";
+import { useRef } from "react";
 
 const LoginWithMobileForm = ({
   generateRecaptcha,
@@ -42,6 +43,7 @@ const LoginWithMobileForm = ({
   const auth = getAuth();
   const otp_service_provider = useSelector(getOtpServiceProvider);
   const { number, countryCode, showLoader } = loginStates;
+  const otpSendInFlightRef = useRef(false);
 
   const focusPhoneInput = () => {
     window.setTimeout(() => {
@@ -117,8 +119,8 @@ const LoginWithMobileForm = ({
     countryCodeDigits,
     localNumber,
   }) => {
-    const requestOtp = async (forceRecreate = false) => {
-      const appVerifier = generateRecaptcha({ forceRecreate });
+    const requestOtp = async () => {
+      const appVerifier = generateRecaptcha({ forceRecreate: true });
       if (!appVerifier) {
         handleFirebaseAuthError("auth/recaptcha-not-enabled");
         return null;
@@ -131,7 +133,7 @@ const LoginWithMobileForm = ({
         auth,
         rememberMe ? browserLocalPersistence : browserSessionPersistence,
       );
-      let confirmation = await requestOtp(false);
+      let confirmation = await requestOtp();
       if (!confirmation) {
         return;
       }
@@ -150,7 +152,7 @@ const LoginWithMobileForm = ({
     } catch (error) {
       if (isRecaptchaRecoverableError(error)) {
         try {
-          const retriedConfirmation = await requestOtp(true);
+          const retriedConfirmation = await requestOtp();
           if (retriedConfirmation) {
             if (!retriedConfirmation?.verificationId) {
               toast.error("Slanje OTP koda nije potvrđeno. Pokušaj ponovo.");
@@ -234,14 +236,23 @@ const LoginWithMobileForm = ({
 
   const handleMobileSubmit = async (e) => {
     e.preventDefault();
+    if (showLoader || otpSendInFlightRef.current) {
+      return;
+    }
+
     const phonePayload = getCanonicalPhonePayload(countryCode, formattedNumber);
     const phoneE164 = phonePayload.e164;
     if (isValidPhoneNumber(phoneE164)) {
-      await sendOTP({
-        phoneE164,
-        countryCodeDigits: phonePayload.countryCode,
-        localNumber: phonePayload.local,
-      });
+      otpSendInFlightRef.current = true;
+      try {
+        await sendOTP({
+          phoneE164,
+          countryCodeDigits: phonePayload.countryCode,
+          localNumber: phonePayload.local,
+        });
+      } finally {
+        otpSendInFlightRef.current = false;
+      }
     } else {
       toast.error("Neispravan broj telefona");
     }

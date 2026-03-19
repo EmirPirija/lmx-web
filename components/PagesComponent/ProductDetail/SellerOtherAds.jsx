@@ -19,7 +19,7 @@ import { getIsRtl } from "@/redux/reducer/languageSlice";
 const MAX_ITEMS = 10;
 const FETCH_LIMIT = MAX_ITEMS + 1;
 const carouselItemClassName =
-  "pl-2 sm:pl-3 basis-[82%] sm:basis-1/2 md:basis-1/3 xl:basis-1/4 2xl:basis-1/4";
+  "pl-2 sm:pl-3 basis-[78%] sm:basis-1/2 md:basis-1/3 xl:basis-1/4 2xl:basis-1/4 flex";
 
 const SellerOtherAds = ({ productDetails, onItemClick }) => {
   const isRTL = useSelector(getIsRtl);
@@ -129,27 +129,31 @@ const SellerOtherAds = ({ productDetails, onItemClick }) => {
         key={isRTL ? `seller-other-rtl-${sellerId}` : `seller-other-ltr-${sellerId}`}
         opts={{ direction: isRTL ? "rtl" : "ltr" }}
       >
-        <CarouselContent className="-ml-2 sm:-ml-3">
+        <CarouselContent className="lmx-horizontal-card-track -ml-2 sm:-ml-3">
           {isLoading
             ? Array.from({ length: 6 }).map((_, index) => (
                 <CarouselItem
                   key={`seller-other-skeleton-${index}`}
-                  className={carouselItemClassName}
+                  className={`${carouselItemClassName} lmx-horizontal-card-item`}
                 >
-                  <ProductCardSkeleton />
+                  <div className="h-full w-full">
+                    <ProductCardSkeleton />
+                  </div>
                 </CarouselItem>
               ))
             : items.map((item) => (
                 <CarouselItem
                   key={item.id}
-                  className={carouselItemClassName}
+                  className={`${carouselItemClassName} lmx-horizontal-card-item`}
                 >
-                  <ProductCard
-                    item={item}
-                    handleLike={handleLike}
-                    onClick={onItemClick}
-                    trackingParams={{ ref: "seller" }}
-                  />
+                  <div className="h-full w-full">
+                    <ProductCard
+                      item={item}
+                      handleLike={handleLike}
+                      onClick={onItemClick}
+                      trackingParams={{ ref: "seller" }}
+                    />
+                  </div>
                 </CarouselItem>
               ))}
         </CarouselContent>

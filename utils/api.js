@@ -112,7 +112,9 @@ export const SOCIAL_SCHEDULED_POSTS = "social/scheduled-posts";
 export const BULK_AD_ACTION = "my-ads/bulk-action";
 
 export const INSTAGRAM_PRODUCTS = "instagram/products";
+export const INSTAGRAM_PREVIEW = "instagram/preview";
 export const INSTAGRAM_IMPORT = "instagram/import";
+export const INSTAGRAM_COMMIT_IMPORT = "instagram/commit-import";
 export const INSTAGRAM_IMPORT_HISTORY = "instagram/import-history";
 export const INSTAGRAM_SYNC = "instagram/sync";
 export const INSTAGRAM_SYNC_STATUS = "instagram/sync-status";
@@ -250,6 +252,16 @@ const setCachedCategoryResponse = (key, response) => {
   if (oldestKey) categoryResponseCache.delete(oldestKey);
 };
 
+const shouldRetryCategoryRequestInCompatibilityMode = (error) =>
+  Number(error?.response?.status || 0) === 422;
+
+const buildCategoryCompatibilityParams = (params = {}) => {
+  const fallback = { ...params };
+  delete fallback.tree_depth;
+  delete fallback.include_counts;
+  return fallback;
+};
+
 const buildLocationRequestKey = ({
   lat,
   lng,
@@ -312,7 +324,7 @@ export const categoryApi = {
     signal,
   } = {}) => {
     const normalizedPerPage = Math.min(
-      200,
+      100,
       Math.max(1, Number(per_page) || 50),
     );
     const params = { page, per_page: normalizedPerPage };
@@ -344,10 +356,20 @@ export const categoryApi = {
       return categoryInFlightRequests.get(requestKey);
     }
 
-    const requestPromise = Api.get(GET_CATEGORIES, {
-      params,
-      signal, // axios v1+ podržava AbortController signal
-    })
+    const performCategoryRequest = (requestParams) =>
+      Api.get(GET_CATEGORIES, {
+        params: requestParams,
+        signal, // axios v1+ podržava AbortController signal
+      });
+
+    const requestPromise = performCategoryRequest(params)
+      .catch((error) => {
+        if (!shouldRetryCategoryRequestInCompatibilityMode(error)) {
+          throw error;
+        }
+        // Backward-compatible retry for older backend builds.
+        return performCategoryRequest(buildCategoryCompatibilityParams(params));
+      })
       .then((response) => {
         setCachedCategoryResponse(requestKey, response);
         return response;
@@ -2522,6 +2544,35 @@ export const instagramApi = {
     return Api.get(INSTAGRAM_PRODUCTS, { params: { page, per_page, search } });
   },
 
+  previewImport: ({
+    source_url,
+    source_urls = [],
+    category_id,
+    feed_file,
+    format,
+    max_entries_per_source,
+    api_profiles,
+  } = {}) => {
+    const formData = new FormData();
+    if (source_url) formData.append("source_url", source_url);
+    if (Array.isArray(source_urls) && source_urls.length > 0) {
+      formData.append("source_urls", JSON.stringify(source_urls));
+    }
+    if (category_id) formData.append("category_id", category_id);
+    if (feed_file) formData.append("feed_file", feed_file);
+    if (format) formData.append("format", format);
+    if (Number.isFinite(Number(max_entries_per_source))) {
+      formData.append("max_entries_per_source", Number(max_entries_per_source));
+    }
+    if (api_profiles && typeof api_profiles === "object") {
+      formData.append("api_profiles", JSON.stringify(api_profiles));
+    }
+
+    return Api.post(INSTAGRAM_PREVIEW, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
+
   importProducts: ({
     source_url,
     source_urls = [],
@@ -2540,6 +2591,16 @@ export const instagramApi = {
 
     return Api.post(INSTAGRAM_IMPORT, formData, {
       headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
+
+  commitImport: ({ entries = [], category_id, source_url, source_urls = [], format } = {}) => {
+    return Api.post(INSTAGRAM_COMMIT_IMPORT, {
+      entries,
+      category_id,
+      source_url,
+      source_urls,
+      format,
     });
   },
 
@@ -2568,6 +2629,23 @@ export const instagramApi = {
 // Alias za shop feed import workflow (API/CSV/XML).
 // Backend trenutno koristi instagram/* rute za import/sync.
 export const shopFeedApi = {
+  previewFeed: ({
+    source_url,
+    source_urls = [],
+    category_id,
+    feed_file,
+    format,
+    max_entries_per_source,
+  } = {}) =>
+    instagramApi.previewImport({
+      source_url,
+      source_urls,
+      category_id,
+      feed_file,
+      format,
+      max_entries_per_source,
+    }),
+
   importFeed: ({
     source_url,
     source_urls = [],
@@ -2584,6 +2662,9 @@ export const shopFeedApi = {
     }),
 
   getImportHistory: ({ page } = {}) => instagramApi.getImportHistory({ page }),
+
+  commitFeedPreview: ({ entries = [], category_id, source_url, source_urls = [], format } = {}) =>
+    instagramApi.commitImport({ entries, category_id, source_url, source_urls, format }),
 
   syncFeedProduct: ({ item_id, instagram_product_id, source_url } = {}) =>
     instagramApi.syncProduct({ item_id, instagram_product_id, source_url }),

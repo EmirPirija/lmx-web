@@ -16,6 +16,7 @@ import { settingsData } from "@/redux/reducer/settingSlice";
 import { getMaintenanceMessageSetting } from "@/lib/backendControls";
 import { runtimeMaintenanceState } from "@/redux/reducer/runtimeConfigSlice";
 import RuntimeAnnouncementBar from "./RuntimeAnnouncementBar";
+import RuntimePromoBannerBar from "./RuntimePromoBannerBar";
 import { userSignUpData } from "@/redux/reducer/authSlice";
 import { useNavigate } from "@/components/Common/useNavigate";
 import { resolveMembership } from "@/lib/membership";
@@ -26,6 +27,30 @@ import {
   resolveMembershipOnboardingTarget,
 } from "@/lib/membershipOnboarding";
 
+const resolveRuntimePromoSlot = (pathname = "") => {
+  const normalizedPath = String(pathname || "").trim().toLowerCase();
+  if (!normalizedPath || normalizedPath === "/") return "home_top";
+  if (normalizedPath.startsWith("/ad-details/") || normalizedPath.startsWith("/oglas/")) {
+    return "product_top";
+  }
+  if (normalizedPath.startsWith("/my-ads") || normalizedPath.startsWith("/moji-oglasi")) {
+    return "my_ads_top";
+  }
+  if (normalizedPath.startsWith("/profile")) {
+    return "profile_top";
+  }
+  if (
+    normalizedPath.startsWith("/membership") ||
+    normalizedPath.startsWith("/shop") ||
+    normalizedPath.startsWith("/pro")
+  ) {
+    return "membership_top";
+  }
+  if (normalizedPath.startsWith("/ads") || normalizedPath.startsWith("/oglasi")) {
+    return "listing_top";
+  }
+  return "global_top";
+};
 
 export default function Layout({ children }) {
   const { isLoading, isMaintenanceMode, isRedirectToLanding } =
@@ -39,6 +64,7 @@ export default function Layout({ children }) {
     (state) => state?.Membership?.userMembership?.data || null,
   );
   const isHomepageRoute = pathname === "/";
+  const runtimePromoSlot = resolveRuntimePromoSlot(pathname);
   const runtimeMaintenanceEnabled = Boolean(runtimeMaintenance?.enabled);
   const maintenanceMessage =
     runtimeMaintenance?.message ||
@@ -139,6 +165,10 @@ export default function Layout({ children }) {
           }}
         >
           <Header />
+          <RuntimePromoBannerBar slot="global_top" maxItems={2} />
+          {runtimePromoSlot !== "global_top" ? (
+            <RuntimePromoBannerBar slot={runtimePromoSlot} maxItems={2} />
+          ) : null}
           <RuntimeAnnouncementBar />
           <div className="flex-1 bg-[#f0f3f9] dark:bg-slate-900 pb-8">
             {children}

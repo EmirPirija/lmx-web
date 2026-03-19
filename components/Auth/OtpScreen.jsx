@@ -53,6 +53,28 @@ const wait = (ms) =>
 const TRUNK_ZERO_COUNTRY_CODES = new Set(["381", "382", "385", "386", "387"]);
 
 const digitsOnly = (value = "") => String(value || "").replace(/\D/g, "");
+const normalizeLower = (value = "") => String(value || "").trim().toLowerCase();
+
+const hasDeterministicPhoneState = (error) => {
+  const reason = normalizeLower(
+    error?.response?.data?.data?.reason || error?.response?.data?.reason || "",
+  );
+  const message = normalizeLower(
+    error?.response?.data?.message || error?.message || "",
+  );
+
+  if (reason === "phone_not_registered" || reason === "phone_already_registered") {
+    return true;
+  }
+
+  return (
+    message.includes("nije registrovan") ||
+    message.includes("nije registriran") ||
+    message.includes("already registered") ||
+    message.includes("već registrovan") ||
+    message.includes("vec registrovan")
+  );
+};
 
 const OtpScreen = ({
   generateRecaptcha,
@@ -127,7 +149,7 @@ const OtpScreen = ({
         countryCode: countryDigits || stateCountryDigits || undefined,
       }))
       .filter((candidate) => Boolean(candidate.mobile))
-      .slice(0, 2);
+      .slice(0, 1);
   };
 
   const finalizeSuccessfulPhoneAuth = async (data, identifier) => {
@@ -169,7 +191,7 @@ const OtpScreen = ({
     } catch (_) {}
   };
 
-  const submitPhoneSignupWithRetry = async (payload, maxAttempts = 2) => {
+  const submitPhoneSignupWithRetry = async (payload, maxAttempts = 1) => {
     let lastError = null;
 
     for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
@@ -220,8 +242,7 @@ const OtpScreen = ({
       isPhoneNotRegisteredError(error) ||
       isPhoneAlreadyRegisteredError(error) ||
       status === 404 ||
-      status === 409 ||
-      status === 422
+      status === 409
     );
   };
 
@@ -258,12 +279,18 @@ const OtpScreen = ({
         const softError = buildSignupErrorFromResponse(response);
         if (isRecoverablePhoneSignupError(softError)) {
           lastError = softError;
+          if (hasDeterministicPhoneState(softError)) {
+            break;
+          }
           continue;
         }
         throw softError;
       } catch (error) {
         if (isRecoverablePhoneSignupError(error)) {
           lastError = error;
+          if (hasDeterministicPhoneState(error)) {
+            break;
+          }
           continue;
         }
         throw error;
@@ -358,7 +385,11 @@ const OtpScreen = ({
         }
       }
     } catch (error) {
-      console.log(error);
+      toast.error(
+        error?.response?.data?.message ||
+          error?.message ||
+          "Verifikacija OTP koda nije uspjela.",
+      );
     } finally {
       setShowLoader(false);
     }
@@ -458,8 +489,8 @@ const OtpScreen = ({
   };
 
   const resendOtpWithFirebase = async (phoneE164) => {
-    const requestOtp = async (forceRecreate = false) => {
-      const appVerifier = generateRecaptcha({ forceRecreate });
+    const requestOtp = async () => {
+      const appVerifier = generateRecaptcha({ forceRecreate: true });
       if (!appVerifier) {
         handleFirebaseAuthError("auth/recaptcha-not-enabled");
         return null;
@@ -468,7 +499,7 @@ const OtpScreen = ({
     };
 
     try {
-      let confirmation = await requestOtp(false);
+      let confirmation = await requestOtp();
       if (!confirmation) {
         return;
       }
@@ -486,7 +517,7 @@ const OtpScreen = ({
     } catch (error) {
       if (isRecaptchaRecoverableError(error)) {
         try {
-          const retriedConfirmation = await requestOtp(true);
+          const retriedConfirmation = await requestOtp();
           if (retriedConfirmation) {
             if (!retriedConfirmation?.verificationId) {
               toast.error("Slanje OTP koda nije potvrđeno. Pokušaj ponovo.");

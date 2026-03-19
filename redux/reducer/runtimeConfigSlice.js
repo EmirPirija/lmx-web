@@ -41,10 +41,7 @@ export const {
 
 export default runtimeConfigSlice.reducer;
 
-export const runtimeConfigState = createSelector(
-  (state) => state.RuntimeConfig,
-  (runtime) => runtime,
-);
+export const runtimeConfigState = (state) => state.RuntimeConfig;
 
 export const runtimeConfigData = createSelector(
   runtimeConfigState,
@@ -73,6 +70,12 @@ export const runtimeServices = createSelector(
     runtimeData?.services && typeof runtimeData.services === "object"
       ? runtimeData.services
       : {},
+);
+
+export const runtimePromoBanners = createSelector(
+  runtimeConfigData,
+  (runtimeData) =>
+    Array.isArray(runtimeData?.promo_banners) ? runtimeData.promo_banners : [],
 );
 
 export const runtimeAdControls = createSelector(
