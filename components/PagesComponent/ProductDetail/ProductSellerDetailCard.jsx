@@ -860,6 +860,9 @@ const ProductSellerDetailCard = ({
         isShopProp,
         seller?.is_shop,
         seller?.isShop,
+        // item-level (backend vraca is_shop na itemu direktno)
+        productDetails?.is_shop,
+        productDetails?.isShop,
         productDetails?.user?.is_shop,
         productDetails?.user?.isShop,
         sellerSettings?.is_shop,
@@ -867,7 +870,7 @@ const ProductSellerDetailCard = ({
         settings?.is_shop,
         settings?.isShop,
       ].some((value) => toBool(value)),
-    [isShopProp, seller, productDetails?.user, sellerSettings, settings],
+    [isShopProp, seller, productDetails, sellerSettings, settings],
   );
 
   const forceProTier = useMemo(
@@ -878,6 +881,9 @@ const ProductSellerDetailCard = ({
         seller?.isPro,
         seller?.is_premium,
         seller?.premium,
+        // item-level (backend vraca is_pro na itemu direktno)
+        productDetails?.is_pro,
+        productDetails?.isPro,
         productDetails?.user?.is_pro,
         productDetails?.user?.isPro,
         productDetails?.user?.is_premium,
@@ -891,7 +897,7 @@ const ProductSellerDetailCard = ({
         settings?.is_premium,
         settings?.premium,
       ].some((value) => toBool(value)),
-    [isProProp, seller, productDetails?.user, sellerSettings, settings],
+    [isProProp, seller, productDetails, sellerSettings, settings],
   );
 
   const membershipTier = forceShopTier
