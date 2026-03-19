@@ -23,7 +23,7 @@ import { IconRocket, IconRosetteDiscount, IconCrown } from "@/components/Common/
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import CustomImage from "@/components/Common/CustomImage";
-import Loader from "@/components/Common/Loader";
+import { Skeleton } from "@/components/ui/skeleton";
 import Layout from "@/components/Layout/Layout";
 import { toast } from "@/utils/toastBs";
 import { useRouter } from "next/navigation";
@@ -104,7 +104,6 @@ export default function ComparePage() {
         setItems(results.filter(item => item && item.id));
         
       } catch (error) {
-        console.error("Error fetching comparison items:", error);
         toast.error("Greška pri učitavanju podataka.");
       } finally {
         setLoading(false);
@@ -197,8 +196,64 @@ export default function ComparePage() {
   if (loading) {
     return (
       <Layout>
-        <div className="min-h-[60vh] flex justify-center items-center">
-          <Loader />
+        <div className="container mx-auto max-w-6xl px-4 py-6">
+          {/* Toolbar skeleton */}
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <Skeleton className="h-8 w-32 rounded-xl" />
+            <div className="flex gap-2">
+              <Skeleton className="h-8 w-24 rounded-xl" />
+              <Skeleton className="h-8 w-24 rounded-xl" />
+              <Skeleton className="h-8 w-24 rounded-xl" />
+            </div>
+          </div>
+
+          {/* Product header columns skeleton */}
+          <div className="overflow-hidden rounded-3xl border border-slate-200/80 dark:border-slate-700/70 bg-white dark:bg-slate-900/60">
+            {/* Header row — product cards */}
+            <div className="grid border-b border-slate-200/80 dark:border-slate-700/70"
+              style={{ gridTemplateColumns: `200px repeat(${Math.max(2, reduxList?.length || 2)}, 1fr)` }}
+            >
+              <div className="p-4 bg-slate-50 dark:bg-slate-800/40" />
+              {Array.from({ length: Math.max(2, reduxList?.length || 2) }).map((_, i) => (
+                <div key={i} className="p-4 border-l border-slate-200/80 dark:border-slate-700/70 space-y-3">
+                  <Skeleton className="aspect-[4/3] w-full rounded-2xl" />
+                  <Skeleton className="h-5 w-3/4 rounded-lg" />
+                  <Skeleton className="h-6 w-1/2 rounded-lg" />
+                  <Skeleton className="h-9 w-full rounded-xl" />
+                </div>
+              ))}
+            </div>
+
+            {/* Specification rows skeleton */}
+            {[
+              { label: "Osnovne informacije", rows: 4 },
+              { label: "Performanse i Motor", rows: 6 },
+              { label: "Detalji i Oprema", rows: 4 },
+            ].map((group) => (
+              <div key={group.label}>
+                {/* Group header */}
+                <div className="px-4 py-3 bg-slate-50/80 dark:bg-slate-800/30 border-y border-slate-200/80 dark:border-slate-700/70">
+                  <Skeleton className="h-4 w-40 rounded-lg" />
+                </div>
+                {/* Rows */}
+                {Array.from({ length: group.rows }).map((_, ri) => (
+                  <div key={ri}
+                    className="grid border-b border-slate-100 dark:border-slate-800"
+                    style={{ gridTemplateColumns: `200px repeat(${Math.max(2, reduxList?.length || 2)}, 1fr)` }}
+                  >
+                    <div className="p-3 bg-slate-50/50 dark:bg-slate-800/20">
+                      <Skeleton className="h-3 w-24 rounded-md" />
+                    </div>
+                    {Array.from({ length: Math.max(2, reduxList?.length || 2) }).map((_, ci) => (
+                      <div key={ci} className="p-3 border-l border-slate-100 dark:border-slate-800">
+                        <Skeleton className="h-4 w-16 rounded-md mx-auto" />
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
         </div>
       </Layout>
     );

@@ -8,6 +8,7 @@ import { sessionApi } from "@/utils/api";
 import { toast } from "@/utils/toastBs";
 import FirebaseData from "@/utils/Firebase";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   CheckCircle2,
   Clock3,
@@ -233,8 +234,25 @@ export default function SessionsPage() {
           {[1, 2, 3].map((idx) => (
             <div
               key={`session-skeleton-${idx}`}
-              className="h-28 animate-pulse rounded-2xl border border-slate-200 bg-slate-100 dark:border-slate-700 dark:bg-slate-800"
-            />
+              className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900"
+            >
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <Skeleton className="h-9 w-9 rounded-xl flex-shrink-0" />
+                    <div className="min-w-0 space-y-1.5 flex-1">
+                      <Skeleton className="h-4 w-40 rounded-lg" />
+                      <Skeleton className="h-3 w-64 rounded-md" />
+                    </div>
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-3">
+                    <Skeleton className="h-3 w-48 rounded-md" />
+                    <Skeleton className="h-3 w-36 rounded-md" />
+                  </div>
+                </div>
+                <Skeleton className="h-6 w-28 rounded-full flex-shrink-0" />
+              </div>
+            </div>
           ))}
         </div>
       ) : sessions.length === 0 ? (
