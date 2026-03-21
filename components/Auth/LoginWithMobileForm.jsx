@@ -23,10 +23,7 @@ import {
   resolveLmxPhoneDialCode,
 } from "@/components/Common/phoneInputTheme";
 import { getCanonicalPhonePayload } from "./phoneAuthUtils";
-import {
-  isFirebaseDomainConfigurationError,
-  isRecaptchaRecoverableError,
-} from "./recaptchaManager";
+import { isRecaptchaRecoverableError } from "./recaptchaManager";
 import { useRef } from "react";
 
 const LoginWithMobileForm = ({
@@ -155,40 +152,8 @@ const LoginWithMobileForm = ({
             return;
           }
         } catch (retryError) {
-          if (isFirebaseDomainConfigurationError(retryError)) {
-            try {
-              setConfirmationResult(null);
-              toast.info(
-                "Firebase verifikacija nije dostupna. Prelazimo na rezervni OTP kanal.",
-              );
-              await sendOtpWithTwillio({
-                phoneE164,
-                countryCodeDigits,
-                localNumber,
-              });
-              return;
-            } catch (_) {
-              // final handler below
-            }
-          }
           handleFirebaseAuthError(retryError);
           return;
-        }
-      }
-      if (isFirebaseDomainConfigurationError(error)) {
-        try {
-          setConfirmationResult(null);
-          toast.info(
-            "Firebase verifikacija nije dostupna. Prelazimo na rezervni OTP kanal.",
-          );
-          await sendOtpWithTwillio({
-            phoneE164,
-            countryCodeDigits,
-            localNumber,
-          });
-          return;
-        } catch (_) {
-          // final handler below
         }
       }
       handleFirebaseAuthError(error);

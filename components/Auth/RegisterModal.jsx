@@ -74,7 +74,6 @@ import {
 import {
   clearRecaptchaVerifier,
   ensureRecaptchaVerifier,
-  isFirebaseDomainConfigurationError,
   isRecaptchaRecoverableError,
 } from "./recaptchaManager";
 
@@ -710,40 +709,8 @@ const RegisterModal = ({ IsRegisterModalOpen, setIsRegisterModalOpen }) => {
             return;
           }
         } catch (retryError) {
-          if (isFirebaseDomainConfigurationError(retryError)) {
-            try {
-              setConfirmationResult(null);
-              toast.info(
-                "Firebase verifikacija nije dostupna. Prelazimo na rezervni OTP kanal.",
-              );
-              await sendOtpWithTwillio({
-                phoneE164,
-                localNumber,
-                countryCodeDigits,
-              });
-              return;
-            } catch (_) {
-              // final handler below
-            }
-          }
           handleFirebaseAuthError(retryError);
           return;
-        }
-      }
-      if (isFirebaseDomainConfigurationError(error)) {
-        try {
-          setConfirmationResult(null);
-          toast.info(
-            "Firebase verifikacija nije dostupna. Prelazimo na rezervni OTP kanal.",
-          );
-          await sendOtpWithTwillio({
-            phoneE164,
-            localNumber,
-            countryCodeDigits,
-          });
-          return;
-        } catch (_) {
-          // final handler below
         }
       }
       handleFirebaseAuthError(error);

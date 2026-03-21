@@ -21,11 +21,8 @@ import {
 import { Loader2 } from "@/components/Common/UnifiedIconPack";
 import { useEffect, useState } from "react";
 import { useNavigate } from "../Common/useNavigate";
-import { getCanonicalPhonePayload, maskPhoneForDebug } from "./phoneAuthUtils";
-import {
-  isFirebaseDomainConfigurationError,
-  isRecaptchaRecoverableError,
-} from "./recaptchaManager";
+import { getCanonicalPhonePayload } from "./phoneAuthUtils";
+import { isRecaptchaRecoverableError } from "./recaptchaManager";
 import {
   isPhoneAlreadyRegisteredError,
   isPhoneNotRegisteredError,
@@ -553,42 +550,8 @@ const OtpScreen = ({
             return;
           }
         } catch (retryError) {
-          if (isFirebaseDomainConfigurationError(retryError)) {
-            try {
-              setConfirmationResult(null);
-              toast.info(
-                "Firebase verifikacija nije dostupna. Prelazimo na rezervni OTP kanal.",
-              );
-              const phonePayload = resolvePhonePayload();
-              await resendOtpWithTwillio({
-                phoneE164,
-                localNumber: phonePayload.local,
-                countryCodeDigits: phonePayload.countryCode,
-              });
-              return;
-            } catch (_) {
-              // final handler below
-            }
-          }
           handleFirebaseAuthError(retryError);
           return;
-        }
-      }
-      if (isFirebaseDomainConfigurationError(error)) {
-        try {
-          setConfirmationResult(null);
-          toast.info(
-            "Firebase verifikacija nije dostupna. Prelazimo na rezervni OTP kanal.",
-          );
-          const phonePayload = resolvePhonePayload();
-          await resendOtpWithTwillio({
-            phoneE164,
-            localNumber: phonePayload.local,
-            countryCodeDigits: phonePayload.countryCode,
-          });
-          return;
-        } catch (_) {
-          // final handler below
         }
       }
       handleFirebaseAuthError(error);
